@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>중국어 단어 암기</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            touch-action: pan-y;
+        }
+
+        .header {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .menu-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card-container {
+            perspective: 1000px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            position: relative;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            backface-visibility: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+        }
+
+        .chinese {
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .pinyin {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .korean {
+            font-size: 32px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            background: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-prev {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-next {
+            background: #667eea;
+            color: white;
+            flex: 1;
+        }
+
+        .progress {
+            color: white;
+            font-size: 14px;
+            margin-top: 20px;
+            opacity: 0.9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .chapter-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .chapter-item {
+            background: #f5f5f5;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chapter-item:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .chapter-count {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 id="chapterTitle">중국어 단어 암기</h1>
+        <button class="menu-btn" onclick="showChapterList()">챕터 선택</button>
+    </div>
+
+    <div class="container">
+        <div id="loading" class="loading">챕터를 불러오는 중...</div>
+
+        <div id="cardContainer" class="card-container" style="display:none;">
+            <div class="card" id="card" onclick="flipCard()">
+                <div class="card-front">
+                    <div class="chinese" id="chinese"></div>
+                    <div class="pinyin" id="pinyin"></div>
+                </div>
+                <div class="card-back">
+                    <div class="korean" id="korean"></div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-prev" onclick="prevCard()">◀ 이전</button>
+                <button class="btn btn-next" onclick="nextCard()">다음 ▶</button>
+            </div>
+
+            <div class="progress" id="progress"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="chapterModal">
+        <div class="modal-content">
+            <h2>챕터 선택</h2>
+            <div class="chapter-list" id="chapterList"></div>
+        </div>
+    </div>
+
+    <script>
+        let chapters = [];
+        let currentChapter = null;
+        let currentIndex = 0;
+        let isFlipped = false;
+
+        // 초기화
+        async function init() {
+            await loadChapterList();
+            const lastChapter = localStorage.getItem('lastChapter');
+            if (lastChapter && chapters.find(c => c.file === lastChapter)) {
+                await loadChapter(lastChapter);
+            } else if (chapters.length > 0) {
+                await loadChapter(chapters[0].file);
+            }
+        }
+
+        // 챕터 목록 불러오기
+        async function loadChapterList() {
+            try {
+                // chapters 디렉토리의 모든 JSON 파일 찾기
+                const response = await fetch('chapters-list.json');
+                chapters = await response.json();
+                updateChapterListUI();
+            } catch (error) {
+                console.error('챕터 목록 로드 실패:', error);
+                // 폴백: ch01.json부터 순서대로 시도
+                for (let i = 1; i <= 80; i++) {
+                    const file = `ch${String(i).padStart(2, '0')}.json`;
+                    try {
+                        const res = await fetch(`chapters/${file}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            chapters.push({ file, title: data.title || `챕터 ${i}`, count: data.words.length });
+                        }
+                    } catch (e) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 챕터 목록 UI 업데이트
+        function updateChapterListUI() {
+            const list = document.getElementById('chapterList');
+            list.innerHTML = chapters.map(ch => `
+                <div class="chapter-item" onclick="selectChapter('${ch.file}')">
+                    <span>${ch.title}</span>
+                    <span class="chapter-count">${ch.count || 0}개 단어</span>
+                </div>
+            `).join('');
+        }
+
+        // 챕터 선택
+        async function selectChapter(file) {
+            document.getElementById('chapterModal').classList.remove('active');
+            await loadChapter(file);
+        }
+
+        // 챕터 불러오기
+        async function loadChapter(file) {
+            try {
+                const response = await fetch(`chapters/${file}`);
+                currentChapter = await response.json();
+                currentIndex = 0;
+                localStorage.setItem('lastChapter', file);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('cardContainer').style.display = 'block';
+                document.getElementById('chapterTitle').textContent = currentChapter.title || '중국어 단어 암기';
+
+                showCard();
+            } catch (error) {
+                console.error('챕터 로드 실패:', error);
+                alert('챕터를 불러올 수 없습니다.');
+            }
+        }
+
+        // 카드 표시
+        function showCard() {
+            if (!currentChapter || !currentChapter.words) return;
+
+            const word = currentChapter.words[currentIndex];
+            document.getElementById('chinese').textContent = word.chinese;
+            document.getElementById('pinyin').textContent = word.pinyin || '';
+            document.getElementById('korean').textContent = word.korean;
+            document.getElementById('progress').textContent = `${currentIndex + 1} / ${currentChapter.words.length}`;
+
+            // 카드 뒤집기 초기화
+            document.getElementById('card').classList.remove('flipped');
+            isFlipped = false;
+        }
+
+        // 카드 뒤집기
+        function flipCard() {
+            const card = document.getElementById('card');
+            if (isFlipped) {
+                card.classList.remove('flipped');
+            } else {
+                card.classList.add('flipped');
+            }
+            isFlipped = !isFlipped;
+        }
+
+        // 이전 카드
+        function prevCard() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                showCard();
+            }
+        }
+
+        // 다음 카드
+        function nextCard() {
+            if (currentIndex < currentChapter.words.length - 1) {
+                currentIndex++;
+                showCard();
+            } else {
+                if (confirm('챕터를 완료했습니다! 처음부터 다시 시작하시겠습니까?')) {
+                    currentIndex = 0;
+                    showCard();
+                }
+            }
+        }
+
+        // 챕터 목록 표시
+        function showChapterList() {
+            document.getElementById('chapterModal').classList.add('active');
+        }
+
+        // 모달 닫기
+        document.getElementById('chapterModal').onclick = function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
+        };
+
+        // 키보드 단축키
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') prevCard();
+            if (e.key === 'ArrowRight') nextCard();
+            if (e.key === ' ') {
+                e.preventDefault();
+                flipCard();
+            }
+        });
+
+        // 스와이프 제스처
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.getElementById('card').addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.getElementById('card').addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 50) nextCard();
+            if (touchEndX > touchStartX + 50) prevCard();
+        }
+
+        // 앱 시작
+        init();
+    </script>
+</body>
+</html>

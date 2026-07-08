@@ -1,0 +1,61 @@
+{
+  "chapter": 1,
+  "title": "챕터 1 - 기초 인사",
+  "words": [
+    {
+      "chinese": "你好",
+      "pinyin": "nǐ hǎo",
+      "korean": "안녕하세요"
+    },
+    {
+      "chinese": "谢谢",
+      "pinyin": "xiè xie",
+      "korean": "감사합니다"
+    },
+    {
+      "chinese": "对不起",
+      "pinyin": "duì bù qǐ",
+      "korean": "죄송합니다"
+    },
+    {
+      "chinese": "再见",
+      "pinyin": "zài jiàn",
+      "korean": "안녕히 가세요"
+    },
+    {
+      "chinese": "没关系",
+      "pinyin": "méi guān xi",
+      "korean": "괜찮습니다"
+    },
+    {
+      "chinese": "请",
+      "pinyin": "qǐng",
+      "korean": "~해 주세요"
+    },
+    {
+      "chinese": "欢迎",
+      "pinyin": "huān yíng",
+      "korean": "환영합니다"
+    },
+    {
+      "chinese": "不客气",
+      "pinyin": "bù kè qi",
+      "korean": "천만에요"
+    },
+    {
+      "chinese": "早上好",
+      "pinyin": "zǎo shang hǎo",
+      "korean": "좋은 아침입니다"
+    },
+    {
+      "chinese": "晚安",
+      "pinyin": "wǎn ān",
+      "korean": "안녕히 주무세요"
+    },
+    {
+      "chinese": "你叫什么名字",
+      "pinyin": "nǐ jiào shén me míng zi",
+      "korean": "이름이 뭐예요?"
+    }
+  ]
+}

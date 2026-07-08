@@ -491,7 +491,7 @@ wfsw.onclick=()=>{wfsw.classList.toggle("on"); weakFirstOn=wfsw.classList.contai
 $("applyBtn").onclick=()=>{$("sheetWrap").classList.remove("show"); buildDeck();};
 
 /* 로딩 */
-fetch(`data/${CH}.json`)
+fetch(`chapters/${CH}.json`)
   .then(r => { if(!r.ok) throw new Error(); return r.json(); })
   .then(d => {
     QUESTIONS = d.questions;

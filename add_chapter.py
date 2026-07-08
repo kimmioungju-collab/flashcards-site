@@ -19,8 +19,7 @@ import subprocess
 def add_chapter(json_file, chapter_num):
     """새 챕터 추가"""
     project_root = Path(__file__).parent
-    chapters_dir = project_root / "chapters"
-    chapters_list_file = project_root / "chapters-list.json"
+    chapters_dir = project_root / "public" / "chapters"
 
     # 챕터 번호 포맷 (01, 02, ...)
     ch_num = str(chapter_num).zfill(2)
@@ -37,14 +36,14 @@ def add_chapter(json_file, chapter_num):
         with open(source_file, 'r', encoding='utf-8') as f:
             chapter_data = json.load(f)
 
-        if 'words' not in chapter_data:
-            print("❌ JSON에 'words' 필드가 없습니다")
+        if 'questions' not in chapter_data:
+            print("❌ JSON에 'questions' 필드가 없습니다")
             return False
 
-        word_count = len(chapter_data['words'])
+        question_count = len(chapter_data['questions'])
         title = chapter_data.get('title', f'챕터 {ch_num}')
 
-        print(f"✅ JSON 유효성 확인: {word_count}개 단어")
+        print(f"✅ JSON 유효성 확인: {question_count}개 문제")
 
     except json.JSONDecodeError as e:
         print(f"❌ JSON 파싱 오류: {e}")
@@ -53,36 +52,7 @@ def add_chapter(json_file, chapter_num):
     # 챕터 파일 복사
     shutil.copy(source_file, target_file)
     print(f"✅ 챕터 파일 복사: {target_file}")
-
-    # chapters-list.json 업데이트
-    if chapters_list_file.exists():
-        with open(chapters_list_file, 'r', encoding='utf-8') as f:
-            chapters_list = json.load(f)
-    else:
-        chapters_list = []
-
-    # 기존 챕터 업데이트 또는 추가
-    chapter_entry = {
-        "file": f"ch{ch_num}.json",
-        "title": title,
-        "count": word_count
-    }
-
-    existing_index = next((i for i, ch in enumerate(chapters_list) if ch['file'] == f"ch{ch_num}.json"), None)
-    if existing_index is not None:
-        chapters_list[existing_index] = chapter_entry
-        print(f"✅ 기존 챕터 업데이트: ch{ch_num}")
-    else:
-        chapters_list.append(chapter_entry)
-        chapters_list.sort(key=lambda x: x['file'])
-        print(f"✅ 새 챕터 추가: ch{ch_num}")
-
-    # chapters-list.json 저장
-    with open(chapters_list_file, 'w', encoding='utf-8') as f:
-        json.dump(chapters_list, f, ensure_ascii=False, indent=2)
-
-    print(f"✅ chapters-list.json 업데이트 완료")
-    print(f"\n📊 현재 챕터 수: {len(chapters_list)}개")
+    print(f"📊 챕터 {ch_num}: {title} ({question_count}문제)")
 
     return True
 

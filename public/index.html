@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OX 플래시카드 목차</title>
+<style>
+:root{--desk:#2B3A4A;--desk-deep:#22303D;--paper:#FBFAF7;--ink:#1E242B;--hl:#FFE34D;--wrong:#D64550;--right:#2E75B6;--muted:#7A8694;--line:#E4E0D6}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;
+  background:linear-gradient(160deg,var(--desk),var(--desk-deep));min-height:100dvh;
+  display:flex;justify-content:center;padding:18px 14px 40px;color:var(--ink)}
+.wrap{width:100%;max-width:560px}
+h1{color:#fff;font-size:20px;font-weight:900;letter-spacing:-.3px;margin-bottom:4px}
+.sub{color:#9DB0C0;font-size:12.5px;font-weight:600;margin-bottom:14px}
+.search{width:100%;border:none;border-radius:14px;padding:13px 16px;font-size:15px;font-weight:600;
+  background:rgba(255,255,255,.14);color:#fff;margin-bottom:14px;outline:none}
+.search::placeholder{color:#8FA0B0}
+.list{display:flex;flex-direction:column;gap:10px}
+a.ch{display:block;background:var(--paper);border-radius:14px;padding:14px 16px;text-decoration:none;color:var(--ink);
+  box-shadow:0 6px 18px rgba(0,0,0,.28);position:relative;overflow:hidden}
+a.ch::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--hl)}
+a.ch.done::before{background:var(--right)}
+.row1{display:flex;align-items:baseline;gap:8px}
+.cid{font-size:11.5px;font-weight:900;color:var(--muted);letter-spacing:.5px}
+.ctitle{font-size:15.5px;font-weight:800;flex:1;word-break:keep-all}
+.row2{display:flex;gap:8px;margin-top:7px;font-size:12px;font-weight:700;color:var(--muted);flex-wrap:wrap}
+.stat{background:#EFECE3;border-radius:99px;padding:2.5px 10px}
+.stat.best{background:#E2F0D9;color:#2E7D32}
+.stat.new{background:#FFF3C4;color:#8A7B1E}
+.stat.wrong{background:#FDEBEC;color:#C62828}
+.empty{color:#9DB0C0;text-align:center;padding:40px 0;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📚 OX 플래시카드</h1>
+  <div class="sub" id="summary">불러오는 중…</div>
+  <input class="search" id="q" placeholder="챕터 검색 (예: 비례, 신뢰보호)">
+  <div class="list" id="list"></div>
+</div>
+<script>
+let chapters=[];
+function stat(id){
+  try{ return JSON.parse(localStorage.getItem("fc:"+id)||"null"); }catch(e){ return null; }
+}
+function render(filter=""){
+  const box=document.getElementById("list");
+  box.innerHTML="";
+  const f=filter.trim();
+  const items=chapters.filter(c=>!f || c.title.includes(f) || c.id.includes(f));
+  if(!items.length){ box.innerHTML='<div class="empty">검색 결과가 없습니다</div>'; return; }
+  for(const c of items){
+    const s=stat(c.id);
+    const a=document.createElement("a");
+    a.className="ch"+(s && s.rounds && s.best>=90 ? " done":"");
+    a.href=`app.html?ch=${c.id}`;
+    let stats;
+    if(s){
+      stats = s.rounds ? `<span class="stat">${s.rounds}회독</span><span class="stat best">최고 ${s.best}%</span>` : "";
+      const weak = s.qstat ? Object.values(s.qstat).filter(x=>x.w>0).length : 0;
+      if(weak) stats += `<span class="stat wrong">취약 ${weak}문항</span>`;
+      if(s.prog && s.prog.nos && (s.prog.ans||[]).length < s.prog.nos.length)
+        stats += `<span class="stat new">풀던 중 ${(s.prog.ans||[]).length}/${s.prog.nos.length}</span>`;
+      if(!stats) stats = `<span class="stat new">미학습</span>`;
+    } else {
+      stats = `<span class="stat new">미학습</span>`;
+    }
+    a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span></div>
+      <div class="row2"><span class="stat">${c.count}문항</span>${stats}</div>`;
+    box.appendChild(a);
+  }
+}
+fetch("data/manifest.json").then(r=>r.json()).then(d=>{
+  chapters=d.chapters;
+  const studied=chapters.filter(c=>stat(c.id)).length;
+  document.getElementById("summary").textContent=`전체 ${chapters.length}챕터 · 학습 시작 ${studied}챕터`;
+  render();
+});
+document.getElementById("q").addEventListener("input",e=>render(e.target.value));
+</script>
+</body>
+</html>

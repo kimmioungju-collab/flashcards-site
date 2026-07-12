@@ -56,6 +56,12 @@ a.ch.done::before{background:var(--right)}
 .plan .pb.info{background:#EFECE3;color:#3A4553}
 .plan .pb.warn{background:#FFF3C4;color:#8A7B1E}
 .plan .pbtn{border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:800;background:#2E75B6;color:#fff;cursor:pointer}
+.plan .pgwrap{margin:2px 0 10px}
+.plan .pglab{font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:5px}
+.plan .pgchips{display:flex;flex-wrap:wrap;gap:5px}
+.plan .pgc{border:1.5px solid #D8D2C6;background:#fff;color:#6B7280;border-radius:99px;
+  padding:3px 10px;font-size:11.5px;font-weight:800;cursor:pointer;user-select:none}
+.plan .pgc.on{border-color:var(--pgc);background:var(--pgc);color:#fff}
 .toolbar{display:flex;gap:8px;margin-bottom:14px}
 .toolbar .search{margin-bottom:0;flex:1}
 .toolbar .leftbtn{border:none;border-radius:14px;padding:0 14px;font-size:12.5px;font-weight:800;
@@ -89,7 +95,7 @@ function gradesHtml(g){
 function stat(id){
   try{ return JSON.parse(localStorage.getItem("fc:"+id)||"null"); }catch(e){ return null; }
 }
-/* 1회독 커버리지: 실제로 한 번 이상 본 문항 수 */
+/* 1회독 커버리지: 실제로 한 번 이상 본 문항 수 (전체 등급 기준 — 목록용) */
 function chSeen(c){
   const s=stat(c.id); if(!s||!s.qstat) return 0;
   let n=0; for(const k in s.qstat){ if(s.qstat[k] && s.qstat[k].s>0) n++; }
@@ -97,6 +103,35 @@ function chSeen(c){
 }
 function chDone(c){ return c.count>0 && chSeen(c)>=c.count; }
 let leftOnly=false;
+
+/* ── 등급별 계산 (플랜용) ── */
+const PLAN_GRADES=["S","A","B","C","기","인","소","Z"];
+let qgrades={};   // chapterId -> { 문항no: 등급 }  (등급 필터 켤 때만 로드)
+function planGradeSet(){
+  const p=loadPlan();
+  return (p&&Array.isArray(p.grades)&&p.grades.length)? new Set(p.grades) : null;  // null = 전체
+}
+async function ensureQGrades(){
+  const miss=chapters.filter(c=>!qgrades[c.id]);
+  await Promise.all(miss.map(async c=>{
+    try{
+      const r=await fetch(`chapters/${c.id}.json`);
+      if(r.ok){ const d=await r.json(); const m={};
+        (d.questions||[]).forEach(q=>{ m[q.no]=((q.grade||"").trim())||"-"; });
+        qgrades[c.id]=m;
+      } else qgrades[c.id]={};
+    }catch(e){ qgrades[c.id]={}; }
+  }));
+}
+function chCountP(c,gset){ if(!gset) return c.count||0; const g=c.grades||{}; let n=0; gset.forEach(k=>n+=(g[k]||0)); return n; }
+function chSeenP(c,gset){
+  const s=stat(c.id); if(!s||!s.qstat) return 0;
+  if(!gset) return chSeen(c);
+  const gm=qgrades[c.id]||{}; let n=0;
+  for(const k in s.qstat){ const st=s.qstat[k]; if(st&&st.s>0 && gset.has(gm[k])) n++; }
+  return Math.min(n, chCountP(c,gset));
+}
+function chDoneP(c,gset){ const t=chCountP(c,gset); return t>0 && chSeenP(c,gset)>=t; }
 function render(filter=""){
   const box=document.getElementById("list");
   box.innerHTML="";
@@ -224,14 +259,25 @@ function setupPlan(){
   if(dv===null) return;
   const days=Math.max(1, parseInt(dv)||10);
   const start=(cur&&cur.start)?cur.start:todayStr();
-  savePlan({start, days});
+  savePlan({start, days, grades: cur?cur.grades:undefined});
   renderPlan(); render(document.getElementById("q").value);
 }
 function resetPlanStart(){
   const cur=loadPlan(); if(!cur) return;
   if(!confirm("시작일을 오늘("+todayStr()+")로 다시 맞출까요?\n(진행 기록은 그대로 유지됩니다)")) return;
-  savePlan({start:todayStr(), days:cur.days});
+  savePlan({start:todayStr(), days:cur.days, grades:cur.grades});
   renderPlan(); render(document.getElementById("q").value);
+}
+/* 등급 선택 토글 → 플랜 재계산 */
+async function togglePlanGrade(g){
+  const p=loadPlan(); if(!p) return;
+  let gs=Array.isArray(p.grades)?p.grades.slice():[];
+  if(g==="ALL"){ gs=[]; }
+  else if(gs.includes(g)){ gs=gs.filter(x=>x!==g); }
+  else { gs.push(g); }
+  savePlan({start:p.start, days:p.days, grades: gs.length?gs:undefined});
+  if(gs.length) await ensureQGrades();
+  renderPlan();
 }
 function renderPlan(){
   const card=document.getElementById("planCard"); if(!card) return;
@@ -243,11 +289,12 @@ function renderPlan(){
       <button class="pbtn" id="planSet">플랜 시작</button>`;
     document.getElementById("planSet").onclick=setupPlan; return;
   }
-  const T=chapters.length;
-  const D=chapters.filter(chDone).length;
-  // 전체 문항 기준 (챕터별 문항수가 다르므로 페이스는 문항으로 계산)
-  const totalQ=chapters.reduce((s,c)=>s+(c.count||0),0);
-  const seenQ=chapters.reduce((s,c)=>s+chSeen(c),0);
+  const gset=planGradeSet();  // null = 전체 등급
+  const T=chapters.filter(c=>chCountP(c,gset)>0).length;
+  const D=chapters.filter(c=>chDoneP(c,gset)).length;
+  // 문항 기준 페이스 (등급 지정 시 해당 등급 문항만 집계)
+  const totalQ=chapters.reduce((s,c)=>s+chCountP(c,gset),0);
+  const seenQ=chapters.reduce((s,c)=>s+chSeenP(c,gset),0);
   const remainQ=Math.max(0, totalQ-seenQ);
   const pct=totalQ?Math.round(seenQ/totalQ*100):0;
   const start=new Date(p.start+"T00:00:00");
@@ -272,12 +319,22 @@ function renderPlan(){
   if(seenQ<totalQ && !overdue) badges+=`<span class="pb info">오늘까지 목표 ${targetQ}문항</span>`;
   if(seenQ<totalQ) badges+=`<span class="pb ${daysLeft<=1&&remainQ>0?"warn":"info"}">하루 ${perDayQ}문항 권장</span>`;
 
+  const gsel=gset||new Set();
+  const allOn=!gset;
+  const gchips=`<span class="pgc${allOn?" on":""}" data-g="ALL" style="--pgc:#3A4553">전체</span>`+
+    PLAN_GRADES.map(g=>`<span class="pgc${gsel.has(g)?" on":""}" data-g="${g}" style="--pgc:${GC[g]||'#7F7F7F'}">${g}</span>`).join("");
+  const scope = gset? `${[...gset].join("·")} 등급` : "전체 등급";
+
   card.innerHTML=`
     <div class="ph">🎯 학습 플랜
       <span class="pedit">
         <button id="planEdit">설정</button>
         <button id="planReset">오늘부터</button>
       </span>
+    </div>
+    <div class="pgwrap">
+      <div class="pglab">계산 대상 등급 (선택 안 하면 전체) · 현재: ${scope}</div>
+      <div class="pgchips" id="pgChips">${gchips}</div>
     </div>
     <div class="pbig">
       <span>진도 <b>${seenQ}/${totalQ}</b>문항 · <b>${pct}%</b></span>
@@ -289,6 +346,9 @@ function renderPlan(){
     <div class="pbadges">${badges}</div>`;
   document.getElementById("planEdit").onclick=setupPlan;
   document.getElementById("planReset").onclick=resetPlanStart;
+  card.querySelectorAll("#pgChips .pgc").forEach(el=>{
+    el.onclick=()=>togglePlanGrade(el.dataset.g);
+  });
 }
 
 document.getElementById("leftBtn").onclick=()=>{
@@ -303,6 +363,7 @@ fetch("data/manifest.json").then(r=>r.json()).then(async d=>{
   await pullAll();  // 다른 기기 진도 먼저 반영
   const studied=chapters.filter(c=>stat(c.id)).length;
   document.getElementById("summary").textContent=`전체 ${chapters.length}챕터 · 학습 시작 ${studied}챕터`;
+  if(planGradeSet()) await ensureQGrades();  // 등급 지정 플랜이면 문항 등급 로드
   renderPlan();
   render();
 });

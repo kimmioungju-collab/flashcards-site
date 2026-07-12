@@ -245,9 +245,10 @@ function renderPlan(){
   }
   const T=chapters.length;
   const D=chapters.filter(chDone).length;
-  const left=T-D;
+  // 전체 문항 기준 (챕터별 문항수가 다르므로 페이스는 문항으로 계산)
   const totalQ=chapters.reduce((s,c)=>s+(c.count||0),0);
   const seenQ=chapters.reduce((s,c)=>s+chSeen(c),0);
+  const remainQ=Math.max(0, totalQ-seenQ);
   const pct=totalQ?Math.round(seenQ/totalQ*100):0;
   const start=new Date(p.start+"T00:00:00");
   const today=new Date(); today.setHours(0,0,0,0);
@@ -257,19 +258,19 @@ function renderPlan(){
   const daysLeft=Math.max(0, days-(dayNum-1));          // 오늘 포함 남은 일수
   const end=new Date(start.getTime()+(days-1)*86400000);
   const endStr=`${end.getMonth()+1}/${end.getDate()}`;
-  const targetByToday=Math.min(T, Math.ceil(Math.min(Math.max(dayNum,1),days)/days*T));
-  const behind=Math.max(0, targetByToday-D);
-  const ahead=Math.max(0, D-targetByToday);
-  const perDay=daysLeft>0?Math.ceil(left/daysLeft):left;
+  const targetQ=Math.min(totalQ, Math.ceil(Math.min(Math.max(dayNum,1),days)/days*totalQ));
+  const behindQ=Math.max(0, targetQ-seenQ);
+  const aheadQ=Math.max(0, seenQ-targetQ);
+  const perDayQ=daysLeft>0?Math.ceil(remainQ/daysLeft):remainQ;
   const overdue = dayNum>days;
 
   let badges="";
-  if(D>=T) badges=`<span class="pb ok">🎉 1회독 완료!</span>`;
-  else if(overdue) badges=`<span class="pb bad">기한 초과 · 남은 ${left}챕터</span>`;
-  else if(behind>0) badges=`<span class="pb bad">⚠️ ${behind}챕터 뒤처짐</span>`;
-  else badges=`<span class="pb ok">✅ 순조${ahead>0?` (${ahead}챕터 앞섬)`:""}</span>`;
-  if(D<T && !overdue) badges+=`<span class="pb info">오늘까지 목표 ${targetByToday}챕터</span>`;
-  if(D<T) badges+=`<span class="pb ${daysLeft<=1&&left>0?"warn":"info"}">하루 ${perDay}챕터 권장</span>`;
+  if(seenQ>=totalQ) badges=`<span class="pb ok">🎉 1회독 완료!</span>`;
+  else if(overdue) badges=`<span class="pb bad">기한 초과 · 남은 ${remainQ}문항</span>`;
+  else if(behindQ>0) badges=`<span class="pb bad">⚠️ ${behindQ}문항 뒤처짐</span>`;
+  else badges=`<span class="pb ok">✅ 순조${aheadQ>0?` (${aheadQ}문항 앞섬)`:""}</span>`;
+  if(seenQ<totalQ && !overdue) badges+=`<span class="pb info">오늘까지 목표 ${targetQ}문항</span>`;
+  if(seenQ<totalQ) badges+=`<span class="pb ${daysLeft<=1&&remainQ>0?"warn":"info"}">하루 ${perDayQ}문항 권장</span>`;
 
   card.innerHTML=`
     <div class="ph">🎯 학습 플랜
@@ -279,7 +280,8 @@ function renderPlan(){
       </span>
     </div>
     <div class="pbig">
-      <span>진도 <b>${D}/${T}</b>챕터 · <b>${pct}%</b></span>
+      <span>진도 <b>${seenQ}/${totalQ}</b>문항 · <b>${pct}%</b></span>
+      <span style="color:var(--muted)">완료 ${D}/${T}챕터</span>
       <span>${overdue?`<b style="color:#C62828">기한 초과</b>`:`<b>${dayShown}</b>일차 / 목표 ${days}일 (D-${daysLeft})`}</span>
       <span style="color:var(--muted)">종료 예정 ${endStr}</span>
     </div>

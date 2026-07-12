@@ -321,8 +321,11 @@ function renderPlan(){
 
   const gsel=gset||new Set();
   const allOn=!gset;
+  const present=new Set();
+  chapters.forEach(c=>Object.keys(c.grades||{}).forEach(k=>{ if((c.grades[k]||0)>0) present.add(k); }));
+  const chipGrades=PLAN_GRADES.filter(g=>present.has(g));
   const gchips=`<span class="pgc${allOn?" on":""}" data-g="ALL" style="--pgc:#3A4553">전체</span>`+
-    PLAN_GRADES.map(g=>`<span class="pgc${gsel.has(g)?" on":""}" data-g="${g}" style="--pgc:${GC[g]||'#7F7F7F'}">${g}</span>`).join("");
+    chipGrades.map(g=>`<span class="pgc${gsel.has(g)?" on":""}" data-g="${g}" style="--pgc:${GC[g]||'#7F7F7F'}">${g}</span>`).join("");
   const scope = gset? `${[...gset].join("·")} 등급` : "전체 등급";
 
   card.innerHTML=`

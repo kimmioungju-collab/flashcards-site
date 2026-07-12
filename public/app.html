@@ -547,7 +547,8 @@ function initChips(){
     b.onclick=()=>{b.classList.toggle("on"); b.classList.contains("on")?selThemes.add(t):selThemes.delete(t);};
     $("themeChips").appendChild(b);
   });
-  ALLGRADES.forEach(g=>{
+  const present=new Set(QUESTIONS.map(q=>((q.grade||"").trim())||"-"));
+  ALLGRADES.filter(g=>present.has(g)).forEach(g=>{
     const b=document.createElement("button"); b.textContent=g==="-"?"등급없음":g; b.classList.add("g");
     if(GC[g]) b.style.setProperty("--gc",GC[g]);
     if(selGrades.has(g)) b.classList.add("on");

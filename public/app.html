@@ -229,6 +229,39 @@ async function pullCloud(){
     }
   }catch(e){}
 }
+let _optTimer=null;
+function pushOpts(){
+  if(!SYNC) return;
+  clearTimeout(_optTimer);
+  _optTimer = setTimeout(()=>{
+    fetch(cloudUrl("opts"), {method:"PUT", body:JSON.stringify(OPT)}).catch(()=>{});
+  }, 800);
+}
+async function pullOpts(){
+  if(!SYNC) return;
+  try{
+    const r = await fetch(cloudUrl("opts"), {cache:"no-store"});
+    if(!r.ok) return;
+    const c = await r.json();
+    if(c && (c._at||0) > (OPT._at||0)){
+      OPT = Object.assign(OPT, c);
+      if(!OPT.themes) OPT.themes={};
+      try{ localStorage.setItem(OPTKEY, JSON.stringify(OPT)); }catch(e){}
+      // 파생 변수 갱신 (필터/모드 UI 반영용)
+      selGrades = new Set(OPT.grades||[]);
+      selThemes = new Set((OPT.themes&&OPT.themes[CH])||[]);
+      mode = OPT.mode||"quiz";
+      shuffleOn = OPT.shuffle!==false;
+      weakOnlyOn = !!OPT.weakOnly;
+      weakFirstOn = !!OPT.weakFirst;
+    }
+  }catch(e){}
+}
+function applyToggleUI(){
+  document.querySelectorAll("#modeChips button").forEach(b=>b.classList.toggle("on", b.dataset.m===mode));
+  const setSw=(id,on)=>{ const e=$(id); if(e) e.classList.toggle("on", on); };
+  setSw("shuffleSw", shuffleOn); setSw("weakOnlySw", weakOnlyOn); setSw("weakFirstSw", weakFirstOn);
+}
 
 /* ── 저장 구조 ──
 S = { rounds, best, last, when, wrongNos,           // 요약
@@ -251,7 +284,9 @@ function saveOpt(){
   OPT.grades=[...selGrades];
   OPT.themes[CH]=[...selThemes];
   OPT.mode=mode; OPT.shuffle=shuffleOn; OPT.weakOnly=weakOnlyOn; OPT.weakFirst=weakFirstOn;
+  OPT._at=Date.now();
   try{ localStorage.setItem(OPTKEY, JSON.stringify(OPT)); }catch(e){}
+  pushOpts();
 }
 
 let deck=[], idx=0, ok=0, no=0, wrongs=[], answers=[];
@@ -540,14 +575,14 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
 /* 로딩 */
 (async () => {
   try {
-    await pullCloud();  // 다른 기기에서 푼 진도를 먼저 반영
+    await Promise.all([pullCloud(), pullOpts()]);  // 다른 기기의 진도·필터 설정 먼저 반영
     const r = await fetch(`chapters/${CH}.json`);
     if(!r.ok) throw new Error();
     const d = await r.json();
     QUESTIONS = d.questions;
     document.title = d.title + " 플래시카드";
     $("chTitle").textContent = d.title;
-    initChips(); updateRoundPill(); renderHistory();
+    initChips(); applyToggleUI(); updateRoundPill(); renderHistory();
     // 진행중 세션이 있으면 이어하기 제안
     if(S.prog && S.prog.nos && S.prog.nos.length && (S.prog.ans||[]).length < S.prog.nos.length){
       const done=(S.prog.ans||[]).length, total=S.prog.nos.length;

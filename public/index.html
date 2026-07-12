@@ -126,6 +126,17 @@ async function pushAll(){
       try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/ch/${ch.id}.json`,{method:"PUT",body:JSON.stringify(local)}); }catch(e){}
     }
   }
+  // 필터/학습모드 설정도 시딩
+  try{
+    const opt=JSON.parse(localStorage.getItem("fc:opts")||"null");
+    if(opt){
+      if(opt._at==null){ opt._at=Date.now(); localStorage.setItem("fc:opts", JSON.stringify(opt)); }
+      let co=null;
+      try{ const ro=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/opts.json`,{cache:"no-store"}); if(ro.ok) co=await ro.json(); }catch(e){}
+      if(!co || (opt._at||0) > (co._at||0))
+        await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/opts.json`,{method:"PUT",body:JSON.stringify(opt)});
+    }
+  }catch(e){}
 }
 document.getElementById("syncBtn").onclick=async ()=>{
   const cur=syncCode();

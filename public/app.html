@@ -215,8 +215,23 @@ if(!S.qstat) S.qstat = {};
 if(!S.history) S.history = [];
 function save(){ if(CH){ try{ localStorage.setItem(LSKEY, JSON.stringify(S)); }catch(e){} } }
 
-let deck=[], idx=0, ok=0, no=0, wrongs=[], answers=[], shuffleOn=true, mode="quiz";
-let selThemes=new Set(), selGrades=new Set(), weakOnlyOn=false, weakFirstOn=false;
+/* 필터 옵션 전역 저장 (챕터 간 유지) */
+const OPTKEY = "fc:opts";
+let OPT = { grades:[], mode:"quiz", shuffle:true, weakOnly:false, weakFirst:false, themes:{} };
+try { const o=JSON.parse(localStorage.getItem(OPTKEY)||"null"); if(o) OPT=Object.assign(OPT,o); }catch(e){}
+if(!OPT.themes) OPT.themes={};
+function saveOpt(){
+  OPT.grades=[...selGrades];
+  OPT.themes[CH]=[...selThemes];
+  OPT.mode=mode; OPT.shuffle=shuffleOn; OPT.weakOnly=weakOnlyOn; OPT.weakFirst=weakFirstOn;
+  try{ localStorage.setItem(OPTKEY, JSON.stringify(OPT)); }catch(e){}
+}
+
+let deck=[], idx=0, ok=0, no=0, wrongs=[], answers=[];
+let shuffleOn = OPT.shuffle!==false, mode = OPT.mode || "quiz";
+let selThemes = new Set((OPT.themes&&OPT.themes[CH])||[]);
+let selGrades = new Set(OPT.grades||[]);
+let weakOnlyOn = !!OPT.weakOnly, weakFirstOn = !!OPT.weakFirst;
 
 const $=id=>document.getElementById(id);
 const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -461,34 +476,39 @@ document.addEventListener("keydown",e=>{
 });
 
 /* 필터 시트 */
+const ALLGRADES=["S","A","B","C","기","인","소","Z","-"];
 function initChips(){
   const themes=[...new Set(QUESTIONS.map(q=>q.theme))];
-  const grades=[...new Set(QUESTIONS.map(q=>q.grade))].sort((a,b)=>"SABC기인소Z-".indexOf(a)-"SABC기인소Z-".indexOf(b));
   themes.forEach(t=>{
     const b=document.createElement("button"); b.textContent=t;
+    if(selThemes.has(t)) b.classList.add("on");
     b.onclick=()=>{b.classList.toggle("on"); b.classList.contains("on")?selThemes.add(t):selThemes.delete(t);};
     $("themeChips").appendChild(b);
   });
-  grades.forEach(g=>{
+  ALLGRADES.forEach(g=>{
     const b=document.createElement("button"); b.textContent=g==="-"?"등급없음":g; b.classList.add("g");
     if(GC[g]) b.style.setProperty("--gc",GC[g]);
+    if(selGrades.has(g)) b.classList.add("on");
     b.onclick=()=>{b.classList.toggle("on"); b.classList.contains("on")?selGrades.add(g):selGrades.delete(g);};
     $("gradeChips").appendChild(b);
   });
 }
-document.querySelectorAll("#modeChips button").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll("#modeChips button").forEach(x=>x.classList.remove("on"));
-  b.classList.add("on"); mode=b.dataset.m;
+document.querySelectorAll("#modeChips button").forEach(b=>{
+  b.classList.toggle("on", b.dataset.m===mode);
+  b.onclick=()=>{
+    document.querySelectorAll("#modeChips button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); mode=b.dataset.m;
+  };
 });
 $("filterBtn").onclick=()=>$("sheetWrap").classList.add("show");
 $("sheetWrap").addEventListener("click",e=>{if(e.target===$("sheetWrap"))$("sheetWrap").classList.remove("show");});
-const sw=$("shuffleSw"); sw.classList.add("on");
+const sw=$("shuffleSw"); sw.classList.toggle("on",shuffleOn);
 sw.onclick=()=>{sw.classList.toggle("on"); shuffleOn=sw.classList.contains("on");};
-const wosw=$("weakOnlySw");
+const wosw=$("weakOnlySw"); wosw.classList.toggle("on",weakOnlyOn);
 wosw.onclick=()=>{wosw.classList.toggle("on"); weakOnlyOn=wosw.classList.contains("on");};
-const wfsw=$("weakFirstSw");
+const wfsw=$("weakFirstSw"); wfsw.classList.toggle("on",weakFirstOn);
 wfsw.onclick=()=>{wfsw.classList.toggle("on"); weakFirstOn=wfsw.classList.contains("on");};
-$("applyBtn").onclick=()=>{$("sheetWrap").classList.remove("show"); buildDeck();};
+$("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); buildDeck();};
 
 /* 로딩 */
 fetch(`chapters/${CH}.json`)

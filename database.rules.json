@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "chat": {
+      ".read": true, ".write": true, ".indexOn": "t",
+      "$msg": { ".validate": "newData.hasChildren(['who','pos','tx','t']) && newData.child('tx').isString() && newData.child('tx').val().length <= 200" }
+    },
+    "longshort": {
+      ".read": true,
+      "long": { ".write": true, ".validate": "newData.isNumber()" },
+      "short": { ".write": true, ".validate": "newData.isNumber()" }
+    },
+    "leaderboard": {
+      ".read": true, ".indexOn": "points",
+      "$uid": { ".write": true, ".validate": "newData.hasChildren(['name','points'])" }
+    },
+    "online": { ".read": true, ".write": true },
+    "flashcards": {
+      "$code": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}

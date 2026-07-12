@@ -34,12 +34,18 @@ a.ch.done::before{background:var(--right)}
   border-radius:99px;padding:2px 8px;background:var(--gc,#7F7F7F)}
 .gc b{font-weight:900}
 .empty{color:#9DB0C0;text-align:center;padding:40px 0;font-weight:700}
+.syncbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;font-weight:700;color:#9DB0C0}
+.syncbar #syncState{flex:1}
+.syncbar #syncState.on{color:#8FE388}
+.syncbar button{border:none;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:800;
+  background:rgba(255,255,255,.16);color:#fff;cursor:pointer}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>📚 OX 플래시카드</h1>
   <div class="sub" id="summary">불러오는 중…</div>
+  <div class="syncbar"><span id="syncState">☁️ 동기화 꺼짐</span><button id="syncBtn">코드 설정</button></div>
   <input class="search" id="q" placeholder="챕터 검색 (예: 비례, 신뢰보호)">
   <div class="list" id="list"></div>
 </div>
@@ -85,8 +91,64 @@ function render(filter=""){
     box.appendChild(a);
   }
 }
-fetch("data/manifest.json").then(r=>r.json()).then(d=>{
+/* ── 클라우드 동기화 ── */
+const DBURL="https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com";
+function syncCode(){ return (localStorage.getItem("fc:synccode")||"").trim(); }
+function updateSyncUI(){
+  const c=syncCode(), el=document.getElementById("syncState"), btn=document.getElementById("syncBtn");
+  if(c){ el.textContent="☁️ 동기화 켜짐 · 코드 "+c; el.classList.add("on"); btn.textContent="변경/끄기"; }
+  else { el.textContent="☁️ 동기화 꺼짐"; el.classList.remove("on"); btn.textContent="코드 설정"; }
+}
+async function pullAll(){
+  const c=syncCode(); if(!c) return;
+  try{
+    const r=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/ch.json`,{cache:"no-store"});
+    if(!r.ok) return;
+    const cloud=await r.json(); if(!cloud) return;
+    for(const id of Object.keys(cloud)){
+      const rec=cloud[id]; if(!rec) continue;
+      const local=stat(id);
+      if(!local || (rec._at||0) > (local._at||0)){
+        try{ localStorage.setItem("fc:"+id, JSON.stringify(rec)); }catch(e){}
+      }
+    }
+  }catch(e){}
+}
+async function pushAll(){
+  const c=syncCode(); if(!c) return;
+  let cloud={};
+  try{ const r=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/ch.json`,{cache:"no-store"}); if(r.ok) cloud=(await r.json())||{}; }catch(e){}
+  for(const ch of chapters){
+    const local=stat(ch.id); if(!local) continue;
+    if(local._at==null){ local._at=Date.now(); try{ localStorage.setItem("fc:"+ch.id, JSON.stringify(local)); }catch(e){} }
+    const cl=cloud[ch.id];
+    if(!cl || (local._at||0) > (cl._at||0)){
+      try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/ch/${ch.id}.json`,{method:"PUT",body:JSON.stringify(local)}); }catch(e){}
+    }
+  }
+}
+document.getElementById("syncBtn").onclick=async ()=>{
+  const cur=syncCode();
+  const v=prompt("기기 간 진도를 공유할 동기화 코드를 입력하세요.\n같은 코드를 쓰는 기기끼리 진도가 동기화됩니다.\n(끄려면 빈칸으로 두고 확인)", cur);
+  if(v===null) return;
+  const code=v.trim();
+  if(code) localStorage.setItem("fc:synccode", code);
+  else localStorage.removeItem("fc:synccode");
+  updateSyncUI();
+  if(code){
+    document.getElementById("syncState").textContent="☁️ 동기화 중…";
+    await pullAll();      // 다른 기기 진도 받기
+    await pushAll();      // 이 기기 기존 진도 올리기
+    updateSyncUI();
+    render(document.getElementById("q").value);
+  }
+  alert(code? "동기화 켜짐. 다른 기기에서도 같은 코드 '"+code+"'를 입력하세요.":"동기화를 껐습니다.");
+};
+
+fetch("data/manifest.json").then(r=>r.json()).then(async d=>{
   chapters=d.chapters;
+  updateSyncUI();
+  await pullAll();  // 다른 기기 진도 먼저 반영
   const studied=chapters.filter(c=>stat(c.id)).length;
   document.getElementById("summary").textContent=`전체 ${chapters.length}챕터 · 학습 시작 ${studied}챕터`;
   render();

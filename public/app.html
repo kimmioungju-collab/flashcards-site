@@ -203,6 +203,33 @@ const CH = new URLSearchParams(location.search).get("ch") || "";
 const LSKEY = "fc:" + CH;
 const GC = {"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F"};
 
+/* ── 클라우드 동기화 (기기 간 진도 공유) ── */
+const DBURL = "https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com";
+const SYNC = (localStorage.getItem("fc:synccode") || "").trim();
+function cloudUrl(p){ return `${DBURL}/flashcards/${encodeURIComponent(SYNC)}/${p}.json`; }
+let _pushTimer=null;
+function pushCloud(){
+  if(!SYNC || !CH) return;
+  clearTimeout(_pushTimer);
+  _pushTimer = setTimeout(()=>{
+    fetch(cloudUrl("ch/"+CH), {method:"PUT", body:JSON.stringify(S)}).catch(()=>{});
+  }, 1200);
+}
+async function pullCloud(){
+  if(!SYNC || !CH) return;
+  try{
+    const r = await fetch(cloudUrl("ch/"+CH), {cache:"no-store"});
+    if(!r.ok) return;
+    const c = await r.json();
+    if(c && (c._at||0) > (S._at||0)){
+      S = Object.assign({rounds:0,best:0,last:0,wrongNos:[],history:[],qstat:{},prog:null}, c);
+      if(!S.qstat) S.qstat={};
+      if(!S.history) S.history=[];
+      try{ localStorage.setItem(LSKEY, JSON.stringify(S)); }catch(e){}
+    }
+  }catch(e){}
+}
+
 /* ── 저장 구조 ──
 S = { rounds, best, last, when, wrongNos,           // 요약
       history: [{n, when, total, ok, rate, wrongNos}],  // 회차별 기록
@@ -213,7 +240,7 @@ let S = { rounds:0, best:0, last:0, wrongNos:[], history:[], qstat:{}, prog:null
 try { const raw = JSON.parse(localStorage.getItem(LSKEY) || "null"); if(raw) S = Object.assign(S, raw); } catch(e) {}
 if(!S.qstat) S.qstat = {};
 if(!S.history) S.history = [];
-function save(){ if(CH){ try{ localStorage.setItem(LSKEY, JSON.stringify(S)); }catch(e){} } }
+function save(){ if(CH){ S._at=Date.now(); try{ localStorage.setItem(LSKEY, JSON.stringify(S)); }catch(e){} pushCloud(); } }
 
 /* 필터 옵션 전역 저장 (챕터 간 유지) */
 const OPTKEY = "fc:opts";
@@ -511,13 +538,16 @@ wfsw.onclick=()=>{wfsw.classList.toggle("on"); weakFirstOn=wfsw.classList.contai
 $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); buildDeck();};
 
 /* 로딩 */
-fetch(`chapters/${CH}.json`)
-  .then(r => { if(!r.ok) throw new Error(); return r.json(); })
-  .then(d => {
+(async () => {
+  try {
+    await pullCloud();  // 다른 기기에서 푼 진도를 먼저 반영
+    const r = await fetch(`chapters/${CH}.json`);
+    if(!r.ok) throw new Error();
+    const d = await r.json();
     QUESTIONS = d.questions;
     document.title = d.title + " 플래시카드";
     $("chTitle").textContent = d.title;
-    initChips(); updateRoundPill();
+    initChips(); updateRoundPill(); renderHistory();
     // 진행중 세션이 있으면 이어하기 제안
     if(S.prog && S.prog.nos && S.prog.nos.length && (S.prog.ans||[]).length < S.prog.nos.length){
       const done=(S.prog.ans||[]).length, total=S.prog.nos.length;
@@ -528,11 +558,11 @@ fetch(`chapters/${CH}.json`)
     } else {
       buildDeck();
     }
-  })
-  .catch(() => {
+  } catch(e) {
     $("chTitle").textContent = "챕터를 불러올 수 없습니다";
     $("qText").innerHTML = "URL에 <b>?ch=챕터ID</b>가 필요합니다.<br>목차(index.html)에서 챕터를 선택해 주세요.";
-  });
+  }
+})();
 </script>
 </body>
 </html>

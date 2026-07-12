@@ -79,6 +79,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .done button{border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:800;cursor:pointer}
 .done .retryWrong{background:var(--wrong);color:#fff}
 .done .restart{background:var(--ink);color:#fff}
+.done .nextch{background:var(--right);color:#fff;display:none}
 .histbox{max-width:340px;margin:0 auto;text-align:left}
 .histbox h4{font-size:13px;font-weight:900;color:var(--muted);margin-bottom:8px;letter-spacing:.5px}
 .hrow{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;padding:7px 10px;border-radius:10px;background:#F1EEE5;margin-bottom:6px}
@@ -150,6 +151,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     <div class="score"><span id="finalScore">0</span><small> / <span id="finalTotal">0</span></small></div>
     <p id="doneMsg"></p>
     <div class="btns">
+      <button class="nextch" id="nextChBtn">다음 챕터 →</button>
       <button class="retryWrong" id="retryWrongBtn">❌ 이번 오답만 다시 풀기</button>
       <button class="restart" id="restartBtn">처음부터 다시</button>
     </div>
@@ -463,6 +465,9 @@ function finish(){
     rate>=80 ? `정답률 ${rate}% — 오답 ${no}개만 잡으면 끝납니다.` :
     `정답률 ${rate}% — 오답 위주로 한 번 더 돌리세요.`;
   $("retryWrongBtn").style.display = wrongs.length? "block":"none";
+  const nb=$("nextChBtn");
+  if(NEXTCH){ nb.textContent=`다음 챕터: ${NEXTCH.title} →`; nb.style.display="block"; }
+  else nb.style.display="none";
   if(CH && deck.length){
     S.rounds=(S.rounds||0)+1;
     S.best=Math.max(S.best||0, rate);
@@ -496,8 +501,16 @@ function updateHud(){
   $("progBar").style.width=p+"%";
 }
 
+/* 다음 챕터 (manifest 순서 기준) */
+let NEXTCH=null;
+fetch("data/manifest.json").then(r=>r.json()).then(d=>{
+  const i=(d.chapters||[]).findIndex(c=>c.id===CH);
+  if(i>=0 && i+1<d.chapters.length) NEXTCH=d.chapters[i+1];
+}).catch(()=>{});
+
 /* 이벤트 */
 document.querySelectorAll(".oxrow button,.numrow button").forEach(b=>b.addEventListener("click",()=>answer(b.dataset.a)));
+$("nextChBtn").addEventListener("click",()=>{ if(NEXTCH) location.href="app.html?ch="+NEXTCH.id; });
 $("nextBtn").addEventListener("click",next);
 $("restartBtn").addEventListener("click",buildDeck);
 $("retryWrongBtn").addEventListener("click",()=>{

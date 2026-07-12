@@ -29,6 +29,7 @@ a.ch.done::before{background:var(--right)}
 .stat.best{background:#E2F0D9;color:#2E7D32}
 .stat.new{background:#FFF3C4;color:#8A7B1E}
 .stat.wrong{background:#FDEBEC;color:#C62828}
+.stat.last{background:#E9E6F7;color:#5B4FA0}
 .grades{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
 .gc{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:#fff;
   border-radius:99px;padding:2px 8px;background:var(--gc,#7F7F7F)}
@@ -155,6 +156,14 @@ function render(filter=""){
         stats += `<span class="stat new">풀던 중 ${(s.prog.ans||[]).length}/${s.prog.nos.length}</span>`;
     }
     if(!stats) stats = `<span class="stat new">미학습</span>`;
+    const lt = s && (s._at || s.when);
+    if(lt){
+      const d=new Date(lt), now=new Date();
+      const ymd = d.getFullYear()!==now.getFullYear()
+        ? `${String(d.getFullYear()).slice(2)}.${d.getMonth()+1}/${d.getDate()}`
+        : `${d.getMonth()+1}/${d.getDate()}`;
+      stats += `<span class="stat last">🕐 ${ymd}</span>`;
+    }
     a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span></div>
       <div class="row2"><span class="stat">${c.count}문항</span>${stats}</div>
       ${gradesHtml(c.grades)}`;

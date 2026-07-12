@@ -29,6 +29,10 @@ a.ch.done::before{background:var(--right)}
 .stat.best{background:#E2F0D9;color:#2E7D32}
 .stat.new{background:#FFF3C4;color:#8A7B1E}
 .stat.wrong{background:#FDEBEC;color:#C62828}
+.grades{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.gc{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:#fff;
+  border-radius:99px;padding:2px 8px;background:var(--gc,#7F7F7F)}
+.gc b{font-weight:900}
 .empty{color:#9DB0C0;text-align:center;padding:40px 0;font-weight:700}
 </style>
 </head>
@@ -41,6 +45,15 @@ a.ch.done::before{background:var(--right)}
 </div>
 <script>
 let chapters=[];
+const GC={"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F","-":"#9AA3AD"};
+const GORDER=["S","A","B","C","기","인","소","Z","-"];
+function gradesHtml(g){
+  if(!g) return "";
+  const keys=Object.keys(g).sort((a,b)=>GORDER.indexOf(a)-GORDER.indexOf(b));
+  if(!keys.length) return "";
+  const chips=keys.map(k=>`<span class="gc" style="--gc:${GC[k]||'#7F7F7F'}">${k==="-"?"무":k} <b>${g[k]}</b></span>`).join("");
+  return `<div class="grades">${chips}</div>`;
+}
 function stat(id){
   try{ return JSON.parse(localStorage.getItem("fc:"+id)||"null"); }catch(e){ return null; }
 }
@@ -67,7 +80,8 @@ function render(filter=""){
       stats = `<span class="stat new">미학습</span>`;
     }
     a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span></div>
-      <div class="row2"><span class="stat">${c.count}문항</span>${stats}</div>`;
+      <div class="row2"><span class="stat">${c.count}문항</span>${stats}</div>
+      ${gradesHtml(c.grades)}`;
     box.appendChild(a);
   }
 }

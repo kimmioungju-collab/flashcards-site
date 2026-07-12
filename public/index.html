@@ -39,6 +39,28 @@ a.ch.done::before{background:var(--right)}
 .syncbar #syncState.on{color:#8FE388}
 .syncbar button{border:none;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:800;
   background:rgba(255,255,255,.16);color:#fff;cursor:pointer}
+.plan{background:var(--paper);border-radius:14px;padding:14px 16px;margin-bottom:14px;box-shadow:0 6px 18px rgba(0,0,0,.28)}
+.plan .ph{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:900;margin-bottom:8px}
+.plan .ph .pedit{margin-left:auto;display:flex;gap:6px}
+.plan .ph button{border:none;border-radius:99px;padding:4px 10px;font-size:11.5px;font-weight:800;
+  background:#EFECE3;color:#3A4553;cursor:pointer}
+.plan .pmsg{font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.plan .pbig{font-size:13px;font-weight:800;color:var(--ink);display:flex;flex-wrap:wrap;gap:6px 12px;margin-bottom:8px}
+.plan .pbig b{font-weight:900}
+.plan .pbar{height:9px;border-radius:99px;background:#EAE6DC;overflow:hidden;margin:8px 0 6px}
+.plan .pbar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2E75B6,#5B9BD5)}
+.plan .pbadges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:12px;font-weight:800}
+.plan .pb{border-radius:99px;padding:3px 11px}
+.plan .pb.ok{background:#E2F0D9;color:#2E7D32}
+.plan .pb.bad{background:#FDEBEC;color:#C62828}
+.plan .pb.info{background:#EFECE3;color:#3A4553}
+.plan .pb.warn{background:#FFF3C4;color:#8A7B1E}
+.plan .pbtn{border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:800;background:#2E75B6;color:#fff;cursor:pointer}
+.toolbar{display:flex;gap:8px;margin-bottom:14px}
+.toolbar .search{margin-bottom:0;flex:1}
+.toolbar .leftbtn{border:none;border-radius:14px;padding:0 14px;font-size:12.5px;font-weight:800;
+  background:rgba(255,255,255,.14);color:#9DB0C0;cursor:pointer;white-space:nowrap}
+.toolbar .leftbtn.on{background:#2E75B6;color:#fff}
 </style>
 </head>
 <body>
@@ -46,7 +68,11 @@ a.ch.done::before{background:var(--right)}
   <h1>📚 OX 플래시카드</h1>
   <div class="sub" id="summary">불러오는 중…</div>
   <div class="syncbar"><span id="syncState">☁️ 동기화 꺼짐</span><button id="syncBtn">코드 설정</button></div>
-  <input class="search" id="q" placeholder="챕터 검색 (예: 비례, 신뢰보호)">
+  <div class="plan" id="planCard" style="display:none"></div>
+  <div class="toolbar">
+    <input class="search" id="q" placeholder="챕터 검색 (예: 비례, 신뢰보호)">
+    <button class="leftbtn" id="leftBtn">남은 챕터만</button>
+  </div>
   <div class="list" id="list"></div>
 </div>
 <script>
@@ -63,28 +89,37 @@ function gradesHtml(g){
 function stat(id){
   try{ return JSON.parse(localStorage.getItem("fc:"+id)||"null"); }catch(e){ return null; }
 }
+/* 1회독 커버리지: 실제로 한 번 이상 본 문항 수 */
+function chSeen(c){
+  const s=stat(c.id); if(!s||!s.qstat) return 0;
+  let n=0; for(const k in s.qstat){ if(s.qstat[k] && s.qstat[k].s>0) n++; }
+  return Math.min(n, c.count);
+}
+function chDone(c){ return c.count>0 && chSeen(c)>=c.count; }
+let leftOnly=false;
 function render(filter=""){
   const box=document.getElementById("list");
   box.innerHTML="";
   const f=filter.trim();
-  const items=chapters.filter(c=>!f || c.title.includes(f) || c.id.includes(f));
-  if(!items.length){ box.innerHTML='<div class="empty">검색 결과가 없습니다</div>'; return; }
+  const items=chapters.filter(c=>(!f || c.title.includes(f) || c.id.includes(f)) && (!leftOnly || !chDone(c)));
+  if(!items.length){ box.innerHTML='<div class="empty">'+(leftOnly?"남은 챕터가 없습니다 🎉":"검색 결과가 없습니다")+'</div>'; return; }
   for(const c of items){
     const s=stat(c.id);
+    const done=chDone(c), seen=chSeen(c);
     const a=document.createElement("a");
-    a.className="ch"+(s && s.rounds && s.best>=90 ? " done":"");
+    a.className="ch"+(done ? " done":"");
     a.href=`app.html?ch=${c.id}`;
-    let stats;
+    let stats="";
+    if(done) stats += `<span class="stat best">1회독 ✓</span>`;
+    else if(seen>0) stats += `<span class="stat new">진도 ${seen}/${c.count}</span>`;
     if(s){
-      stats = s.rounds ? `<span class="stat">${s.rounds}회독</span><span class="stat best">최고 ${s.best}%</span>` : "";
+      if(s.rounds) stats += `<span class="stat">${s.rounds}회독</span><span class="stat best">최고 ${s.best}%</span>`;
       const weak = s.qstat ? Object.values(s.qstat).filter(x=>x.w>0).length : 0;
       if(weak) stats += `<span class="stat wrong">취약 ${weak}문항</span>`;
       if(s.prog && s.prog.nos && (s.prog.ans||[]).length < s.prog.nos.length)
         stats += `<span class="stat new">풀던 중 ${(s.prog.ans||[]).length}/${s.prog.nos.length}</span>`;
-      if(!stats) stats = `<span class="stat new">미학습</span>`;
-    } else {
-      stats = `<span class="stat new">미학습</span>`;
     }
+    if(!stats) stats = `<span class="stat new">미학습</span>`;
     a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span></div>
       <div class="row2"><span class="stat">${c.count}문항</span>${stats}</div>
       ${gradesHtml(c.grades)}`;
@@ -113,6 +148,12 @@ async function pullAll(){
       }
     }
   }catch(e){}
+  // 학습 플랜도 내려받기
+  try{
+    const rp=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/plan.json`,{cache:"no-store"});
+    if(rp.ok){ const cp=await rp.json(); const lp=loadPlan();
+      if(cp && (cp._at||0) > ((lp&&lp._at)||0)) localStorage.setItem("fc:plan", JSON.stringify(cp)); }
+  }catch(e){}
 }
 async function pushAll(){
   const c=syncCode(); if(!c) return;
@@ -137,6 +178,22 @@ async function pushAll(){
         await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/opts.json`,{method:"PUT",body:JSON.stringify(opt)});
     }
   }catch(e){}
+  // 학습 플랜 시딩
+  try{
+    const p=loadPlan();
+    if(p){
+      if(p._at==null){ p._at=Date.now(); localStorage.setItem("fc:plan", JSON.stringify(p)); }
+      let cp=null;
+      try{ const rp=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/plan.json`,{cache:"no-store"}); if(rp.ok) cp=await rp.json(); }catch(e){}
+      if(!cp || (p._at||0) > (cp._at||0))
+        await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/plan.json`,{method:"PUT",body:JSON.stringify(p)});
+    }
+  }catch(e){}
+}
+function pushPlan(){
+  const c=syncCode(); if(!c) return;
+  const p=loadPlan(); if(!p) return;
+  fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/plan.json`,{method:"PUT",body:JSON.stringify(p)}).catch(()=>{});
 }
 document.getElementById("syncBtn").onclick=async ()=>{
   const cur=syncCode();
@@ -156,12 +213,95 @@ document.getElementById("syncBtn").onclick=async ()=>{
   alert(code? "동기화 켜짐. 다른 기기에서도 같은 코드 '"+code+"'를 입력하세요.":"동기화를 껐습니다.");
 };
 
+/* ── 학습 플랜 (N일 1회독) ── */
+function loadPlan(){ try{ return JSON.parse(localStorage.getItem("fc:plan")||"null"); }catch(e){ return null; } }
+function savePlan(p){ p._at=Date.now(); localStorage.setItem("fc:plan", JSON.stringify(p)); pushPlan(); }
+function todayStr(){ const d=new Date(); d.setHours(0,0,0,0);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function setupPlan(){
+  const cur=loadPlan();
+  const dv=prompt("며칠 안에 1회독을 끝낼까요? (일수)", cur?cur.days:"10");
+  if(dv===null) return;
+  const days=Math.max(1, parseInt(dv)||10);
+  const start=(cur&&cur.start)?cur.start:todayStr();
+  savePlan({start, days});
+  renderPlan(); render(document.getElementById("q").value);
+}
+function resetPlanStart(){
+  const cur=loadPlan(); if(!cur) return;
+  if(!confirm("시작일을 오늘("+todayStr()+")로 다시 맞출까요?\n(진행 기록은 그대로 유지됩니다)")) return;
+  savePlan({start:todayStr(), days:cur.days});
+  renderPlan(); render(document.getElementById("q").value);
+}
+function renderPlan(){
+  const card=document.getElementById("planCard"); if(!card) return;
+  card.style.display="block";
+  const p=loadPlan();
+  if(!p){
+    card.innerHTML=`<div class="ph">🎯 학습 플랜</div>
+      <div class="pmsg">며칠 안에 1회독을 끝낼지 목표를 정하면, 진행률·남은 챕터·하루 권장량을 자동으로 관리해드려요.</div>
+      <button class="pbtn" id="planSet">플랜 시작</button>`;
+    document.getElementById("planSet").onclick=setupPlan; return;
+  }
+  const T=chapters.length;
+  const D=chapters.filter(chDone).length;
+  const left=T-D;
+  const totalQ=chapters.reduce((s,c)=>s+(c.count||0),0);
+  const seenQ=chapters.reduce((s,c)=>s+chSeen(c),0);
+  const pct=totalQ?Math.round(seenQ/totalQ*100):0;
+  const start=new Date(p.start+"T00:00:00");
+  const today=new Date(); today.setHours(0,0,0,0);
+  const dayNum=Math.floor((today-start)/86400000)+1;   // 1일차부터
+  const days=p.days;
+  const dayShown=Math.min(Math.max(dayNum,1),days);
+  const daysLeft=Math.max(0, days-(dayNum-1));          // 오늘 포함 남은 일수
+  const end=new Date(start.getTime()+(days-1)*86400000);
+  const endStr=`${end.getMonth()+1}/${end.getDate()}`;
+  const targetByToday=Math.min(T, Math.ceil(Math.min(Math.max(dayNum,1),days)/days*T));
+  const behind=Math.max(0, targetByToday-D);
+  const ahead=Math.max(0, D-targetByToday);
+  const perDay=daysLeft>0?Math.ceil(left/daysLeft):left;
+  const overdue = dayNum>days;
+
+  let badges="";
+  if(D>=T) badges=`<span class="pb ok">🎉 1회독 완료!</span>`;
+  else if(overdue) badges=`<span class="pb bad">기한 초과 · 남은 ${left}챕터</span>`;
+  else if(behind>0) badges=`<span class="pb bad">⚠️ ${behind}챕터 뒤처짐</span>`;
+  else badges=`<span class="pb ok">✅ 순조${ahead>0?` (${ahead}챕터 앞섬)`:""}</span>`;
+  if(D<T && !overdue) badges+=`<span class="pb info">오늘까지 목표 ${targetByToday}챕터</span>`;
+  if(D<T) badges+=`<span class="pb ${daysLeft<=1&&left>0?"warn":"info"}">하루 ${perDay}챕터 권장</span>`;
+
+  card.innerHTML=`
+    <div class="ph">🎯 학습 플랜
+      <span class="pedit">
+        <button id="planEdit">설정</button>
+        <button id="planReset">오늘부터</button>
+      </span>
+    </div>
+    <div class="pbig">
+      <span>진도 <b>${D}/${T}</b>챕터 · <b>${pct}%</b></span>
+      <span>${overdue?`<b style="color:#C62828">기한 초과</b>`:`<b>${dayShown}</b>일차 / 목표 ${days}일 (D-${daysLeft})`}</span>
+      <span style="color:var(--muted)">종료 예정 ${endStr}</span>
+    </div>
+    <div class="pbar"><i style="width:${pct}%"></i></div>
+    <div class="pbadges">${badges}</div>`;
+  document.getElementById("planEdit").onclick=setupPlan;
+  document.getElementById("planReset").onclick=resetPlanStart;
+}
+
+document.getElementById("leftBtn").onclick=()=>{
+  leftOnly=!leftOnly;
+  document.getElementById("leftBtn").classList.toggle("on",leftOnly);
+  render(document.getElementById("q").value);
+};
+
 fetch("data/manifest.json").then(r=>r.json()).then(async d=>{
   chapters=d.chapters;
   updateSyncUI();
   await pullAll();  // 다른 기기 진도 먼저 반영
   const studied=chapters.filter(c=>stat(c.id)).length;
   document.getElementById("summary").textContent=`전체 ${chapters.length}챕터 · 학습 시작 ${studied}챕터`;
+  renderPlan();
   render();
 });
 document.getElementById("q").addEventListener("input",e=>render(e.target.value));

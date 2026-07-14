@@ -68,6 +68,25 @@ a.ch.done::before{background:var(--right)}
 .toolbar .leftbtn{border:none;border-radius:14px;padding:0 14px;font-size:12.5px;font-weight:800;
   background:rgba(255,255,255,.14);color:#9DB0C0;cursor:pointer;white-space:nowrap}
 .toolbar .leftbtn.on{background:#2E75B6;color:#fff}
+.tools2{display:flex;gap:8px;margin-bottom:14px}
+.tools2 button{border:none;border-radius:12px;padding:9px 13px;font-size:12.5px;font-weight:800;
+  background:rgba(255,255,255,.14);color:#9DB0C0;cursor:pointer;white-space:nowrap}
+.tools2 button.on{background:#2E75B6;color:#fff}
+/* 단원(편) 그룹 */
+.unit{margin-bottom:4px}
+.uhead{display:flex;align-items:center;gap:9px;cursor:pointer;color:#DCE6F0;font-weight:900;font-size:13.5px;
+  padding:9px 4px 7px;user-select:none}
+.uhead .uarrow{transition:transform .15s;font-size:11px;color:#9DB0C0;width:12px}
+.uhead.collapsed .uarrow{transform:rotate(-90deg)}
+.uhead .uname{flex:1;word-break:keep-all}
+.uhead .ucount{font-size:11.5px;font-weight:800;color:#9DB0C0;background:rgba(255,255,255,.1);border-radius:99px;padding:2px 9px;white-space:nowrap}
+.uhead .ubar{width:50px;height:6px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden;flex:none}
+.uhead .ubar>i{display:block;height:100%;background:#5B9BD5}
+.ubody{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
+.ubody.hide{display:none}
+.stat.due{background:#FDEBEC;color:#C62828}
+.stat.goal{background:#FFE9C7;color:#B26A00}
+a.ch.goal::before{background:#F5A623}
 </style>
 </head>
 <body>
@@ -79,6 +98,11 @@ a.ch.done::before{background:var(--right)}
   <div class="toolbar">
     <input class="search" id="q" placeholder="챕터 검색 (예: 비례, 신뢰보호)">
     <button class="leftbtn" id="leftBtn">남은 챕터만</button>
+  </div>
+  <div class="tools2">
+    <button id="goalBtn">🎯 오늘 목표만</button>
+    <button id="resetBtn">🗑 진도 초기화</button>
+    <button id="foldBtn">단원 접기/펴기</button>
   </div>
   <div class="list" id="list"></div>
 </div>
@@ -103,7 +127,24 @@ function chSeen(c){
   return Math.min(n, c.count);
 }
 function chDone(c){ return c.count>0 && chSeen(c)>=c.count; }
-let leftOnly=false;
+let leftOnly=false, goalOnly=false;
+
+/* ── 단원(편) 구분: 챕터 번호 범위별 ── */
+const UNITS=[
+  {name:"제1편 행정법 통론",        from:1,  to:12},
+  {name:"제2편 행정입법",           from:13, to:15},
+  {name:"제3편 행정행위·행정작용법", from:16, to:36},
+  {name:"제4편 행정절차법",         from:37, to:41},
+  {name:"제5편 실효성 확보수단",     from:42, to:49},
+  {name:"제6편 행정쟁송(소송·심판)", from:50, to:70},
+  {name:"제7편 국가배상·손실보상",   from:71, to:75},
+  {name:"제8편 정보공개·개인정보",   from:76, to:81},
+];
+function chNum(c){ return parseInt((c.id||"").replace(/[^0-9]/g,""),10)||0; }
+function unitOf(c){ const n=chNum(c); for(const u of UNITS){ if(n>=u.from&&n<=u.to) return u; } return {name:"기타", from:9990, to:9999}; }
+function foldKey(name){ return "fc:fold:"+name; }
+function isFolded(name){ return localStorage.getItem(foldKey(name))==="1"; }
+function setFolded(name,v){ if(v) localStorage.setItem(foldKey(name),"1"); else localStorage.removeItem(foldKey(name)); }
 
 /* ── 등급별 계산 (플랜용) ── */
 const PLAN_GRADES=["S","A","B","C","기","인","소","Z"];
@@ -133,41 +174,112 @@ function chSeenP(c,gset){
   return Math.min(n, chCountP(c,gset));
 }
 function chDoneP(c,gset){ const t=chCountP(c,gset); return t>0 && chSeenP(c,gset)>=t; }
+
+/* ── 오늘의 목표선 계산 ──
+   플랜(N일 1회독) 기준으로, 오늘까지 끝내야 할 누적 목표 문항(targetQ)을 구하고
+   챕터를 순서대로 누적해 "여기까지 하면 오늘 분량 완료"인 경계 챕터를 찾는다. */
+function computeDailyTarget(){
+  const p=loadPlan(); if(!p) return null;
+  const gset=planGradeSet();
+  const totalQ=chapters.reduce((s,c)=>s+chCountP(c,gset),0);
+  if(!totalQ) return null;
+  const start=new Date(p.start+"T00:00:00");
+  const today=new Date(); today.setHours(0,0,0,0);
+  const dayNum=Math.floor((today-start)/86400000)+1;
+  const days=Math.max(1,p.days);
+  const targetQ=Math.min(totalQ, Math.ceil(Math.min(Math.max(dayNum,1),days)/days*totalQ));
+  let cum=0, boundaryId=null, boundaryQno=0;
+  const dueSet=new Set();
+  for(const c of chapters){
+    const cnt=chCountP(c,gset); if(cnt<=0) continue;
+    const s0=cum, e0=cum+cnt;
+    if(s0 < targetQ){                       // 이 챕터 일부/전부가 오늘 목표 범위 안
+      if(!chDoneP(c,gset)) dueSet.add(c.id); // 아직 안 끝낸 건 오늘까지 할 몫
+      if(targetQ<=e0){ boundaryId=c.id; boundaryQno=targetQ-s0; } // 목표선이 이 챕터 안
+    }
+    cum=e0;
+  }
+  return {targetQ, totalQ, boundaryId, boundaryQno, dueSet, dayNum, days};
+}
+let dailyT=null;   // render 시 참조
+
+/* 챕터 카드 1개 생성 */
+function makeCard(c){
+  const s=stat(c.id);
+  const done=chDone(c), seen=chSeen(c);
+  const isDue = dailyT && dailyT.dueSet.has(c.id);
+  const isGoal = dailyT && dailyT.boundaryId===c.id;
+  const a=document.createElement("a");
+  a.className="ch"+(done?" done":"")+(isGoal&&!done?" goal":"");
+  a.href=`app.html?ch=${c.id}`;
+  let stats="";
+  if(isGoal && !done) stats += `<span class="stat goal">🎯 오늘 목표선 ~${dailyT.boundaryQno}번</span>`;
+  else if(isDue && !done) stats += `<span class="stat due">오늘까지</span>`;
+  if(done) stats += `<span class="stat best">1회독 ✓</span>`;
+  else if(seen>0) stats += `<span class="stat new">진도 ${seen}/${c.count}</span>`;
+  if(s){
+    if(s.rounds) stats += `<span class="stat">${s.rounds}회독</span><span class="stat best">최고 ${s.best}%</span>`;
+    const weak = s.qstat ? Object.values(s.qstat).filter(x=>x.w>0).length : 0;
+    if(weak) stats += `<span class="stat wrong">취약 ${weak}문항</span>`;
+    if(s.prog && s.prog.nos && (s.prog.ans||[]).length < s.prog.nos.length)
+      stats += `<span class="stat new">풀던 중 ${(s.prog.ans||[]).length}/${s.prog.nos.length}</span>`;
+  }
+  if(!stats) stats = `<span class="stat new">미학습</span>`;
+  const lt = s && (s._at || s.when);
+  if(lt){
+    const d=new Date(lt), now=new Date();
+    const ymd = d.getFullYear()!==now.getFullYear()
+      ? `${String(d.getFullYear()).slice(2)}.${d.getMonth()+1}/${d.getDate()}`
+      : `${d.getMonth()+1}/${d.getDate()}`;
+    stats += `<span class="stat last">🕐 ${ymd}</span>`;
+  }
+  a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span></div>
+    <div class="row2"><span class="stat">${c.count}문항</span>${stats}</div>
+    ${gradesHtml(c.grades)}`;
+  return a;
+}
 function render(filter=""){
+  dailyT=computeDailyTarget();
   const box=document.getElementById("list");
   box.innerHTML="";
   const f=filter.trim();
-  const items=chapters.filter(c=>(!f || c.title.includes(f) || c.id.includes(f)) && (!leftOnly || !chDone(c)));
-  if(!items.length){ box.innerHTML='<div class="empty">'+(leftOnly?"남은 챕터가 없습니다 🎉":"검색 결과가 없습니다")+'</div>'; return; }
-  for(const c of items){
-    const s=stat(c.id);
-    const done=chDone(c), seen=chSeen(c);
-    const a=document.createElement("a");
-    a.className="ch"+(done ? " done":"");
-    a.href=`app.html?ch=${c.id}`;
-    let stats="";
-    if(done) stats += `<span class="stat best">1회독 ✓</span>`;
-    else if(seen>0) stats += `<span class="stat new">진도 ${seen}/${c.count}</span>`;
-    if(s){
-      if(s.rounds) stats += `<span class="stat">${s.rounds}회독</span><span class="stat best">최고 ${s.best}%</span>`;
-      const weak = s.qstat ? Object.values(s.qstat).filter(x=>x.w>0).length : 0;
-      if(weak) stats += `<span class="stat wrong">취약 ${weak}문항</span>`;
-      if(s.prog && s.prog.nos && (s.prog.ans||[]).length < s.prog.nos.length)
-        stats += `<span class="stat new">풀던 중 ${(s.prog.ans||[]).length}/${s.prog.nos.length}</span>`;
-    }
-    if(!stats) stats = `<span class="stat new">미학습</span>`;
-    const lt = s && (s._at || s.when);
-    if(lt){
-      const d=new Date(lt), now=new Date();
-      const ymd = d.getFullYear()!==now.getFullYear()
-        ? `${String(d.getFullYear()).slice(2)}.${d.getMonth()+1}/${d.getDate()}`
-        : `${d.getMonth()+1}/${d.getDate()}`;
-      stats += `<span class="stat last">🕐 ${ymd}</span>`;
-    }
-    a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span></div>
-      <div class="row2"><span class="stat">${c.count}문항</span>${stats}</div>
-      ${gradesHtml(c.grades)}`;
-    box.appendChild(a);
+  const items=chapters.filter(c=>
+    (!f || c.title.includes(f) || c.id.includes(f)) &&
+    (!leftOnly || !chDone(c)) &&
+    (!goalOnly || (dailyT && dailyT.dueSet.has(c.id))) );
+  if(!items.length){
+    const msg = goalOnly ? "오늘 할 챕터를 모두 끝냈어요 🎉"
+              : leftOnly ? "남은 챕터가 없습니다 🎉" : "검색 결과가 없습니다";
+    box.innerHTML='<div class="empty">'+msg+'</div>'; return;
+  }
+  const searching = !!f;
+  // 단원별 그룹핑
+  const groups=UNITS.map(u=>({u, list:items.filter(c=>unitOf(c).name===u.name)})).filter(g=>g.list.length);
+  const others=items.filter(c=>unitOf(c).name==="기타");
+  if(others.length) groups.push({u:{name:"기타"}, list:others});
+  for(const g of groups){
+    const totalC=chapters.filter(c=>unitOf(c).name===g.u.name).length;
+    const doneC=chapters.filter(c=>unitOf(c).name===g.u.name && chDone(c)).length;
+    const pct=totalC?Math.round(doneC/totalC*100):0;
+    const collapsed = !searching && isFolded(g.u.name);
+    const unit=document.createElement("div"); unit.className="unit";
+    const head=document.createElement("div");
+    head.className="uhead"+(collapsed?" collapsed":"");
+    head.innerHTML=`<span class="uarrow">▼</span>
+      <span class="uname">${g.u.name}</span>
+      <span class="ubar"><i style="width:${pct}%"></i></span>
+      <span class="ucount">${doneC}/${totalC}</span>`;
+    const body=document.createElement("div");
+    body.className="ubody"+(collapsed?" hide":"");
+    for(const c of g.list) body.appendChild(makeCard(c));
+    head.onclick=()=>{
+      const nowFold=!body.classList.contains("hide");
+      body.classList.toggle("hide",nowFold);
+      head.classList.toggle("collapsed",nowFold);
+      setFolded(g.u.name, nowFold);
+    };
+    unit.appendChild(head); unit.appendChild(body);
+    box.appendChild(unit);
   }
 }
 /* ── 클라우드 동기화 ── */
@@ -327,6 +439,11 @@ function renderPlan(){
   else badges=`<span class="pb ok">✅ 순조${aheadQ>0?` (${aheadQ}문항 앞섬)`:""}</span>`;
   if(seenQ<totalQ && !overdue) badges+=`<span class="pb info">오늘까지 목표 ${targetQ}문항</span>`;
   if(seenQ<totalQ) badges+=`<span class="pb ${daysLeft<=1&&remainQ>0?"warn":"info"}">하루 ${perDayQ}문항 권장</span>`;
+  // 오늘 목표선(경계 챕터) 안내
+  const dt=computeDailyTarget();
+  if(dt && dt.boundaryId && seenQ<totalQ){
+    badges+=`<span class="pb warn">📍 오늘은 ${dt.boundaryId.toUpperCase()}의 ${dt.boundaryQno}번까지</span>`;
+  }
 
   const gsel=gset||new Set();
   const allOn=!gset;
@@ -368,6 +485,46 @@ document.getElementById("leftBtn").onclick=()=>{
   document.getElementById("leftBtn").classList.toggle("on",leftOnly);
   render(document.getElementById("q").value);
 };
+/* 오늘 목표만 보기 */
+document.getElementById("goalBtn").onclick=()=>{
+  if(!computeDailyTarget()){ alert("먼저 학습 플랜을 설정하세요.\n(위 '🎯 학습 플랜' → 플랜 시작)"); return; }
+  goalOnly=!goalOnly;
+  document.getElementById("goalBtn").classList.toggle("on",goalOnly);
+  render(document.getElementById("q").value);
+};
+/* 단원 전체 접기/펴기 토글 */
+document.getElementById("foldBtn").onclick=()=>{
+  const anyOpen=UNITS.some(u=>!isFolded(u.name));
+  UNITS.forEach(u=>setFolded(u.name, anyOpen));  // 하나라도 열려있으면 전부 접기
+  render(document.getElementById("q").value);
+};
+/* 진도 초기화 (전체 / 특정 챕터) */
+async function resetProgress(){
+  const v=prompt("진도를 초기화합니다.\n\n· 전체 초기화: all 입력\n· 특정 챕터: 챕터번호 입력 (예: 3 또는 03)\n\n(취소하려면 빈칸)","");
+  if(v===null) return;
+  const s=(v||"").trim().toLowerCase();
+  if(!s) return;
+  const code=syncCode();
+  if(s==="all"||s==="전체"){
+    if(!confirm("정말 모든 챕터의 진도·회독·취약 기록을 초기화할까요?\n되돌릴 수 없습니다.")) return;
+    for(const c of chapters) localStorage.removeItem("fc:"+c.id);
+    if(code){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/ch.json`,{method:"PUT",body:"null"}); }catch(e){} }
+    alert("전체 진도를 초기화했습니다.");
+  } else {
+    const num=s.replace(/[^0-9]/g,"");
+    if(!num){ alert("챕터번호를 인식하지 못했습니다."); return; }
+    const id="ch"+num.padStart(2,"0");
+    const c=chapters.find(x=>x.id===id);
+    if(!c){ alert("그런 챕터가 없습니다: "+id); return; }
+    if(!confirm(`'${c.title}' 진도를 초기화할까요?`)) return;
+    localStorage.removeItem("fc:"+id);
+    if(code){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/ch/${id}.json`,{method:"PUT",body:"null"}); }catch(e){} }
+    alert(`${id.toUpperCase()} 진도를 초기화했습니다.`);
+  }
+  renderPlan();
+  render(document.getElementById("q").value);
+}
+document.getElementById("resetBtn").onclick=resetProgress;
 
 fetch("data/manifest.json").then(r=>r.json()).then(async d=>{
   chapters=d.chapters;

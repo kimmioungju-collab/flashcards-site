@@ -58,6 +58,9 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .exp .trap{color:var(--wrong);font-weight:800}
 .exp .trap mark{background:linear-gradient(transparent 40%,var(--hl) 40%);padding:0 2px;border-radius:2px;color:var(--wrong)}
 .exp .fix{color:var(--right)} .exp .fix b{font-weight:900}
+.markbtn{margin-top:14px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;color:#8A7B1E;cursor:pointer;width:100%}
+.markbtn.on{background:#FFF3C4;border-color:#EFDD8F;color:#7A6B00}
+.done .weakstart{background:#D9A400;color:#fff}
 .controls{margin-top:14px}
 .oxrow{display:flex;gap:12px}
 .oxrow button{flex:1;border:none;border-radius:16px;padding:20px 0;font-size:30px;font-weight:900;cursor:pointer;color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.25);transition:transform .06s ease}
@@ -120,6 +123,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     <span class="pill" id="roundPill" style="display:none"></span>
     <span class="pill" id="scorePill">⭕ <b id="okCnt">0</b> · ❌ <b id="noCnt">0</b></span>
     <button class="iconbtn" onclick="location.href='index.html'">목차</button>
+    <button class="iconbtn" id="weakBtn">⭐취약</button>
     <button class="iconbtn" id="filterBtn">필터</button>
   </div>
   <div class="progress"><i id="progBar"></i></div>
@@ -142,6 +146,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
           <span class="anschip" id="ansChip"></span>
         </div>
         <div class="exp" id="expBox"></div>
+        <button class="markbtn" id="markBtn"></button>
       </div>
     </div>
   </div>
@@ -152,6 +157,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     <p id="doneMsg"></p>
     <div class="btns">
       <button class="nextch" id="nextChBtn">다음 챕터 →</button>
+      <button class="weakstart" id="weakStartBtn">⭐ 체크·취약 문제만 풀기</button>
       <button class="retryWrong" id="retryWrongBtn">❌ 이번 오답만 다시 풀기</button>
       <button class="restart" id="restartBtn">처음부터 다시</button>
     </div>
@@ -183,8 +189,8 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     </div>
     <h3>유형</h3><div class="chips" id="themeChips"></div>
     <h3>등급</h3><div class="chips" id="gradeChips"></div>
-    <div class="togglerow" style="margin-top:14px"><span>취약 문제만<small>지금까지 한 번이라도 틀린 문제</small></span><button class="sw" id="weakOnlySw"></button></div>
-    <div class="togglerow"><span>취약 문제부터<small>누적 오답 많은 순으로 정렬(섞기보다 우선)</small></span><button class="sw" id="weakFirstSw"></button></div>
+    <div class="togglerow" style="margin-top:14px"><span>취약 문제만<small>틀렸거나 ⭐체크한 문제</small></span><button class="sw" id="weakOnlySw"></button></div>
+    <div class="togglerow"><span>취약 문제부터<small>누적 오답·체크 우선 정렬(섞기보다 우선)</small></span><button class="sw" id="weakFirstSw"></button></div>
     <div class="togglerow"><span>문제 순서 섞기</span><button class="sw" id="shuffleSw"></button></div>
     <button class="apply" id="applyBtn">이 조건으로 새로 시작</button>
   </div>
@@ -300,6 +306,25 @@ let weakOnlyOn = !!OPT.weakOnly, weakFirstOn = !!OPT.weakFirst;
 const $=id=>document.getElementById(id);
 const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const qw=no=>(S.qstat[no]&&S.qstat[no].w)||0;
+const qmark=no=>!!(S.qstat[no]&&S.qstat[no].m);           // 사용자가 직접 체크한 문제
+const isWeak=no=>qw(no)>0 || qmark(no);                   // 취약 = 틀렸거나 체크한 문제
+const weakWeight=no=>qw(no)*10 + (qmark(no)?5:0);         // 취약 우선 정렬 가중치
+function toggleMark(no){
+  const st = S.qstat[no] || (S.qstat[no]={s:0,w:0});
+  st.m = st.m?0:1; save();
+}
+function renderWeakChip(q){
+  const el=$("weakChip"), w=qw(q.no), m=qmark(q.no);
+  if(w>0){ el.style.display=""; el.textContent = m?`누적 오답 ${w}회 · ⭐체크`:`누적 오답 ${w}회`; }
+  else if(m){ el.style.display=""; el.textContent="⭐ 체크한 문제"; }
+  else el.style.display="none";
+}
+function renderMarkBtn(q){
+  const mk=$("markBtn"), on=qmark(q.no);
+  mk.classList.toggle("on", on);
+  mk.textContent = on ? "⭐ 체크됨 — 취약 목록에 포함 (해제하려면 탭)" : "☆ 이 문제 체크하기 (헷갈렸어요)";
+  mk.onclick=()=>{ toggleMark(q.no); renderMarkBtn(q); renderWeakChip(q); };
+}
 
 function updateRoundPill(){
   const p=$("roundPill");
@@ -347,9 +372,9 @@ function buildDeck(){
   deck = QUESTIONS.filter(q=>
     (selThemes.size===0 || selThemes.has(q.theme)) &&
     (selGrades.size===0 || selGrades.has(q.grade)) &&
-    (!weakOnlyOn || qw(q.no)>0));
+    (!weakOnlyOn || isWeak(q.no)));
   if(weakFirstOn){
-    deck=[...deck].sort((a,b)=>qw(b.no)-qw(a.no));
+    deck=[...deck].sort((a,b)=>weakWeight(b.no)-weakWeight(a.no));
   } else if(shuffleOn){
     deck=[...deck];
     for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
@@ -358,6 +383,16 @@ function buildDeck(){
   clearProg();
   $("doneBox").style.display="none";
   $("card").style.display="flex";
+  show();
+}
+function startWeakDeck(){
+  const wd = QUESTIONS.filter(q=>isWeak(q.no)).sort((a,b)=>weakWeight(b.no)-weakWeight(a.no));
+  if(!wd.length){ alert("틀렸거나 ⭐체크한 문제가 아직 없습니다.\n문제를 풀거나 결과 화면에서 체크해 보세요."); return; }
+  deck=[...wd]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
+  clearProg();
+  $("sheetWrap").classList.remove("show");
+  $("resumeBox").classList.remove("show");
+  $("doneBox").style.display="none"; $("card").style.display="flex";
   show();
 }
 function resumeSession(p){
@@ -391,9 +426,7 @@ function show(){
   badge.textContent=q.grade; badge.className="badge"+(g?"":" dim");
   if(g) badge.style.background=GC[g]; else badge.style.background="";
   $("themeLbl").textContent=q.theme;
-  const w=qw(q.no);
-  $("weakChip").style.display = w>0 ? "" : "none";
-  if(w>0) $("weakChip").textContent = `누적 오답 ${w}회`;
+  renderWeakChip(q);
   $("qnoLbl").textContent=`${idx+1} / ${deck.length}  (문항 ${q.no})`;
   $("qText").innerHTML=esc(q.q);
   $("srcLbl").textContent="출처: "+q.src;
@@ -432,6 +465,7 @@ function reveal(q, correct){
     const raw=esc(q.q), et=esc(trap);
     if(raw.includes(et)) $("qText").innerHTML=raw.replace(et,`<mark>${et}</mark>`);
   }
+  renderMarkBtn(q);
   $("result").classList.add("show");
   $("oxRow").style.display="none"; $("numRow").style.display="none";
   $("nextBtn").style.display="block";
@@ -521,6 +555,8 @@ fetch("data/manifest.json").then(r=>r.json()).then(d=>{
 document.querySelectorAll(".oxrow button,.numrow button").forEach(b=>b.addEventListener("click",()=>answer(b.dataset.a)));
 $("nextChBtn").addEventListener("click",()=>{ if(NEXTCH) location.href="app.html?ch="+NEXTCH.id; });
 $("nextBtn").addEventListener("click",next);
+$("weakBtn").addEventListener("click",startWeakDeck);
+$("weakStartBtn").addEventListener("click",startWeakDeck);
 $("restartBtn").addEventListener("click",buildDeck);
 $("retryWrongBtn").addEventListener("click",()=>{
   deck=[...wrongs]; idx=0; ok=0; no=0; wrongs=[]; answers=[];

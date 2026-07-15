@@ -56,6 +56,11 @@ a.ch.done::before{background:var(--right)}
 .plan .pb.bad{background:#FDEBEC;color:#C62828}
 .plan .pb.info{background:#EFECE3;color:#3A4553}
 .plan .pb.warn{background:#FFF3C4;color:#8A7B1E}
+.plan .ptime{margin-top:10px;font-size:12.5px;font-weight:800;line-height:1.55;border-radius:10px;padding:9px 12px;background:#EFECE3;color:#3A4553}
+.plan .ptime.ok{background:#E2F0D9;color:#2E7D32}
+.plan .ptime.bad{background:#FDEBEC;color:#C62828}
+.plan .ptime b{font-weight:900}
+.plan .ptime .sub{display:block;margin-top:3px;font-weight:600;opacity:.85;font-size:11.5px}
 .plan .pbtn{border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:800;background:#2E75B6;color:#fff;cursor:pointer}
 .plan .pgwrap{margin:2px 0 10px}
 .plan .pglab{font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:5px}
@@ -203,10 +208,10 @@ function computeDailyTarget(){
 }
 let dailyT=null;   // render 시 참조
 
-/* 챕터 카드 1개 생성 */
-function makeCard(c){
+/* 챕터 카드 1개 생성 (gset: 플랜의 계산 대상 등급, null=전체) */
+function makeCard(c,gset){
   const s=stat(c.id);
-  const done=chDone(c), seen=chSeen(c);
+  const done=chDoneP(c,gset), seen=chSeenP(c,gset), cnt=chCountP(c,gset);
   const isDue = dailyT && dailyT.dueSet.has(c.id);
   const isGoal = dailyT && dailyT.boundaryId===c.id;
   const a=document.createElement("a");
@@ -216,7 +221,7 @@ function makeCard(c){
   if(isGoal && !done) stats += `<span class="stat goal">🎯 오늘 목표선 ~${dailyT.boundaryQno}번</span>`;
   else if(isDue && !done) stats += `<span class="stat due">오늘까지</span>`;
   if(done) stats += `<span class="stat best">1회독 ✓</span>`;
-  else if(seen>0) stats += `<span class="stat new">진도 ${seen}/${c.count}</span>`;
+  else if(seen>0) stats += `<span class="stat new">진도 ${seen}/${cnt}</span>`;
   if(s){
     if(s.rounds) stats += `<span class="stat">${s.rounds}회독</span><span class="stat best">최고 ${s.best}%</span>`;
     const weak = s.qstat ? Object.values(s.qstat).filter(x=>x.w>0).length : 0;
@@ -240,12 +245,13 @@ function makeCard(c){
 }
 function render(filter=""){
   dailyT=computeDailyTarget();
+  const gset=planGradeSet();   // 완료 판정도 플랜의 계산 대상 등급과 동일하게
   const box=document.getElementById("list");
   box.innerHTML="";
   const f=filter.trim();
   const items=chapters.filter(c=>
     (!f || c.title.includes(f) || c.id.includes(f)) &&
-    (!leftOnly || !chDone(c)) &&
+    (!leftOnly || !chDoneP(c,gset)) &&
     (!goalOnly || (dailyT && dailyT.dueSet.has(c.id))) );
   if(!items.length){
     const msg = goalOnly ? "오늘 할 챕터를 모두 끝냈어요 🎉"
@@ -259,7 +265,7 @@ function render(filter=""){
   if(others.length) groups.push({u:{name:"기타"}, list:others});
   for(const g of groups){
     const totalC=chapters.filter(c=>unitOf(c).name===g.u.name).length;
-    const doneC=chapters.filter(c=>unitOf(c).name===g.u.name && chDone(c)).length;
+    const doneC=chapters.filter(c=>unitOf(c).name===g.u.name && chDoneP(c,gset)).length;
     const pct=totalC?Math.round(doneC/totalC*100):0;
     const collapsed = !searching && isFolded(g.u.name);
     const unit=document.createElement("div"); unit.className="unit";
@@ -271,7 +277,7 @@ function render(filter=""){
       <span class="ucount">${doneC}/${totalC}</span>`;
     const body=document.createElement("div");
     body.className="ubody"+(collapsed?" hide":"");
-    for(const c of g.list) body.appendChild(makeCard(c));
+    for(const c of g.list) body.appendChild(makeCard(c,gset));
     head.onclick=()=>{
       const nowFold=!body.classList.contains("hide");
       body.classList.toggle("hide",nowFold);
@@ -374,6 +380,51 @@ function loadPlan(){ try{ return JSON.parse(localStorage.getItem("fc:plan")||"nu
 function savePlan(p){ p._at=Date.now(); localStorage.setItem("fc:plan", JSON.stringify(p)); pushPlan(); }
 function todayStr(){ const d=new Date(); d.setHours(0,0,0,0);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+
+/* ── 공부 시간대(intraday) 페이스 ──
+   플랜(N일 1회독)의 오늘 몫을 설정한 시간대(예 09:00~18:00)에 균등 배분해서
+   "지금 시각까지 여기까지 풀었어야 한다"는 누적 목표 문항·경계 챕터를 계산 */
+function parseHM(s){ const m=/^(\d{1,2})(?::(\d{2}))?$/.exec((s||"").trim()); if(!m) return null;
+  const h=+m[1], mi=m[2]?+m[2]:0; if(h>23||mi>59) return null; return h*60+mi; }
+function fmtHM(t){ return `${String(Math.floor(t/60)).padStart(2,"0")}:${String(t%60).padStart(2,"0")}`; }
+function setupTimeWindow(){
+  const p=loadPlan(); if(!p){ alert("먼저 학습 플랜을 설정하세요."); return; }
+  const cur=(p.tstart!=null&&p.tend!=null)?`${fmtHM(p.tstart)}-${fmtHM(p.tend)}`:"09:00-18:00";
+  const v=prompt("오늘 공부할 시간대를 입력하세요.\n예: 09:00-18:00 또는 9-18\n(해제하려면 '없음' 입력)", cur);
+  if(v===null) return;
+  const s=(v||"").trim();
+  if(s==="없음"||s===""){ delete p.tstart; delete p.tend; savePlan(p); renderPlan(); return; }
+  const parts=s.split(/[-~]/);
+  const a=parseHM(parts[0]), b=parseHM(parts[1]);
+  if(a==null||b==null||b<=a){ alert("시간 형식을 확인하세요. 예: 09:00-18:00"); return; }
+  p.tstart=a; p.tend=b; savePlan(p); renderPlan();
+}
+function computeTimeTarget(){
+  const p=loadPlan(); if(!p||p.tstart==null||p.tend==null) return null;
+  const gset=planGradeSet();
+  const totalQ=chapters.reduce((s,c)=>s+chCountP(c,gset),0);
+  if(!totalQ) return null;
+  const start=new Date(p.start+"T00:00:00");
+  const today=new Date(); today.setHours(0,0,0,0);
+  const dayNum=Math.floor((today-start)/86400000)+1;
+  const days=Math.max(1,p.days);
+  const dn=Math.min(Math.max(dayNum,1),days);
+  const targetToday=Math.min(totalQ, Math.ceil(dn/days*totalQ));
+  const targetPrev=Math.min(totalQ, Math.ceil(Math.max(dn-1,0)/days*totalQ));
+  const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  let frac = nowMin<=p.tstart ? 0 : nowMin>=p.tend ? 1 : (nowMin-p.tstart)/(p.tend-p.tstart);
+  const intra=Math.min(totalQ, Math.round(targetPrev + frac*(targetToday-targetPrev)));
+  let cum=0, boundaryId=null, boundaryQno=0;
+  for(const c of chapters){
+    const cnt=chCountP(c,gset); if(cnt<=0) continue;
+    const s0=cum, e0=cum+cnt;
+    if(intra>s0 && intra<=e0){ boundaryId=c.id; boundaryQno=intra-s0; }
+    cum=e0;
+  }
+  const seenQ=chapters.reduce((s,c)=>s+chSeenP(c,gset),0);
+  return {intra, targetToday, targetPrev, seenQ, diff:seenQ-intra, nowMin,
+          tstart:p.tstart, tend:p.tend, boundaryId, boundaryQno, done:seenQ>=totalQ};
+}
 function setupPlan(){
   const cur=loadPlan();
   const dv=prompt("며칠 안에 1회독을 끝낼까요? (일수)", cur?cur.days:"10");
@@ -454,9 +505,29 @@ function renderPlan(){
     chipGrades.map(g=>`<span class="pgc${gsel.has(g)?" on":""}" data-g="${g}" style="--pgc:${GC[g]||'#7F7F7F'}">${g}</span>`).join("");
   const scope = gset? `${[...gset].join("·")} 등급` : "전체 등급";
 
+  // 공부 시간대 기준 실시간 페이스
+  const tt=computeTimeTarget();
+  let timeHtml="";
+  if(tt){
+    const win=`${fmtHM(tt.tstart)}~${fmtHM(tt.tend)}`, nowStr=fmtHM(tt.nowMin);
+    if(tt.done){
+      timeHtml=`<div class="ptime ok">⏰ ${win} · 🎉 1회독을 이미 끝냈어요</div>`;
+    } else if(tt.nowMin < tt.tstart){
+      timeHtml=`<div class="ptime">⏰ ${win} · 아직 시작 전 · 오늘 목표까지 <b>${Math.max(0,tt.targetToday-tt.seenQ)}문항</b></div>`;
+    } else {
+      const behind=tt.diff<0?-tt.diff:0, ahead=tt.diff>0?tt.diff:0;
+      const okNow=tt.seenQ>=tt.intra;
+      const loc=tt.boundaryId?`${tt.boundaryId.toUpperCase()}의 ${tt.boundaryQno}번`:`${tt.intra}문항`;
+      const status=okNow?`✅ 페이스 유지${ahead?` (+${ahead}문항 앞섬)`:""}`:`⚠️ ${behind}문항 뒤처짐`;
+      timeHtml=`<div class="ptime ${okNow?'ok':'bad'}">⏰ <b>${nowStr}</b> 기준 — 여기까진 풀었어야: <b>${loc}까지</b>
+        <span class="sub">누적 목표 ${tt.intra}문항 · 현재 ${tt.seenQ}문항 · ${status} (${win})</span></div>`;
+    }
+  }
+
   card.innerHTML=`
     <div class="ph">🎯 학습 플랜
       <span class="pedit">
+        <button id="planTime">⏰ 시간대</button>
         <button id="planEdit">설정</button>
         <button id="planReset">오늘부터</button>
       </span>
@@ -472,7 +543,9 @@ function renderPlan(){
       <span style="color:var(--muted)">종료 예정 ${endStr}</span>
     </div>
     <div class="pbar"><i style="width:${pct}%"></i></div>
-    <div class="pbadges">${badges}</div>`;
+    <div class="pbadges">${badges}</div>
+    ${timeHtml}`;
+  document.getElementById("planTime").onclick=setupTimeWindow;
   document.getElementById("planEdit").onclick=setupPlan;
   document.getElementById("planReset").onclick=resetPlanStart;
   card.querySelectorAll("#pgChips .pgc").forEach(el=>{
@@ -537,6 +610,8 @@ fetch("data/manifest.json").then(r=>r.json()).then(async d=>{
   render();
 });
 document.getElementById("q").addEventListener("input",e=>render(e.target.value));
+/* 공부 시간대 페이스는 시각에 따라 바뀌므로 1분마다 갱신 */
+setInterval(()=>{ const p=loadPlan(); if(p&&p.tstart!=null&&p.tend!=null&&document.getElementById("planCard")) renderPlan(); }, 60000);
 </script>
 </body>
 </html>

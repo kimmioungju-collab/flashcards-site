@@ -310,10 +310,15 @@ function conceptClean(exp){
   if(!t) return "";
   if(t.startsWith("[틀린 부분]") && t.includes("→")) t=t.slice(t.indexOf("→")+1).trim();
   t=t.replace(/^정답\s*[①-⑤]\s*[:：]\s*/, "");
-  const XWORDS=["틀리다","틀렸다","틀림","틀린 지문","옳지 않","잘못된 지문","잘못이다","틀린 것이다","옳은 지문이 아니다"];
+  t=t.replace(/\s*\([^()]*[○×OXＯＸ✓✗∘][^()]*\)/g,"");   // (×) (X) (①X) (○) 등 정답표시 제거
+  t=t.replace(/[○×✓✗∘]/g,"");                            // 남은 verdict 기호 제거
+  const XWORDS=["틀리다","틀렸다","틀림","틀린 지문","틀린 서술","옳지 않","잘못된 지문","틀린 것이다","정답표","정답은 O","정답은 X","옳은 지문이 아니다","판례에 반","옳은 지문이다","맞는 지문이다","옳은 설명이다"];
   const parts=t.split(/(?<=[.)])\s+/);
-  const kept=parts.map(s=>s.trim()).filter(s=>s && !XWORDS.some(w=>s.includes(w)));
-  return kept.join(" ").trim();
+  t=parts.map(s=>s.trim()).filter(s=>s && !XWORDS.some(w=>s.includes(w))).join(" ").trim();
+  t=t.replace(/(?<![A-Za-z가-힣])[XO](?=이다|가 |로 |이나|임|$|[)\s.,])/g,"");
+  t=t.replace(/(?<![A-Za-z가-힣])[XO](?![A-Za-z가-힣])/g,"");
+  t=t.replace(/\s{2,}/g," ").replace(/\s+([.,)])/g,"$1");
+  return t.trim();
 }
 function trapPhrase(exp){
   const m = exp.match(/\[틀린 부분\]\s*'([^']+)'/);

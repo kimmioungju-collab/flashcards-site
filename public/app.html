@@ -132,7 +132,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
       <span class="qno" id="qnoLbl"></span>
     </div>
     <div class="qscroll">
-      <div class="concept" id="conceptBox"><div class="clabel">💡 이번 문제 주제 — 아는 내용을 떠올린 뒤 풀어보세요</div><div class="cbody" id="conceptBody"></div></div>
+      <div class="concept" id="conceptBox"><div class="clabel">💡 핵심 개념 — 읽고 외운 뒤 문제로 확인</div><div class="cbody" id="conceptBody"></div></div>
       <div class="qtext" id="qText"></div>
       <div class="src" id="srcLbl"></div>
       <div class="result" id="result">
@@ -305,6 +305,16 @@ function updateRoundPill(){
   const p=$("roundPill");
   if(S.rounds){ p.style.display=""; p.textContent=`${S.rounds}회독 · 최고 ${S.best}%`; }
 }
+function conceptClean(exp){
+  let t=(exp||"").trim();
+  if(!t) return "";
+  if(t.startsWith("[틀린 부분]") && t.includes("→")) t=t.slice(t.indexOf("→")+1).trim();
+  t=t.replace(/^정답\s*[①-⑤]\s*[:：]\s*/, "");
+  const XWORDS=["틀리다","틀렸다","틀림","틀린 지문","옳지 않","잘못된 지문","잘못이다","틀린 것이다","옳은 지문이 아니다"];
+  const parts=t.split(/(?<=[.)])\s+/);
+  const kept=parts.map(s=>s.trim()).filter(s=>s && !XWORDS.some(w=>s.includes(w)));
+  return kept.join(" ").trim();
+}
 function trapPhrase(exp){
   const m = exp.match(/\[틀린 부분\]\s*'([^']+)'/);
   return m ? m[1] : null;
@@ -393,7 +403,7 @@ function show(){
     reveal(q, done.correct);
   } else if(mode==="learn"){
     $("conceptBox").classList.add("show");
-    $("conceptBody").textContent=(q.theme && q.theme.trim()) ? q.theme.trim() : "이 문제의 핵심을 떠올려 보세요";
+    { const cc=conceptClean(q.exp); $("conceptBody").textContent = cc || (q.theme && q.theme.trim()) || "이 문제의 핵심을 떠올려 보세요"; }
     $("qText").style.display="none"; $("srcLbl").style.display="none";
     $("oxRow").style.display="none"; $("numRow").style.display="none";
     $("studyBtn").style.display="block";

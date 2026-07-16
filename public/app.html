@@ -36,7 +36,16 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .badge.dim{background:#C7CDD4;color:#5B6672}
 .theme{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.5px}
 .weakchip{font-size:11px;font-weight:900;color:#fff;background:var(--wrong);border-radius:99px;padding:2.5px 9px}
-.qno{margin-left:auto;font-size:12px;font-weight:800;color:var(--muted)}
+.qno{margin-left:auto;font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;user-select:none}
+.qno .jarrow{color:var(--right)}
+.jumpgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:4px}
+.jumpgrid button{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:11px 0;font-size:13px;font-weight:800;color:#5B6672;cursor:pointer;position:relative}
+.jumpgrid button.cur{background:var(--ink);border-color:var(--ink);color:#fff}
+.jumpgrid button.ok{border-color:var(--right);color:var(--right)}
+.jumpgrid button.no{border-color:var(--wrong);color:var(--wrong)}
+.jumpgrid button.weak::after{content:"⭐";position:absolute;top:-7px;right:-5px;font-size:10px}
+.jumplegend{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;font-size:11px;font-weight:700;color:var(--muted)}
+.jumplegend b{font-weight:900}
 .qscroll{flex:1;overflow-y:auto;padding:12px 20px 16px 22px}
 .qtext{font-size:17.5px;line-height:1.62;font-weight:600;word-break:keep-all;white-space:pre-wrap}
 .qtext mark{background:linear-gradient(transparent 42%,var(--hl) 42%);padding:0 2px;border-radius:2px}
@@ -196,6 +205,19 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
   </div>
 </div>
 
+<div class="sheetwrap" id="jumpWrap">
+  <div class="sheet">
+    <h3>문항 이동 <small style="font-weight:600;color:var(--muted)">— 번호를 눌러 바로 이동</small></h3>
+    <div class="jumpgrid" id="jumpGrid"></div>
+    <div class="jumplegend">
+      <span><b style="color:var(--right)">파랑</b> 맞힘</span>
+      <span><b style="color:var(--wrong)">빨강</b> 틀림</span>
+      <span>⭐ 취약·체크</span>
+      <span><b style="color:var(--ink)">검정</b> 현재</span>
+    </div>
+  </div>
+</div>
+
 <div class="resume" id="resumeBox">
   <div class="rbox">
     <h3>풀던 기록이 있습니다</h3>
@@ -333,7 +355,10 @@ function updateRoundPill(){
 function conceptClean(exp){
   let t=(exp||"").trim();
   if(!t) return "";
-  if(t.startsWith("[틀린 부분]") && t.includes("→")) t=t.slice(t.indexOf("→")+1).trim();
+  if(t.includes("[틀린 부분]")){
+    if(t.includes("→")) t=t.slice(t.indexOf("→")+1).trim();
+    else t=t.replace(/\[틀린 부분\]\s*/g,"").trim();
+  }
   t=t.replace(/^정답\s*[①-⑤]\s*[:：]\s*/, "");
   t=t.replace(/\s*\([^()]*[○×OXＯＸ✓✗∘][^()]*\)/g,"");   // (×) (X) (①X) (○) 등 정답표시 제거
   t=t.replace(/[○×✓✗∘]/g,"");                            // 남은 verdict 기호 제거
@@ -427,7 +452,7 @@ function show(){
   if(g) badge.style.background=GC[g]; else badge.style.background="";
   $("themeLbl").textContent=q.theme;
   renderWeakChip(q);
-  $("qnoLbl").textContent=`${idx+1} / ${deck.length}  (문항 ${q.no})`;
+  $("qnoLbl").innerHTML=`${idx+1} / ${deck.length} · 문항 ${q.no} <span class="jarrow">▾</span>`;
   $("qText").innerHTML=esc(q.q);
   $("srcLbl").textContent="출처: "+q.src;
   $("result").classList.remove("show");
@@ -538,6 +563,29 @@ function renderHistory(){
     list.appendChild(row);
   }
 }
+/* ── 문항 이동 ── */
+function openJump(){
+  if(!deck.length) return;
+  const g=$("jumpGrid"); g.innerHTML="";
+  deck.forEach((q,i)=>{
+    const b=document.createElement("button");
+    b.textContent=q.no;
+    const a=answers[i];
+    if(i===idx) b.classList.add("cur");
+    else if(a) b.classList.add(a.correct?"ok":"no");
+    if(isWeak(q.no)) b.classList.add("weak");
+    b.onclick=()=>{ $("jumpWrap").classList.remove("show"); jumpTo(i); };
+    g.appendChild(b);
+  });
+  $("jumpWrap").classList.add("show");
+}
+function jumpTo(i){
+  if(i<0 || i>=deck.length) return;
+  if($("doneBox").style.display==="block"){ $("doneBox").style.display="none"; $("card").style.display="flex"; }
+  idx=i;
+  if(idx<deck.length) saveProg();
+  show();
+}
 function updateHud(){
   $("okCnt").textContent=ok; $("noCnt").textContent=no;
   const p = deck.length? (answers.filter(Boolean).length/deck.length*100):0;
@@ -555,6 +603,8 @@ fetch("data/manifest.json").then(r=>r.json()).then(d=>{
 document.querySelectorAll(".oxrow button,.numrow button").forEach(b=>b.addEventListener("click",()=>answer(b.dataset.a)));
 $("nextChBtn").addEventListener("click",()=>{ if(NEXTCH) location.href="app.html?ch="+NEXTCH.id; });
 $("nextBtn").addEventListener("click",next);
+$("qnoLbl").addEventListener("click",openJump);
+$("jumpWrap").addEventListener("click",e=>{if(e.target===$("jumpWrap"))$("jumpWrap").classList.remove("show");});
 $("weakBtn").addEventListener("click",startWeakDeck);
 $("weakStartBtn").addEventListener("click",startWeakDeck);
 $("restartBtn").addEventListener("click",buildDeck);
@@ -642,6 +692,14 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
     document.title = d.title + " 플래시카드";
     $("chTitle").textContent = d.title;
     initChips(); applyToggleUI(); updateRoundPill(); renderHistory();
+    const JUMPQ = new URLSearchParams(location.search).get("q");
+    if(JUMPQ){
+      // URL로 특정 문항 지정 시: 전체 덱을 구성한 뒤 해당 문항으로 바로 이동
+      buildDeck();
+      const i = deck.findIndex(q=>String(q.no)===String(JUMPQ));
+      if(i>=0) jumpTo(i);
+      return;
+    }
     // 진행중 세션이 있으면 이어하기 제안
     if(S.prog && S.prog.nos && S.prog.nos.length && (S.prog.ans||[]).length < S.prog.nos.length){
       const done=(S.prog.ans||[]).length, total=S.prog.nos.length;

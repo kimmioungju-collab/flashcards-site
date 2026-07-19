@@ -17,11 +17,20 @@
     ],
     "headers": [
       {
+        "source": "**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
         "source": "**/*.@(js|json)",
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "max-age=300"
+            "value": "max-age=60"
           }
         ]
       }

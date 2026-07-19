@@ -44,6 +44,11 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .jumpgrid button.ok{border-color:var(--right);color:var(--right)}
 .jumpgrid button.no{border-color:var(--wrong);color:var(--wrong)}
 .jumpgrid button.weak::after{content:"⭐";position:absolute;top:-7px;right:-5px;font-size:10px}
+.jumpgrid button.todo{border-style:dashed;border-color:var(--muted);color:var(--muted);background:#F7F8FA}
+.jumpgrid button.todo::before{content:"";position:absolute;top:5px;left:5px;width:6px;height:6px;border-radius:50%;background:var(--muted)}
+.gotoTodo{width:100%;margin-top:12px;border:1.5px dashed var(--muted);border-radius:12px;padding:12px;font-size:14px;font-weight:900;background:#fff;color:#5B6672;cursor:pointer}
+.gotoTodo:active{transform:translateY(1px)}
+.gotoTodo:disabled{opacity:.4;cursor:default}
 .jumplegend{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;font-size:11px;font-weight:700;color:var(--muted)}
 .jumplegend b{font-weight:900}
 .qscroll{flex:1;overflow-y:auto;padding:12px 20px 16px 22px}
@@ -122,6 +127,25 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .rbox button{width:100%;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:900;cursor:pointer;margin-bottom:9px}
 .rbox .go{background:var(--hl);color:#3B3400}
 .rbox .fresh{background:var(--ink);color:#fff}
+/* 챕터 핵심 요약 오버레이 */
+.introhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.introhead h3{margin:0}
+.introx{border:none;background:rgba(0,0,0,.06);color:var(--muted);width:30px;height:30px;border-radius:50%;font-size:15px;font-weight:900;cursor:pointer}
+.introbody{font-size:14.5px;line-height:1.72;color:var(--ink)}
+.introbody h4{font-size:14.5px;font-weight:900;margin:16px 0 7px;color:#2E75B6;display:flex;align-items:center;gap:6px}
+.introbody h4:first-child{margin-top:8px}
+.introbody p{margin:0 0 9px}
+.introbody ul{margin:0 0 10px;padding-left:4px;list-style:none}
+.introbody li{position:relative;padding-left:18px;margin-bottom:7px}
+.introbody li::before{content:"·";position:absolute;left:5px;top:-1px;color:#2E75B6;font-weight:900}
+.introbody b{color:#C0392B;font-weight:800}
+.introbody .tip{background:#fff7e6;border-left:3px solid #D9A400;border-radius:8px;padding:9px 12px;margin:10px 0}
+.introbody .tip b{color:#9a7400}
+.introhbtns{display:flex;gap:6px;align-items:center}
+.ttsbtn{border:none;background:#2E75B6;color:#fff;border-radius:99px;padding:7px 13px;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap}
+.ttsbtn.on{background:#C0392B}
+.introbody .ttsread{background:#ffe98a;border-radius:6px;box-shadow:0 0 0 5px #ffe98a;transition:background .15s ease}
+.introbody h4.ttsread{box-shadow:0 0 0 4px #ffe98a}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -132,6 +156,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     <span class="pill" id="roundPill" style="display:none"></span>
     <span class="pill" id="scorePill">⭕ <b id="okCnt">0</b> · ❌ <b id="noCnt">0</b></span>
     <button class="iconbtn" onclick="location.href='index.html'">목차</button>
+    <button class="iconbtn" id="introBtn" style="display:none">📖요약</button>
     <button class="iconbtn" id="weakBtn">⭐취약</button>
     <button class="iconbtn" id="filterBtn">필터</button>
   </div>
@@ -198,7 +223,8 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     </div>
     <h3>유형</h3><div class="chips" id="themeChips"></div>
     <h3>등급</h3><div class="chips" id="gradeChips"></div>
-    <div class="togglerow" style="margin-top:14px"><span>취약 문제만<small>틀렸거나 ⭐체크한 문제</small></span><button class="sw" id="weakOnlySw"></button></div>
+    <div class="togglerow" style="margin-top:14px"><span>미완료만<small>아직 안 푼 문항만 (진도 채우기)</small></span><button class="sw" id="unsolvedOnlySw"></button></div>
+    <div class="togglerow"><span>취약 문제만<small>틀렸거나 ⭐체크한 문제</small></span><button class="sw" id="weakOnlySw"></button></div>
     <div class="togglerow"><span>취약 문제부터<small>누적 오답·체크 우선 정렬(섞기보다 우선)</small></span><button class="sw" id="weakFirstSw"></button></div>
     <div class="togglerow"><span>문제 순서 섞기</span><button class="sw" id="shuffleSw"></button></div>
     <button class="apply" id="applyBtn">이 조건으로 새로 시작</button>
@@ -208,10 +234,12 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 <div class="sheetwrap" id="jumpWrap">
   <div class="sheet">
     <h3>문항 이동 <small style="font-weight:600;color:var(--muted)">— 번호를 눌러 바로 이동</small></h3>
+    <button class="gotoTodo" id="gotoTodoBtn">⏭️ 안 푼 문제로 이동</button>
     <div class="jumpgrid" id="jumpGrid"></div>
     <div class="jumplegend">
       <span><b style="color:var(--right)">파랑</b> 맞힘</span>
       <span><b style="color:var(--wrong)">빨강</b> 틀림</span>
+      <span>● 안 푼 문제</span>
       <span>⭐ 취약·체크</span>
       <span><b style="color:var(--ink)">검정</b> 현재</span>
     </div>
@@ -224,6 +252,15 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     <p id="resumeMsg"></p>
     <button class="go" id="resumeGo">이어서 풀기</button>
     <button class="fresh" id="resumeFresh">처음부터 새로 시작</button>
+  </div>
+</div>
+
+<div class="sheetwrap" id="introWrap">
+  <div class="sheet introsheet">
+    <div class="introhead"><h3 id="introTitle">📖 이 챕터 핵심 요약</h3>
+      <div class="introhbtns"><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
+    <div class="introbody" id="introBody"></div>
+    <button class="apply" id="introStart">읽었어요 · 문제 풀기 →</button>
   </div>
 </div>
 
@@ -284,13 +321,14 @@ async function pullOpts(){
       shuffleOn = OPT.shuffle!==false;
       weakOnlyOn = !!OPT.weakOnly;
       weakFirstOn = !!OPT.weakFirst;
+      unsolvedOnlyOn = !!OPT.unsolvedOnly;
     }
   }catch(e){}
 }
 function applyToggleUI(){
   document.querySelectorAll("#modeChips button").forEach(b=>b.classList.toggle("on", b.dataset.m===mode));
   const setSw=(id,on)=>{ const e=$(id); if(e) e.classList.toggle("on", on); };
-  setSw("shuffleSw", shuffleOn); setSw("weakOnlySw", weakOnlyOn); setSw("weakFirstSw", weakFirstOn);
+  setSw("shuffleSw", shuffleOn); setSw("weakOnlySw", weakOnlyOn); setSw("weakFirstSw", weakFirstOn); setSw("unsolvedOnlySw", unsolvedOnlyOn);
 }
 
 /* ── 저장 구조 ──
@@ -305,6 +343,19 @@ if(!S.qstat) S.qstat = {};
 if(!S.history) S.history = [];
 function save(){ if(CH){ S._at=Date.now(); try{ localStorage.setItem(LSKEY, JSON.stringify(S)); }catch(e){} pushCloud(); } }
 
+/* 오늘 푼 문항수(전 챕터 공통) — 날짜별 누적 카운트 */
+function bumpDaily(){
+  try{
+    const k="fc:daily";
+    const d=JSON.parse(localStorage.getItem(k)||"{}");
+    const t=new Date();
+    const key=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+    d[key]=(d[key]||0)+1;
+    const keys=Object.keys(d).sort(); while(keys.length>60){ delete d[keys.shift()]; } // 최근 60일 유지
+    localStorage.setItem(k, JSON.stringify(d));
+  }catch(e){}
+}
+
 /* 필터 옵션 전역 저장 (챕터 간 유지) */
 const OPTKEY = "fc:opts";
 let OPT = { grades:[], mode:"quiz", shuffle:true, weakOnly:false, weakFirst:false, themes:{} };
@@ -313,7 +364,7 @@ if(!OPT.themes) OPT.themes={};
 function saveOpt(){
   OPT.grades=[...selGrades];
   OPT.themes[CH]=[...selThemes];
-  OPT.mode=mode; OPT.shuffle=shuffleOn; OPT.weakOnly=weakOnlyOn; OPT.weakFirst=weakFirstOn;
+  OPT.mode=mode; OPT.shuffle=shuffleOn; OPT.weakOnly=weakOnlyOn; OPT.weakFirst=weakFirstOn; OPT.unsolvedOnly=unsolvedOnlyOn;
   OPT._at=Date.now();
   try{ localStorage.setItem(OPTKEY, JSON.stringify(OPT)); }catch(e){}
   pushOpts();
@@ -324,12 +375,14 @@ let shuffleOn = OPT.shuffle!==false, mode = OPT.mode || "quiz";
 let selThemes = new Set((OPT.themes&&OPT.themes[CH])||[]);
 let selGrades = new Set(OPT.grades||[]);
 let weakOnlyOn = !!OPT.weakOnly, weakFirstOn = !!OPT.weakFirst;
+let unsolvedOnlyOn = !!OPT.unsolvedOnly;
 
 const $=id=>document.getElementById(id);
 const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const qw=no=>(S.qstat[no]&&S.qstat[no].w)||0;
 const qmark=no=>!!(S.qstat[no]&&S.qstat[no].m);           // 사용자가 직접 체크한 문제
 const isWeak=no=>qw(no)>0 || qmark(no);                   // 취약 = 틀렸거나 체크한 문제
+const isSolved=no=>!!(S.qstat[no]&&S.qstat[no].s>0);      // 한 번이라도 푼 문항
 const weakWeight=no=>qw(no)*10 + (qmark(no)?5:0);         // 취약 우선 정렬 가중치
 function toggleMark(no){
   const st = S.qstat[no] || (S.qstat[no]={s:0,w:0});
@@ -397,7 +450,13 @@ function buildDeck(){
   deck = QUESTIONS.filter(q=>
     (selThemes.size===0 || selThemes.has(q.theme)) &&
     (selGrades.size===0 || selGrades.has(q.grade)) &&
-    (!weakOnlyOn || isWeak(q.no)));
+    (!weakOnlyOn || isWeak(q.no)) &&
+    (!unsolvedOnlyOn || !isSolved(q.no)));
+  if(unsolvedOnlyOn && deck.length===0){
+    alert("이 조건에서 안 푼 문항이 없습니다. 🎉\n'미완료만'을 끄고 다시 시작합니다.");
+    unsolvedOnlyOn=false; const s=$("unsolvedOnlySw"); if(s) s.classList.remove("on"); saveOpt();
+    return buildDeck();
+  }
   if(weakFirstOn){
     deck=[...deck].sort((a,b)=>weakWeight(b.no)-weakWeight(a.no));
   } else if(shuffleOn){
@@ -504,6 +563,7 @@ function answer(a){
   // 문항별 누적 통계 즉시 저장 (중간에 꺼도 기록 유지)
   const st = S.qstat[q.no] || (S.qstat[q.no]={s:0,w:0});
   st.s++; if(!correct) st.w++;
+  bumpDaily();
   saveProg();
   reveal(q, correct);
   updateHud();
@@ -564,19 +624,40 @@ function renderHistory(){
   }
 }
 /* ── 문항 이동 ── */
+// 아직 안 푼 문항: 이번 세션 미응답 + 과거에도 푼 적 없음
+const isTodo=(q,i)=>!answers[i] && !isSolved(q.no);
+function findNextTodo(){
+  const n=deck.length; if(!n) return -1;
+  for(let k=1;k<=n;k++){                 // 현재 위치 다음부터 순환 탐색
+    const i=(idx+k)%n;
+    if(isTodo(deck[i],i)) return i;
+  }
+  return isTodo(deck[idx],idx) ? idx : -1; // 나머지가 다 풀렸으면 현재 확인
+}
+function gotoNextTodo(){
+  const i=findNextTodo();
+  if(i<0){ alert("이 챕터에서 안 푼 문제가 없습니다. 🎉"); return; }
+  $("jumpWrap").classList.remove("show");
+  jumpTo(i);
+}
 function openJump(){
   if(!deck.length) return;
   const g=$("jumpGrid"); g.innerHTML="";
+  let todo=0;
   deck.forEach((q,i)=>{
     const b=document.createElement("button");
     b.textContent=q.no;
     const a=answers[i];
     if(i===idx) b.classList.add("cur");
     else if(a) b.classList.add(a.correct?"ok":"no");
+    else if(isTodo(q,i)){ b.classList.add("todo"); todo++; }
     if(isWeak(q.no)) b.classList.add("weak");
     b.onclick=()=>{ $("jumpWrap").classList.remove("show"); jumpTo(i); };
     g.appendChild(b);
   });
+  const gt=$("gotoTodoBtn");
+  gt.textContent = todo>0 ? `⏭️ 안 푼 문제로 이동 (${todo})` : "✅ 모두 푼 챕터입니다";
+  gt.disabled = todo===0;
   $("jumpWrap").classList.add("show");
 }
 function jumpTo(i){
@@ -592,6 +673,123 @@ function updateHud(){
   $("progBar").style.width=p+"%";
 }
 
+/* ── 챕터 핵심 요약(초보자용) ── */
+let INTRO_HTML="", INTRO_HTML_EASY="", INTRO_MODE="full";
+const introSeenKey="fc:introseen:"+CH;
+const introModeKey="fc:intromode";
+function renderIntroBody(){
+  ttsStop();
+  const useEasy = (INTRO_MODE==="easy" && INTRO_HTML_EASY);
+  $("introBody").innerHTML = useEasy ? INTRO_HTML_EASY : INTRO_HTML;
+  $("introBody").scrollTop=0;
+  const b=$("lvlBtn");
+  if(b) b.textContent = useEasy ? "📚 상세" : "🧒 쉬운말";
+}
+function toggleIntroLevel(){
+  INTRO_MODE = (INTRO_MODE==="easy") ? "full" : "easy";
+  try{ localStorage.setItem(introModeKey, INTRO_MODE); }catch(e){}
+  renderIntroBody();
+}
+async function loadIntro(title){
+  try{
+    const r=await fetch(`intros/${CH}.json`, {cache:"no-store"});
+    if(!r.ok) return;                 // 요약 파일 없으면 조용히 스킵
+    const j=await r.json();
+    INTRO_HTML=(j&&j.intro)||"";
+    INTRO_HTML_EASY=(j&&j.introEasy)||"";
+    if(!INTRO_HTML && !INTRO_HTML_EASY) return;
+    // 쉬운말 버전이 있으면 기본으로 쉬운말, 없으면 상세
+    const saved = localStorage.getItem(introModeKey);
+    INTRO_MODE = INTRO_HTML_EASY ? (saved || "easy") : "full";
+    $("introTitle").innerHTML="📖 "+title+" — 핵심 요약";
+    if($("lvlBtn")) $("lvlBtn").style.display = INTRO_HTML_EASY ? "" : "none";
+    renderIntroBody();
+    $("introBtn").style.display="";   // 상단 버튼 노출
+    if(!localStorage.getItem(introSeenKey)) openIntro();  // 첫 방문 시 자동 표시
+  }catch(e){}
+}
+function openIntro(){ if(!INTRO_HTML) return; $("introWrap").classList.add("show"); }
+function closeIntro(){ ttsStop(); $("introWrap").classList.remove("show"); try{localStorage.setItem(introSeenKey,"1");}catch(e){} }
+
+/* ── 요약 읽어주기(TTS) + 현재 읽는 부분 하이라이트 ── */
+/* 서버에서 미리 만든 구글 음성 MP3(같은 도메인 정적파일)를 재생 → iOS 사파리 확실 재생.
+   음성파일 없으면 브라우저 내장 음성으로 폴백. */
+let ttsSegs=[], ttsOn=false, ttsVoice=null, ttsKeep=null, ttsAudio=null, AUDIO_MAN={};
+const TTS_RATE=1.05;                       // 재생 속도(자연스러움 조정)
+const TTS_OK = ('speechSynthesis' in window);
+fetch("audio/manifest.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).then(d=>{AUDIO_MAN=d||{};}).catch(()=>{});
+function pickKoVoice(){
+  if(!TTS_OK) return;
+  const vs=(speechSynthesis.getVoices()||[]).filter(v=>/^ko/i.test(v.lang));
+  // 자연스러운 음성 우선: Enhanced/Premium/Neural > Yuna/Google/Nara > 나머지
+  ttsVoice = vs.find(v=>/enhanced|premium|neural|siri/i.test(v.name))
+          || vs.find(v=>/yuna|google|nara|sora|heami/i.test(v.name))
+          || vs[0] || null;
+}
+if(TTS_OK){ pickKoVoice(); speechSynthesis.onvoiceschanged=pickKoVoice; }
+function ttsClean(t){
+  // 이모지·기호 제거(읽을 때 어색함 방지), 화살표는 쉼표로
+  return (t||"").replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{2190}-\u{21FF}]/gu," ")
+                .replace(/\s+/g," ").trim();
+}
+function ttsStop(){
+  ttsOn=false;
+  if(TTS_OK){ try{speechSynthesis.cancel();}catch(e){} }
+  if(ttsAudio){ try{ttsAudio.pause();}catch(e){} ttsAudio=null; }
+  if(ttsKeep){ clearInterval(ttsKeep); ttsKeep=null; }
+  ttsSegs.forEach(s=>s.classList.remove("ttsread"));
+  const b=$("ttsBtn"); if(b){ b.textContent="🔊 읽어주기"; b.classList.remove("on"); }
+}
+function ttsStart(){
+  if(!TTS_OK){ alert("이 브라우저는 음성 읽어주기를 지원하지 않습니다."); return; }
+  ttsStop();
+  ttsSegs=[...$("introBody").querySelectorAll("h4,p,li,.tip")];
+  if(!ttsSegs.length) return;
+  ttsOn=true;
+  const b=$("ttsBtn"); b.textContent="⏹ 멈추기"; b.classList.add("on");
+  if(!ttsVoice) pickKoVoice();
+  ttsKeep=setInterval(()=>{ if(ttsOn && speechSynthesis.paused) try{speechSynthesis.resume();}catch(e){} }, 4000);
+  speakSeg(0);
+}
+/* 오디오 엘리먼트 1개 재사용(iOS는 제스처로 한번 잠금해제되면 이후 재생 계속 허용) */
+function getAudioEl(){
+  if(!ttsAudio){ ttsAudio=new Audio(); ttsAudio.preload="auto"; ttsAudio.playsInline=true; }
+  return ttsAudio;
+}
+function audioCount(){ const e=AUDIO_MAN[CH]||{}; return (e[INTRO_MODE]|0); }
+function speakSeg(i){
+  if(!ttsOn) return;
+  ttsSegs.forEach(s=>s.classList.remove("ttsread"));
+  if(i>=ttsSegs.length){ ttsStop(); return; }
+  const el=ttsSegs[i], txt=ttsClean(el.textContent);
+  if(!txt){ speakSeg(i+1); return; }
+  el.classList.add("ttsread");
+  try{ el.scrollIntoView({behavior:"smooth",block:"center"}); }catch(e){}
+  const nextSeg=()=>{ if(ttsOn) speakSeg(i+1); };
+  // 미리 만든 뉴럴 음성 MP3가 있으면 그것을 재생(같은 도메인 → iOS OK)
+  if(i < audioCount()){
+    const a=getAudioEl(); a.playbackRate=TTS_RATE;
+    let handled=false;
+    const ok  =()=>{ if(handled)return; handled=true; nextSeg(); };
+    const fail=()=>{ if(handled)return; handled=true; webSpeak(txt, nextSeg); }; // 없으면 내장음성
+    a.onended=ok; a.onerror=fail;
+    a.src=`audio/${CH}_${INTRO_MODE}_${i}.mp3`;
+    const p=a.play();
+    if(p&&p.catch) p.catch(fail);
+  } else {
+    webSpeak(txt, nextSeg);   // 음성파일 미생성 챕터 → 내장 음성
+  }
+}
+/* 브라우저 내장 음성 폴백 */
+function webSpeak(txt, cb){
+  if(!TTS_OK){ cb(); return; }
+  if(!ttsVoice) pickKoVoice();
+  const u=new SpeechSynthesisUtterance(txt);
+  u.lang="ko-KR"; if(ttsVoice) u.voice=ttsVoice; u.rate=1.0; u.pitch=1.0;
+  u.onend=cb; u.onerror=cb;
+  try{ speechSynthesis.speak(u); }catch(e){ cb(); }
+}
+
 /* 다음 챕터 (manifest 순서 기준) */
 let NEXTCH=null;
 fetch("data/manifest.json").then(r=>r.json()).then(d=>{
@@ -604,7 +802,14 @@ document.querySelectorAll(".oxrow button,.numrow button").forEach(b=>b.addEventL
 $("nextChBtn").addEventListener("click",()=>{ if(NEXTCH) location.href="app.html?ch="+NEXTCH.id; });
 $("nextBtn").addEventListener("click",next);
 $("qnoLbl").addEventListener("click",openJump);
+$("gotoTodoBtn").addEventListener("click",gotoNextTodo);
 $("jumpWrap").addEventListener("click",e=>{if(e.target===$("jumpWrap"))$("jumpWrap").classList.remove("show");});
+$("introBtn").addEventListener("click",openIntro);
+$("introClose").addEventListener("click",closeIntro);
+$("introStart").addEventListener("click",closeIntro);
+$("ttsBtn").addEventListener("click",()=>{ if(ttsOn) ttsStop(); else ttsStart(); });
+$("lvlBtn").addEventListener("click",toggleIntroLevel);
+$("introWrap").addEventListener("click",e=>{if(e.target===$("introWrap"))closeIntro();});
 $("weakBtn").addEventListener("click",startWeakDeck);
 $("weakStartBtn").addEventListener("click",startWeakDeck);
 $("restartBtn").addEventListener("click",buildDeck);
@@ -679,6 +884,8 @@ const wosw=$("weakOnlySw"); wosw.classList.toggle("on",weakOnlyOn);
 wosw.onclick=()=>{wosw.classList.toggle("on"); weakOnlyOn=wosw.classList.contains("on");};
 const wfsw=$("weakFirstSw"); wfsw.classList.toggle("on",weakFirstOn);
 wfsw.onclick=()=>{wfsw.classList.toggle("on"); weakFirstOn=wfsw.classList.contains("on");};
+const uosw=$("unsolvedOnlySw"); uosw.classList.toggle("on",unsolvedOnlyOn);
+uosw.onclick=()=>{uosw.classList.toggle("on"); unsolvedOnlyOn=uosw.classList.contains("on");};
 $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); buildDeck();};
 
 /* 로딩 */
@@ -691,6 +898,7 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
     QUESTIONS = d.questions;
     document.title = d.title + " 플래시카드";
     $("chTitle").textContent = d.title;
+    loadIntro(d.title);   // 챕터 핵심 요약 준비(초보자용) — 있으면 버튼 노출·1회 자동표시
     initChips(); applyToggleUI(); updateRoundPill(); renderHistory();
     const JUMPQ = new URLSearchParams(location.search).get("q");
     if(JUMPQ){

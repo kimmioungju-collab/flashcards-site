@@ -68,10 +68,15 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .verdict .anslabel{font-size:14px;font-weight:800}
 .anschip{font-size:14px;font-weight:900;border-radius:8px;padding:2px 10px;color:#fff}
 .anschip.O{background:var(--right)} .anschip.X{background:var(--wrong)} .anschip.etc{background:#5B6672}
-.exp{font-size:14.5px;line-height:1.66;word-break:keep-all}
+.exp{font-size:14.5px;line-height:1.66;word-break:keep-all;white-space:pre-wrap}
 .exp .trap{color:var(--wrong);font-weight:800}
 .exp .trap mark{background:linear-gradient(transparent 40%,var(--hl) 40%);padding:0 2px;border-radius:2px;color:var(--wrong)}
 .exp .fix{color:var(--right)} .exp .fix b{font-weight:900}
+.linkbox{margin-top:14px;padding:12px 13px;border:1.5px solid var(--line);border-radius:12px;background:#F4F8FF}
+.linklabel{font-size:12px;font-weight:900;color:#2B5D8A;margin-bottom:8px}
+.linkrow{display:flex;flex-wrap:wrap;gap:8px}
+.linkrow a{display:inline-block;text-decoration:none;font-size:13px;font-weight:800;color:#1E4A73;background:#fff;border:1.5px solid #BcD5EE;border-radius:10px;padding:8px 11px;cursor:pointer}
+.linkrow a:active{transform:translateY(1px)}
 .markbtn{margin-top:14px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;color:#8A7B1E;cursor:pointer;width:100%}
 .markbtn.on{background:#FFF3C4;border-color:#EFDD8F;color:#7A6B00}
 .done .weakstart{background:#D9A400;color:#fff}
@@ -180,6 +185,10 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
           <span class="anschip" id="ansChip"></span>
         </div>
         <div class="exp" id="expBox"></div>
+        <div class="linkbox" id="linkBox" style="display:none">
+          <div class="linklabel">🔗 연관 OX 문제 바로가기</div>
+          <div class="linkrow" id="linkRow"></div>
+        </div>
         <button class="markbtn" id="markBtn"></button>
       </div>
     </div>
@@ -538,12 +547,28 @@ function show(){
   }
   document.querySelector(".qscroll").scrollTop=0;
 }
+function renderLinks(q){
+  const box=$("linkBox"), row=$("linkRow");
+  const links=Array.isArray(q.links)?q.links:[];
+  if(!links.length){ box.style.display="none"; row.innerHTML=""; return; }
+  row.innerHTML="";
+  links.forEach(l=>{
+    const a=document.createElement("a");
+    a.textContent="▶ "+(l.label||l.ch);
+    let url="app.html?ch="+encodeURIComponent(l.ch);
+    if(l.q) url+="&q="+encodeURIComponent(l.q);
+    a.href=url;
+    row.appendChild(a);
+  });
+  box.style.display="block";
+}
 function reveal(q, correct){
   const v=$("verdict"); v.className="verdict "+(correct?"ok":"no");
   $("vMark").textContent=correct?"⭕ 정답!":"❌ 오답";
   const chip=$("ansChip"); chip.textContent=q.ans;
   chip.className="anschip "+(q.ans==="O"?"O":q.ans==="X"?"X":"etc");
   $("expBox").innerHTML=renderExp(q.exp);
+  renderLinks(q);
   const trap = q.ans==="X" ? trapPhrase(q.exp) : null;
   if(trap){
     const raw=esc(q.q), et=esc(trap);

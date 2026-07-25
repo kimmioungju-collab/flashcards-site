@@ -435,36 +435,37 @@ function renderMarkBtn(q){
   mk.onclick=()=>{ toggleMark(q.no); renderMarkBtn(q); renderWeakChip(q); };
 }
 
-/* ── 텔레그램으로 바로 질문 ── */
-const TG_BOT = "bigClavis_bot";
+/* ── 텔레그램으로 바로 질문 (Firebase 큐 → 봇이 바로 답변) ── */
+const ASK_URL = "https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com/flashcards/ask.json";
 function toast(msg){
   const t=document.createElement("div"); t.className="asktoast"; t.textContent=msg;
-  document.body.appendChild(t); setTimeout(()=>t.remove(), 2200);
-}
-function buildAskText(q, myQ){
-  const ch = (document.getElementById("chTitle")||{}).textContent || "";
-  const link = location.origin + location.pathname + "?ch=" + encodeURIComponent(CH||"") + "&q=" + encodeURIComponent(q.no||"");
-  const lines = [
-    "📚 행정법 질문 — " + ch + " · 문항 " + (q.no||""),
-    "",
-    "Q. " + (q.q||""),
-    "정답: " + (q.ans||""),
-    "해설: " + (q.exp||""),
-  ];
-  if(q.src) lines.push("출처: " + q.src);
-  lines.push("", "❓ " + (myQ||"이 문제 왜 이렇게 되는지 쉽게 설명해줘"), "", link);
-  return lines.join("\n");
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 2600);
 }
 function renderAskBtn(q){
   const b=$("askBtn");
-  b.onclick=()=>{
+  b.disabled=false;
+  b.textContent="💬 이 문제 텔레그램으로 질문하기";
+  b.onclick=async()=>{
     const myQ = prompt("무엇이 궁금하세요?\n(비워두면 '왜 이렇게 되는지 설명해줘'로 보냅니다)", "");
     if(myQ===null) return;
-    const text = buildAskText(q, myQ.trim());
-    try{ navigator.clipboard && navigator.clipboard.writeText(text); }catch(e){}
-    toast("클립보드 복사됨 → 텔레그램에서 전송");
-    const url = "https://t.me/share/url?url=" + encodeURIComponent("https://t.me/"+TG_BOT) + "&text=" + encodeURIComponent(text);
-    setTimeout(()=>{ location.href = url; }, 250);
+    const payload = {
+      ch: (document.getElementById("chTitle")||{}).textContent || CH || "",
+      no: q.no || "", q: q.q || "", ans: q.ans || "",
+      exp: q.exp || "", src: q.src || "",
+      myq: myQ.trim(),
+      link: location.origin + location.pathname + "?ch=" + encodeURIComponent(CH||"") + "&q=" + encodeURIComponent(q.no||""),
+      t: Date.now()
+    };
+    b.disabled=true; b.textContent="📨 전송 중...";
+    try{
+      const r = await fetch(ASK_URL, {method:"POST", body: JSON.stringify(payload)});
+      if(!r.ok) throw new Error(r.status);
+      b.textContent="✅ 전송됨 — 텔레그램 확인";
+      toast("질문 전송 완료 · 텔레그램으로 답변이 갑니다");
+    }catch(e){
+      b.disabled=false; b.textContent="⚠️ 전송 실패 — 다시 시도";
+      toast("전송 실패: " + e.message);
+    }
   };
 }
 

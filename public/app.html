@@ -80,6 +80,14 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .linkrow{display:flex;flex-wrap:wrap;gap:8px}
 .linkrow a{display:inline-block;text-decoration:none;font-size:13px;font-weight:800;color:#1E4A73;background:#fff;border:1.5px solid #BcD5EE;border-radius:10px;padding:8px 11px;cursor:pointer}
 .linkrow a:active{transform:translateY(1px)}
+.slinkrow{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.slink{display:flex;align-items:center;gap:9px;text-decoration:none;background:#fff;border:1.5px solid #BcD5EE;border-radius:11px;padding:9px 11px;cursor:pointer}
+.slink:active{transform:translateY(1px)}
+.slink .opt{flex:0 0 auto;width:23px;height:23px;line-height:23px;text-align:center;border-radius:50%;background:#2B5D8A;color:#fff;font-size:12.5px;font-weight:900}
+.slink .lb{flex:1;font-size:13px;font-weight:800;color:#1E4A73;word-break:keep-all;line-height:1.4}
+.slink .go{flex:0 0 auto;font-size:11.5px;font-weight:900;color:#6E8CA8}
+.backbar{width:100%;border:none;background:#2B5D8A;color:#fff;font-size:13.5px;font-weight:800;padding:11px 14px;text-align:left;cursor:pointer;border-radius:0}
+.backbar:active{opacity:.85}
 .markbtn{margin-top:14px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;color:#8A7B1E;cursor:pointer;width:100%}
 .markbtn.on{background:#FFF3C4;border-color:#EFDD8F;color:#7A6B00}
 .askbtn{margin-top:9px;border:none;background:#229ED9;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;color:#fff;cursor:pointer;width:100%}
@@ -172,6 +180,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     <button class="iconbtn" id="filterBtn">필터</button>
   </div>
   <div class="progress"><i id="progBar"></i></div>
+  <button class="backbar" id="backBar" style="display:none"></button>
 
   <div class="card" id="card">
     <div class="cardhead">
@@ -192,7 +201,8 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
         </div>
         <div class="exp" id="expBox"></div>
         <div class="linkbox" id="linkBox" style="display:none">
-          <div class="linklabel">🔗 연관 OX 문제 바로가기</div>
+          <div class="linklabel" id="linkLabel">🔗 연관 OX 문제 바로가기</div>
+          <div class="slinkrow" id="slinkRow"></div>
           <div class="linkrow" id="linkRow"></div>
         </div>
         <button class="markbtn" id="markBtn"></button>
@@ -624,21 +634,55 @@ function show(){
   }
   document.querySelector(".qscroll").scrollTop=0;
 }
+/* 링크 이동 URL — 돌아올 지점(back)을 함께 실어보낸다 */
+function jumpUrl(l, fromQno){
+  let url="app.html?ch="+encodeURIComponent(l.ch);
+  if(l.q) url+="&q="+encodeURIComponent(l.q);
+  url+="&back="+encodeURIComponent(CH)+"&bq="+encodeURIComponent(fromQno||"");
+  const bl=(document.getElementById("chTitle")||{}).textContent||CH;
+  url+="&bl="+encodeURIComponent(bl.slice(0,30));
+  return url;
+}
 function renderLinks(q){
-  const box=$("linkBox"), row=$("linkRow");
+  const box=$("linkBox"), row=$("linkRow"), srow=$("slinkRow"), lbl=$("linkLabel");
   const links=Array.isArray(q.links)?q.links:[];
-  if(!links.length){ box.style.display="none"; row.innerHTML=""; return; }
-  row.innerHTML="";
+  const slinks=Array.isArray(q.slinks)?q.slinks:[];
+  row.innerHTML=""; srow.innerHTML="";
+  if(!links.length && !slinks.length){ box.style.display="none"; return; }
+
+  // 지문(선지)별 링크 — 각 선지가 직접 연관되는 문제로 이동
+  slinks.forEach(l=>{
+    const a=document.createElement("a");
+    a.className="slink";
+    a.href=jumpUrl(l, q.no);
+    a.innerHTML=`<span class="opt">${esc(l.opt||"·")}</span><span class="lb">${esc(l.label||l.ch)}</span><span class="go">이동 ›</span>`;
+    srow.appendChild(a);
+  });
+  // 챕터 단위 링크
   links.forEach(l=>{
     const a=document.createElement("a");
     a.textContent="▶ "+(l.label||l.ch);
-    let url="app.html?ch="+encodeURIComponent(l.ch);
-    if(l.q) url+="&q="+encodeURIComponent(l.q);
-    a.href=url;
+    a.href=jumpUrl(l, q.no);
     row.appendChild(a);
   });
+  lbl.textContent = slinks.length ? "🔗 지문별 연관 문제 바로가기" : "🔗 연관 OX 문제 바로가기";
   box.style.display="block";
 }
+/* 돌아가기 바 — 링크로 넘어온 경우에만 표시 */
+function renderBackBar(){
+  const p=new URLSearchParams(location.search);
+  const back=p.get("back"), bq=p.get("bq")||"", bl=p.get("bl")||back;
+  const bar=$("backBar");
+  if(!back){ bar.style.display="none"; return; }
+  bar.style.display="block";
+  bar.textContent=`← ${bl}${bq?" · "+bq+"번":""}(으)로 돌아가기`;
+  bar.onclick=()=>{
+    let u="app.html?ch="+encodeURIComponent(back);
+    if(bq) u+="&q="+encodeURIComponent(bq);
+    location.href=u;
+  };
+}
+renderBackBar();
 function reveal(q, correct){
   const v=$("verdict"); v.className="verdict "+(correct?"ok":"no");
   $("vMark").textContent=correct?"⭕ 정답!":"❌ 오답";
@@ -1010,8 +1054,15 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
     if(JUMPQ){
       // URL로 특정 문항 지정 시: 전체 덱을 구성한 뒤 해당 문항으로 바로 이동
       buildDeck();
-      const i = deck.findIndex(q=>String(q.no)===String(JUMPQ));
-      if(i>=0) jumpTo(i);
+      let i = deck.findIndex(q=>String(q.no)===String(JUMPQ));
+      if(i<0){
+        // 현재 필터에 걸려 빠진 문항이면 필터 무시하고 전체 덱으로 다시 구성
+        deck = [...QUESTIONS];
+        idx=0; ok=0; no=0; wrongs=[]; answers=[];
+        $("doneBox").style.display="none"; $("card").style.display="flex";
+        i = deck.findIndex(q=>String(q.no)===String(JUMPQ));
+      }
+      if(i>=0) jumpTo(i); else show();
       return;
     }
     // 진행중 세션이 있으면 이어하기 제안

@@ -249,14 +249,17 @@ function makeCard(c,gset){
   let stats="";
   if(isGoal && !done) stats += `<span class="stat goal">🎯 오늘 목표선 ~${dailyT.boundaryQno}번</span>`;
   else if(isDue && !done) stats += `<span class="stat due">오늘까지</span>`;
-  if(done) stats += `<span class="stat best">1회독 ✓</span>`;
+  if(done) stats += `<span class="stat best">✅ 완료 ${cnt}/${cnt}</span>`;
   else if(seen>0) stats += `<span class="stat new">진도 ${seen}/${cnt}</span>`;
   if(s){
     if(s.rounds) stats += `<span class="stat">${s.rounds}회독</span><span class="stat best">최고 ${s.best}%</span>`;
     const weak = s.qstat ? Object.values(s.qstat).filter(x=>x.w>0).length : 0;
     if(weak) stats += `<span class="stat wrong">취약 ${weak}문항</span>`;
-    if(s.prog && s.prog.nos && (s.prog.ans||[]).length < s.prog.nos.length)
-      stats += `<span class="stat new">풀던 중 ${(s.prog.ans||[]).length}/${s.prog.nos.length}</span>`;
+    if(s.prog && s.prog.nos && (s.prog.ans||[]).length < s.prog.nos.length){
+      // 이미 완료한 챕터를 다시 도는 중이면 '풀던 중'이 진도 후퇴처럼 보이므로 회독 표기로 구분
+      const lbl = done ? `${(s.rounds||1)+1}회독 중` : "풀던 중";
+      stats += `<span class="stat new">🔄 ${lbl} ${(s.prog.ans||[]).length}/${s.prog.nos.length}</span>`;
+    }
   }
   if(!stats) stats = `<span class="stat new">미학습</span>`;
   const lt = s && (s._at || s.when);

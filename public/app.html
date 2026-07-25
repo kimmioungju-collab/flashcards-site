@@ -488,7 +488,12 @@ function renderAskBtn(q){
 
 function updateRoundPill(){
   const p=$("roundPill");
-  if(S.rounds){ p.style.display=""; p.textContent=`${S.rounds}회독 · 최고 ${S.best}%`; }
+  // 덱 전체가 이미 풀린 상태면 '재도전 중'임을 명시해 낮은 진행수가 후퇴로 보이지 않게 한다
+  const redo = deck.length>0 && deck.every(q=>isSolved(q.no));
+  if(S.rounds){
+    p.style.display="";
+    p.textContent = redo ? `✅ ${S.rounds}회독 완료 · 재도전 중` : `${S.rounds}회독 · 최고 ${S.best}%`;
+  }
 }
 function hl(escaped, kws, reds){
   const rl=(Array.isArray(reds)?reds:[]).filter(Boolean);
@@ -563,6 +568,7 @@ function buildDeck(){
   clearProg();
   $("doneBox").style.display="none";
   $("card").style.display="flex";
+  updateRoundPill();
   show();
 }
 function startWeakDeck(){
@@ -593,6 +599,7 @@ function resumeSession(p){
   $("doneBox").style.display="none";
   $("card").style.display="flex";
   document.querySelectorAll("#modeChips button").forEach(b=>b.classList.toggle("on", b.dataset.m===mode));
+  updateRoundPill();
   show();
 }
 

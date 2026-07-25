@@ -596,6 +596,9 @@ function resumeSession(p){
   show();
 }
 
+// 덱의 모든 문항에 답이 채워졌는지 (중간 문항을 나중에 풀어 채운 경우 포함)
+const allAnswered=()=>deck.length>0 && answers.filter(Boolean).length>=deck.length;
+
 function show(){
   updateHud();
   if(idx>=deck.length){ return finish(); }
@@ -702,6 +705,8 @@ function reveal(q, correct){
   renderAskBtn(q);
   $("result").classList.add("show");
   $("oxRow").style.display="none"; $("numRow").style.display="none";
+  // 전 문항이 채워졌으면 위치가 덱 중간이어도 결과 화면으로 갈 수 있게 한다
+  $("nextBtn").textContent = allAnswered() ? "🏁 결과 보기" : "다음 문제 →";
   $("nextBtn").style.display="block";
 }
 function answer(a){
@@ -721,6 +726,7 @@ function answer(a){
 }
 function next(){
   if(idx<deck.length && !answers[idx]) return;
+  if(allAnswered()){ idx=deck.length; show(); return; }   // 미응답이 없으면 바로 결과로
   idx++;
   if(idx<deck.length) saveProg();
   show();
@@ -1063,6 +1069,12 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
         i = deck.findIndex(q=>String(q.no)===String(JUMPQ));
       }
       if(i>=0) jumpTo(i); else show();
+      return;
+    }
+    // 전 문항을 다 풀었는데 결과 화면을 못 본 세션 → 바로 결과로 마무리
+    if(S.prog && S.prog.nos && S.prog.nos.length && (S.prog.ans||[]).length >= S.prog.nos.length){
+      resumeSession(S.prog);
+      idx = deck.length; show();
       return;
     }
     // 진행중 세션이 있으면 이어하기 제안

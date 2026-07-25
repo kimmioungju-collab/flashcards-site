@@ -54,11 +54,13 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .qscroll{flex:1;overflow-y:auto;padding:12px 20px 16px 22px}
 .qtext{font-size:17.5px;line-height:1.62;font-weight:600;word-break:keep-all;white-space:pre-wrap}
 .qtext mark{background:linear-gradient(transparent 42%,var(--hl) 42%);padding:0 2px;border-radius:2px}
+.qtext mark.kwr{background:linear-gradient(transparent 42%,#ffc9c9 42%);color:var(--wrong);font-weight:800}
 .src{margin-top:10px;font-size:12px;color:var(--muted);font-weight:700}
 .concept{display:none;background:#FFF9DE;border:1.5px solid #EFDD8F;border-radius:12px;padding:14px 16px;margin-bottom:4px}
 .concept.show{display:block;animation:rise .28s ease}
 .concept .clabel{font-size:12px;font-weight:900;color:#8A7B1E;letter-spacing:.5px;margin-bottom:6px}
 .concept .cbody{font-size:15.5px;line-height:1.66;font-weight:600;word-break:keep-all}
+.concept .cbody mark{background:linear-gradient(transparent 42%,var(--hl) 42%);padding:0 2px;border-radius:2px;font-weight:800}
 .result{border-top:1.5px dashed var(--line);padding:14px 20px 16px 22px;display:none;animation:rise .28s ease}
 .result.show{display:block}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -69,6 +71,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .anschip{font-size:14px;font-weight:900;border-radius:8px;padding:2px 10px;color:#fff}
 .anschip.O{background:var(--right)} .anschip.X{background:var(--wrong)} .anschip.etc{background:#5B6672}
 .exp{font-size:14.5px;line-height:1.66;word-break:keep-all;white-space:pre-wrap}
+.exp mark{background:linear-gradient(transparent 42%,var(--hl) 42%);padding:0 2px;border-radius:2px;font-weight:800}
 .exp .trap{color:var(--wrong);font-weight:800}
 .exp .trap mark{background:linear-gradient(transparent 40%,var(--hl) 40%);padding:0 2px;border-radius:2px;color:var(--wrong)}
 .exp .fix{color:var(--right)} .exp .fix b{font-weight:900}
@@ -79,6 +82,9 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .linkrow a:active{transform:translateY(1px)}
 .markbtn{margin-top:14px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;color:#8A7B1E;cursor:pointer;width:100%}
 .markbtn.on{background:#FFF3C4;border-color:#EFDD8F;color:#7A6B00}
+.askbtn{margin-top:9px;border:none;background:#229ED9;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;color:#fff;cursor:pointer;width:100%}
+.askbtn:active{opacity:.8}
+.asktoast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:rgba(20,26,32,.94);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;font-weight:700;z-index:99;white-space:nowrap}
 .done .weakstart{background:#D9A400;color:#fff}
 .controls{margin-top:14px}
 .oxrow{display:flex;gap:12px}
@@ -190,6 +196,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
           <div class="linkrow" id="linkRow"></div>
         </div>
         <button class="markbtn" id="markBtn"></button>
+        <button class="askbtn" id="askBtn">💬 이 문제 텔레그램으로 질문하기</button>
       </div>
     </div>
   </div>
@@ -360,9 +367,27 @@ function bumpDaily(){
     const t=new Date();
     const key=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
     d[key]=(d[key]||0)+1;
-    const keys=Object.keys(d).sort(); while(keys.length>60){ delete d[keys.shift()]; } // 최근 60일 유지
+    const keys=Object.keys(d).sort(); while(keys.length>1200){ delete d[keys.shift()]; } // 약 3년치 날짜 누적 보관
     localStorage.setItem(k, JSON.stringify(d));
+    pushDaily(d);
   }catch(e){}
+}
+/* 학습 날짜 기록을 클라우드에 누적 병합 (기기 간 유지) */
+let _dailyTimer=null;
+function pushDaily(local){
+  if(!SYNC) return;
+  clearTimeout(_dailyTimer);
+  _dailyTimer=setTimeout(async ()=>{
+    try{
+      let cloud={};
+      const r=await fetch(cloudUrl("daily"),{cache:"no-store"});
+      if(r.ok){ cloud=(await r.json())||{}; }
+      const merged=Object.assign({},cloud);
+      for(const key in local){ merged[key]=Math.max(cloud[key]||0, local[key]||0); }
+      try{ localStorage.setItem("fc:daily", JSON.stringify(merged)); }catch(e){}
+      await fetch(cloudUrl("daily"),{method:"PUT",body:JSON.stringify(merged)});
+    }catch(e){}
+  }, 1500);
 }
 
 /* 필터 옵션 전역 저장 (챕터 간 유지) */
@@ -410,9 +435,53 @@ function renderMarkBtn(q){
   mk.onclick=()=>{ toggleMark(q.no); renderMarkBtn(q); renderWeakChip(q); };
 }
 
+/* ── 텔레그램으로 바로 질문 ── */
+const TG_BOT = "bigClavis_bot";
+function toast(msg){
+  const t=document.createElement("div"); t.className="asktoast"; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 2200);
+}
+function buildAskText(q, myQ){
+  const ch = (document.getElementById("chTitle")||{}).textContent || "";
+  const link = location.origin + location.pathname + "?ch=" + encodeURIComponent(CH||"") + "&q=" + encodeURIComponent(q.no||"");
+  const lines = [
+    "📚 행정법 질문 — " + ch + " · 문항 " + (q.no||""),
+    "",
+    "Q. " + (q.q||""),
+    "정답: " + (q.ans||""),
+    "해설: " + (q.exp||""),
+  ];
+  if(q.src) lines.push("출처: " + q.src);
+  lines.push("", "❓ " + (myQ||"이 문제 왜 이렇게 되는지 쉽게 설명해줘"), "", link);
+  return lines.join("\n");
+}
+function renderAskBtn(q){
+  const b=$("askBtn");
+  b.onclick=()=>{
+    const myQ = prompt("무엇이 궁금하세요?\n(비워두면 '왜 이렇게 되는지 설명해줘'로 보냅니다)", "");
+    if(myQ===null) return;
+    const text = buildAskText(q, myQ.trim());
+    try{ navigator.clipboard && navigator.clipboard.writeText(text); }catch(e){}
+    toast("클립보드 복사됨 → 텔레그램에서 전송");
+    const url = "https://t.me/share/url?url=" + encodeURIComponent("https://t.me/"+TG_BOT) + "&text=" + encodeURIComponent(text);
+    setTimeout(()=>{ location.href = url; }, 250);
+  };
+}
+
 function updateRoundPill(){
   const p=$("roundPill");
   if(S.rounds){ p.style.display=""; p.textContent=`${S.rounds}회독 · 최고 ${S.best}%`; }
+}
+function hl(escaped, kws, reds){
+  const rl=(Array.isArray(reds)?reds:[]).filter(Boolean);
+  const kl=(Array.isArray(kws)?kws:[]).filter(Boolean);
+  const all=[...new Set([...rl,...kl])];
+  if(!all.length) return escaped;
+  const rset=new Set(rl.map(k=>esc(k)));
+  const parts=all.sort((a,b)=>b.length-a.length)
+     .map(k=>esc(k).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  const re=new RegExp('('+parts.join('|')+')','g');
+  return escaped.replace(re,m=>rset.has(m)?'<mark class="kwr">'+m+'</mark>':'<mark>'+m+'</mark>');
 }
 function conceptClean(exp){
   let t=(exp||"").trim();
@@ -436,15 +505,15 @@ function trapPhrase(exp){
   const m = exp.match(/\[틀린 부분\]\s*'([^']+)'/);
   return m ? m[1] : null;
 }
-function renderExp(exp){
+function renderExp(exp, kws){
   if(exp.startsWith("[틀린 부분]") && exp.includes("→")){
     const i = exp.indexOf("→");
     let head = esc(exp.slice(0,i).trim());
-    const tail = esc(exp.slice(i+1).trim());
+    const tail = hl(esc(exp.slice(i+1).trim()), kws);
     head = head.replace(/'([^']+)'/, "'<mark>$1</mark>'");
     return `<span class="trap">${head}</span> <span class="fix"><b>→</b> ${tail}</span>`;
   }
-  return esc(exp);
+  return hl(esc(exp), kws);
 }
 
 function saveProg(){
@@ -534,7 +603,7 @@ function show(){
     reveal(q, done.correct);
   } else if(mode==="learn"){
     $("conceptBox").classList.add("show");
-    { const cc=conceptClean(q.exp); $("conceptBody").textContent = cc || (q.theme && q.theme.trim()) || "이 문제의 핵심을 떠올려 보세요"; }
+    { const cc=conceptClean(q.exp); const body = cc || (q.theme && q.theme.trim()) || "이 문제의 핵심을 떠올려 보세요"; $("conceptBody").innerHTML = esc(body); }
     $("qText").style.display="none"; $("srcLbl").style.display="none";
     $("oxRow").style.display="none"; $("numRow").style.display="none";
     $("studyBtn").style.display="block";
@@ -567,14 +636,18 @@ function reveal(q, correct){
   $("vMark").textContent=correct?"⭕ 정답!":"❌ 오답";
   const chip=$("ansChip"); chip.textContent=q.ans;
   chip.className="anschip "+(q.ans==="O"?"O":q.ans==="X"?"X":"etc");
-  $("expBox").innerHTML=renderExp(q.exp);
+  $("expBox").innerHTML=renderExp(q.exp, q.kw2||q.kw);
   renderLinks(q);
   const trap = q.ans==="X" ? trapPhrase(q.exp) : null;
   if(trap){
     const raw=esc(q.q), et=esc(trap);
     if(raw.includes(et)) $("qText").innerHTML=raw.replace(et,`<mark>${et}</mark>`);
+    else $("qText").innerHTML=hl(esc(q.q), q.kw, q.kwr);
+  } else {
+    $("qText").innerHTML=hl(esc(q.q), q.kw, q.kwr);
   }
   renderMarkBtn(q);
+  renderAskBtn(q);
   $("result").classList.add("show");
   $("oxRow").style.display="none"; $("numRow").style.display="none";
   $("nextBtn").style.display="block";

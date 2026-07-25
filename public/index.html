@@ -107,6 +107,17 @@ a.ch.done::before{background:var(--right)}
 .stat.due{background:#FDEBEC;color:#C62828}
 .stat.goal{background:#FFE9C7;color:#B26A00}
 a.ch.goal::before{background:#F5A623}
+/* 학습 날짜 기록 카드 */
+.slog .sstats{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;font-weight:800;margin-bottom:10px}
+.slog .sstats b{font-weight:900;color:var(--right)}
+.slog .heat{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px}
+.slog .hcol{display:flex;flex-direction:column;gap:3px}
+.slog .hc{width:13px;height:13px;border-radius:3px;background:#EAE6DC}
+.slog .hc.l1{background:#C6E0B4}.slog .hc.l2{background:#8FC46B}
+.slog .hc.l3{background:#5B9E3A}.slog .hc.l4{background:#2E7D32}
+.slog .hleg{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--muted);margin-top:8px;justify-content:flex-end}
+.slog .hleg .hc{width:11px;height:11px}
+.slog .srecent{font-size:12px;font-weight:700;color:var(--muted);margin-top:8px;line-height:1.6;word-break:keep-all}
 </style>
 </head>
 <body>
@@ -115,6 +126,7 @@ a.ch.goal::before{background:#F5A623}
   <div class="sub" id="summary">불러오는 중…</div>
   <div class="syncbar"><span id="syncState">☁️ 동기화 꺼짐</span><button id="syncBtn">코드 설정</button></div>
   <div class="plan" id="planCard" style="display:none"></div>
+  <div class="plan slog" id="studyCard" style="display:none"></div>
   <div class="toolbar">
     <input class="search" id="q" placeholder="챕터 검색 (예: 비례, 신뢰보호)">
     <button class="leftbtn" id="leftBtn">남은 챕터만</button>
@@ -160,6 +172,7 @@ const UNITS=[
   {name:"제6편 행정쟁송(소송·심판)", from:50, to:70},
   {name:"제7편 국가배상·손실보상",   from:71, to:75},
   {name:"제8편 정보공개·개인정보",   from:76, to:81},
+  {name:"제9편 기출문제",            from:82, to:99},
 ];
 function chNum(c){ return parseInt((c.id||"").replace(/[^0-9]/g,""),10)||0; }
 function unitOf(c){ const n=chNum(c); for(const u of UNITS){ if(n>=u.from&&n<=u.to) return u; } return {name:"기타", from:9990, to:9999}; }
@@ -401,6 +414,71 @@ function todayStr(){ const d=new Date(); d.setHours(0,0,0,0);
 function solvedToday(){
   try{ const d=JSON.parse(localStorage.getItem("fc:daily")||"{}"); return d[todayStr()]||0; }
   catch(e){ return 0; }
+}
+function loadDaily(){ try{ return JSON.parse(localStorage.getItem("fc:daily")||"{}"); }catch(e){ return {}; } }
+/* 학습 날짜 기록 클라우드에서 병합 (기기 간 누적 유지) */
+async function pullDaily(){
+  const c=syncCode(); if(!c) return;
+  try{
+    const r=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/daily.json`,{cache:"no-store"});
+    if(!r.ok) return;
+    const cloud=await r.json(); if(!cloud) return;
+    const local=loadDaily(), merged=Object.assign({},local);
+    for(const k in cloud){ merged[k]=Math.max(local[k]||0, cloud[k]||0); }
+    localStorage.setItem("fc:daily", JSON.stringify(merged));
+  }catch(e){}
+}
+/* 날짜 관련 헬퍼 */
+function dKey(dt){ return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`; }
+function heatLevel(n){ return n<=0?0 : n<5?1 : n<15?2 : n<30?3 : 4; }
+/* 학습 날짜 기록 카드 렌더 (총 공부일·연속·최장연속 + 히트맵) */
+function renderStudyLog(){
+  const card=document.getElementById("studyCard"); if(!card) return;
+  const d=loadDaily();
+  const dates=Object.keys(d).filter(k=>d[k]>0).sort();
+  if(!dates.length){ card.style.display="none"; return; }
+  card.style.display="block";
+  const totalDays=dates.length;
+  const totalQ=dates.reduce((s,k)=>s+(d[k]||0),0);
+  // 현재 연속(오늘 또는 어제부터 거꾸로) / 최장 연속
+  const has=k=>!!d[k]&&d[k]>0;
+  const oneDay=86400000;
+  const today=new Date(); today.setHours(0,0,0,0);
+  let cur=0; { let t=new Date(today);
+    if(!has(dKey(t))) t=new Date(today.getTime()-oneDay); // 오늘 안 했으면 어제부터
+    while(has(dKey(t))){ cur++; t=new Date(t.getTime()-oneDay); } }
+  let best=0,run=0,prev=null;
+  for(const k of dates){ const curDate=new Date(k+"T00:00:00");
+    if(prev && (curDate-prev)===oneDay) run++; else run=1;
+    if(run>best) best=run; prev=curDate; }
+  // 히트맵: 최근 18주(월요일 시작 열)
+  const weeks=18, cols=[];
+  const end=new Date(today);
+  const dow=(end.getDay()+6)%7; // 월=0
+  const gridEnd=new Date(end.getTime()+(6-dow)*oneDay); // 이번 주 일요일
+  const start=new Date(gridEnd.getTime()-(weeks*7-1)*oneDay);
+  for(let w=0;w<weeks;w++){ let col="";
+    for(let dd=0;dd<7;dd++){
+      const cell=new Date(start.getTime()+(w*7+dd)*oneDay);
+      const key=dKey(cell), n=d[key]||0, future=cell>today;
+      const lv=future?"":("l"+heatLevel(n));
+      const tip=future?"":`${key} · ${n}문항`;
+      col+=`<div class="hc ${lv}" ${tip?`title="${tip}"`:""} style="${future?"visibility:hidden":""}"></div>`;
+    }
+    cols.push(`<div class="hcol">${col}</div>`);
+  }
+  const recent=dates.slice(-5).reverse().map(k=>`${k.slice(5).replace("-","/")}(${d[k]})`).join(" · ");
+  card.innerHTML=`
+    <div class="ph">🔥 학습 날짜 기록</div>
+    <div class="sstats">
+      <span>총 공부한 날 <b>${totalDays}</b>일</span>
+      <span>현재 연속 <b>${cur}</b>일</span>
+      <span>최장 연속 <b>${best}</b>일</span>
+      <span>누적 <b>${totalQ.toLocaleString()}</b>문항</span>
+    </div>
+    <div class="heat">${cols.join("")}</div>
+    <div class="hleg">적음 <span class="hc l1"></span><span class="hc l2"></span><span class="hc l3"></span><span class="hc l4"></span> 많음</div>
+    <div class="srecent">최근: ${recent}</div>`;
 }
 
 /* ── 공부 시간대(intraday) 페이스 ──
@@ -742,10 +820,12 @@ fetch("data/manifest.json").then(r=>r.json()).then(async d=>{
   chapters=d.chapters;
   updateSyncUI();
   await pullAll();  // 다른 기기 진도 먼저 반영
+  await pullDaily();  // 학습 날짜 기록도 병합
   const studied=chapters.filter(c=>stat(c.id)).length;
   document.getElementById("summary").textContent=`전체 ${chapters.length}챕터 · 학습 시작 ${studied}챕터`;
   if(planGradeSet()) await ensureQGrades();  // 등급 지정 플랜이면 문항 등급 로드
   renderPlan();
+  renderStudyLog();
   render();
 });
 document.getElementById("q").addEventListener("input",e=>render(e.target.value));

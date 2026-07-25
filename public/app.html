@@ -288,7 +288,14 @@ const GC = {"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD
 
 /* ── 클라우드 동기화 (기기 간 진도 공유) ── */
 const DBURL = "https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com";
-const SYNC = (localStorage.getItem("fc:synccode") || "").trim();
+const DEFAULT_SYNC = "kmj";   // 코드 미설정 기기는 자동으로 이 코드 사용 (index.html과 동일)
+const SYNC = (function(){
+  const c = (localStorage.getItem("fc:synccode") || "").trim();
+  if(c) return c;
+  if(localStorage.getItem("fc:syncoff") === "1") return "";
+  try{ localStorage.setItem("fc:synccode", DEFAULT_SYNC); }catch(e){}
+  return DEFAULT_SYNC;
+})();
 function cloudUrl(p){ return `${DBURL}/flashcards/${encodeURIComponent(SYNC)}/${p}.json`; }
 let _pushTimer=null;
 function pushCloud(){

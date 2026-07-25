@@ -603,8 +603,8 @@ function resumeSession(p){
   show();
 }
 
-// 덱의 모든 문항에 답이 채워졌는지 (중간 문항을 나중에 풀어 채운 경우 포함)
-const allAnswered=()=>deck.length>0 && answers.filter(Boolean).length>=deck.length;
+// 덱에 남은 미응답이 없는지 — 이번 세션 응답 + 과거 회차에 이미 푼 문항 모두 인정
+const allAnswered=()=>deck.length>0 && deck.every((q,i)=>answers[i]||isSolved(q.no));
 
 function show(){
   updateHud();
@@ -750,16 +750,22 @@ function finish(){
   $("oxRow").style.display="none"; $("numRow").style.display="none";
   $("nextBtn").style.display="none"; $("studyBtn").style.display="none";
   $("doneBox").style.display="block";
-  $("finalScore").textContent=ok; $("finalTotal").textContent=deck.length;
-  const rate=deck.length?Math.round(ok/deck.length*100):0;
-  $("doneMsg").textContent = rate===100 ? "완벽합니다. 이 단원은 접어두세요." :
+  // 과거 회차에 푼 문항으로 덱이 채워진 "진도 채우기" 세션이면 이번에 푼 문항만으로 집계한다
+  const answered = answers.filter(Boolean).length;
+  const partial = answered > 0 && answered < deck.length;
+  const total = partial ? answered : deck.length;
+  $("finalScore").textContent=ok; $("finalTotal").textContent=total;
+  const rate=total?Math.round(ok/total*100):0;
+  $("doneMsg").textContent = partial
+    ? `안 풀었던 ${answered}문항을 채워 이 챕터(${deck.length}문항)를 모두 완료했습니다.`
+    : rate===100 ? "완벽합니다. 이 단원은 접어두세요." :
     rate>=80 ? `정답률 ${rate}% — 오답 ${no}개만 잡으면 끝납니다.` :
     `정답률 ${rate}% — 오답 위주로 한 번 더 돌리세요.`;
   $("retryWrongBtn").style.display = wrongs.length? "block":"none";
   const nb=$("nextChBtn");
   if(NEXTCH){ nb.textContent=`다음 챕터: ${NEXTCH.title} →`; nb.style.display="block"; }
   else nb.style.display="none";
-  if(CH && deck.length){
+  if(CH && deck.length && !partial){
     S.rounds=(S.rounds||0)+1;
     S.best=Math.max(S.best||0, rate);
     S.last=rate; S.when=Date.now();
@@ -770,6 +776,9 @@ function finish(){
     save();
     updateRoundPill();
     renderHistory();
+  } else if(CH){
+    // 진도 채우기 세션은 회독으로 세지 않되, 미완료 기록은 반드시 지운다
+    S.when=Date.now(); S.prog=null; save();
   }
 }
 function renderHistory(){
@@ -1078,11 +1087,14 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
       if(i>=0) jumpTo(i); else show();
       return;
     }
-    // 전 문항을 다 풀었는데 결과 화면을 못 본 세션 → 바로 결과로 마무리
-    if(S.prog && S.prog.nos && S.prog.nos.length && (S.prog.ans||[]).length >= S.prog.nos.length){
-      resumeSession(S.prog);
-      idx = deck.length; show();
-      return;
+    // 남은 미응답이 없는 세션(과거 회차에 푼 문항 포함) → 이어하기 대신 바로 결과로 마무리
+    if(S.prog && S.prog.nos && S.prog.nos.length){
+      const ansNos=new Set((S.prog.ans||[]).map(a=>a[0]));
+      if(S.prog.nos.every(n=>ansNos.has(n)||isSolved(n))){
+        resumeSession(S.prog);
+        idx = deck.length; show();
+        return;
+      }
     }
     // 진행중 세션이 있으면 이어하기 제안
     if(S.prog && S.prog.nos && S.prog.nos.length && (S.prog.ans||[]).length < S.prog.nos.length){

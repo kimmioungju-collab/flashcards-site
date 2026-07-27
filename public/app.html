@@ -1000,8 +1000,9 @@ $("studyBtn").addEventListener("click",()=>{
 });
 document.addEventListener("keydown",e=>{
   const k=e.key;
-  if(k==="ArrowLeft"){ e.preventDefault(); prev(); return; }
-  if(k==="ArrowRight"){
+  const kl=k.toLowerCase();
+  if(k==="ArrowLeft"||kl==="q"){ e.preventDefault(); prev(); return; }
+  if(k==="ArrowRight"||kl==="e"){
     e.preventDefault();
     if($("studyBtn").style.display==="block"){ $("studyBtn").click(); return; }
     if($("nextBtn").style.display==="block") next();

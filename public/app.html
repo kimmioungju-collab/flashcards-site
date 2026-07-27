@@ -1001,8 +1001,11 @@ $("studyBtn").addEventListener("click",()=>{
 document.addEventListener("keydown",e=>{
   const k=e.key;
   const kl=k.toLowerCase();
-  if(k==="ArrowLeft"||kl==="q"){ e.preventDefault(); prev(); return; }
-  if(k==="ArrowRight"||kl==="e"){
+  // 한글 입력 상태에서도 동작하도록 물리 키(e.code)와 한글 자모를 함께 인식
+  const isPrevKey = k==="ArrowLeft" || kl==="q" || k==="ㅂ" || k==="ㅃ" || e.code==="KeyQ";
+  const isNextKey = k==="ArrowRight" || kl==="e" || k==="ㄷ" || k==="ㄸ" || e.code==="KeyE";
+  if(isPrevKey){ e.preventDefault(); prev(); return; }
+  if(isNextKey){
     e.preventDefault();
     if($("studyBtn").style.display==="block"){ $("studyBtn").click(); return; }
     if($("nextBtn").style.display==="block") next();

@@ -92,6 +92,23 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .markbtn.on{background:#FFF3C4;border-color:#EFDD8F;color:#7A6B00}
 .askbtn{margin-top:9px;border:none;background:#229ED9;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;color:#fff;cursor:pointer;width:100%}
 .askbtn:active{opacity:.8}
+.ansbox{margin-top:11px;padding:13px 14px;border:1.5px solid #B9DFF5;border-radius:12px;background:#F2FAFF}
+.ansbox .anshead{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:900;color:#1179AE;margin-bottom:9px}
+.ansbox .ansbody{font-size:14px;line-height:1.72;word-break:keep-all;color:var(--ink)}
+.ansbox .ansbody h4{margin:13px 0 6px;font-size:14.5px;font-weight:900;color:#0F6C9C}
+.ansbox .ansbody p{margin:0 0 9px}
+.ansbox .ansbody ul{margin:0 0 9px;padding-left:19px}
+.ansbox .ansbody li{margin:2px 0}
+.ansbox .ansbody strong{font-weight:900;color:#0B5C86}
+.ansbox .ansbody code{background:#E3F2FB;border-radius:5px;padding:1px 5px;font-size:13px}
+.ansbox .ansbody pre{background:#0E2A3A;color:#DCEEF8;padding:10px 12px;border-radius:9px;overflow-x:auto;font-size:12.5px;line-height:1.5;margin:0 0 9px}
+.ansbox .ansbody table{border-collapse:collapse;width:100%;margin:0 0 10px;font-size:13px}
+.ansbox .ansbody th,.ansbox .ansbody td{border:1px solid #C4E1F1;padding:6px 8px;text-align:left;vertical-align:top}
+.ansbox .ansbody th{background:#DFF1FB;font-weight:900}
+.ansbox .ansfoot{margin-top:10px;display:flex;gap:8px}
+.ansbox .ansfoot button{flex:1;border:1.5px solid #B9DFF5;background:#fff;border-radius:9px;padding:8px;font-size:12.5px;font-weight:800;color:#1179AE;cursor:pointer}
+.ansbox.waiting{background:#FFF8E8;border-color:#F0D9A0}
+.ansbox.waiting .anshead{color:#9A7208}
 .asktoast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:rgba(20,26,32,.94);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;font-weight:700;z-index:99;white-space:nowrap}
 .done .weakstart{background:#D9A400;color:#fff}
 .controls{margin-top:14px}
@@ -207,6 +224,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
         </div>
         <button class="markbtn" id="markBtn"></button>
         <button class="askbtn" id="askBtn">💬 이 문제 텔레그램으로 질문하기</button>
+        <div class="ansbox" id="ansBox" style="display:none"></div>
       </div>
     </div>
   </div>
@@ -458,18 +476,117 @@ function toast(msg){
   const t=document.createElement("div"); t.className="asktoast"; t.textContent=msg;
   document.body.appendChild(t); setTimeout(()=>t.remove(), 2600);
 }
+const ANS_BASE = "https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com/flashcards/answer/";
+const ANS_POLL_MS = 3000, ANS_TIMEOUT_MS = 300000;   // 3초 간격 · 최대 5분 대기
+let ansTimer = null;
+
+/* 답변 마크다운(경량) → HTML : 표·굵게·코드·목록만 지원 */
+function mdLite(src){
+  const lines = String(src||"").replace(/\r/g,"").split("\n");
+  const out = []; let i = 0;
+  const inline = t => esc(t)
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*([^*\n]+)\*/g, "<strong>$1</strong>");
+  const isRow = s => /^\s*\|.*\|\s*$/.test(s);
+  const cells = s => s.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+  while(i < lines.length){
+    const ln = lines[i];
+    if(/^```/.test(ln)){                                   // 코드블록
+      const buf=[]; i++;
+      while(i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
+      i++; out.push("<pre>" + esc(buf.join("\n")) + "</pre>"); continue;
+    }
+    if(isRow(ln) && isRow(lines[i+1]||"") && /^[\s|:-]+$/.test(lines[i+1])){   // 표
+      const head = cells(ln); i += 2; const body = [];
+      while(i < lines.length && isRow(lines[i])) body.push(cells(lines[i++]));
+      out.push("<table><thead><tr>" + head.map(c=>"<th>"+inline(c)+"</th>").join("") + "</tr></thead><tbody>"
+        + body.map(r=>"<tr>"+r.map(c=>"<td>"+inline(c)+"</td>").join("")+"</tr>").join("") + "</tbody></table>");
+      continue;
+    }
+    if(/^\s*[-*·]\s+/.test(ln)){                            // 목록
+      const buf=[];
+      while(i < lines.length && /^\s*[-*·]\s+/.test(lines[i])) buf.push(lines[i++].replace(/^\s*[-*·]\s+/,""));
+      out.push("<ul>" + buf.map(b=>"<li>"+inline(b)+"</li>").join("") + "</ul>"); continue;
+    }
+    if(/^#{1,6}\s+/.test(ln)){ out.push("<h4>" + inline(ln.replace(/^#{1,6}\s+/,"")) + "</h4>"); i++; continue; }
+    if(/^\s*>\s?/.test(ln)){ out.push("<p>" + inline(ln.replace(/^\s*>\s?/,"")) + "</p>"); i++; continue; }
+    if(!ln.trim()){ i++; continue; }
+    const buf=[];                                           // 문단
+    while(i < lines.length && lines[i].trim() && !isRow(lines[i]) && !/^\s*[-*·]\s+|^#{1,6}\s+|^```|^\s*>/.test(lines[i])) buf.push(lines[i++]);
+    out.push("<p>" + buf.map(inline).join("<br>") + "</p>");
+  }
+  return out.join("");
+}
+
+const ansKey = no => "fcAns:" + CH + ":" + no;
+function loadAns(no){ try{ return JSON.parse(localStorage.getItem(ansKey(no))||"null"); }catch(e){ return null; } }
+function saveAns(no, obj){ try{ localStorage.setItem(ansKey(no), JSON.stringify(obj)); }catch(e){} }
+
+function showAns(q, state, data){
+  const box = $("ansBox");
+  if(state === "hide"){ box.style.display="none"; box.innerHTML=""; return; }
+  box.style.display="";
+  if(state === "waiting"){
+    box.className = "ansbox waiting";
+    box.innerHTML = '<div class="anshead">⏳ 답변 생성 중… (최대 1~2분)</div>'
+      + '<div class="ansbody">질문: <strong>' + esc(data.myq) + '</strong><br>답변이 오면 여기에 바로 표시됩니다. 텔레그램으로도 함께 전송됩니다.</div>';
+    return;
+  }
+  box.className = "ansbox";
+  box.innerHTML = '<div class="anshead">💡 답변 — ' + esc(data.myq || "설명") + '</div>'
+    + '<div class="ansbody">' + mdLite(data.a) + '</div>'
+    + '<div class="ansfoot"><button id="ansAgain">🔄 다시 질문</button><button id="ansClear">🗑 답변 지우기</button></div>';
+  $("ansAgain").onclick = () => { $("askBtn").click(); };
+  $("ansClear").onclick = () => { try{ localStorage.removeItem(ansKey(q.no)); }catch(e){} showAns(q,"hide"); $("askBtn").style.display=""; };
+}
+
+function pollAns(q, id, myq){
+  clearInterval(ansTimer);
+  const started = Date.now();
+  ansTimer = setInterval(async () => {
+    if(Date.now() - started > ANS_TIMEOUT_MS){
+      clearInterval(ansTimer);
+      toast("답변 대기 시간이 초과됐어요 — 텔레그램을 확인해 주세요");
+      $("askBtn").style.display=""; $("askBtn").disabled=false;
+      $("askBtn").textContent="💬 이 문제 텔레그램으로 질문하기";
+      showAns(q,"hide"); return;
+    }
+    try{
+      const r = await fetch(ANS_BASE + id + ".json", {cache:"no-store"});
+      const d = await r.json();
+      if(d && d.a){
+        clearInterval(ansTimer);
+        const rec = {a:d.a, myq:myq, t:Date.now()};
+        saveAns(q.no, rec);
+        if(deck[idx] && deck[idx].no === q.no) showAns(q, "done", rec);
+        toast("답변 도착 ✅");
+      }
+    }catch(e){}
+  }, ANS_POLL_MS);
+}
+
 function renderAskBtn(q){
   const b=$("askBtn");
-  b.disabled=false;
-  b.textContent="💬 이 문제 텔레그램으로 질문하기";
+  clearInterval(ansTimer);
+  b.disabled=false; b.style.display="";
+  b.textContent="💬 이 문제 질문하기 (답변은 여기에 표시)";
+
+  const cached = loadAns(q.no);                       // 이전에 받은 답변이 있으면 바로 보여준다
+  if(cached && cached.a){ showAns(q, "done", cached); b.style.display="none"; }
+  else showAns(q, "hide");
+
   b.onclick=async()=>{
     const myQ = prompt("무엇이 궁금하세요?\n(비워두면 '왜 이렇게 되는지 설명해줘'로 보냅니다)", "");
     if(myQ===null) return;
+    const myq = myQ.trim() || "이 문제 왜 이렇게 되는지 쉽게 설명해줘";
+    const id = "a" + Date.now() + Math.random().toString(36).slice(2,7);
     const payload = {
+      id: id,
       ch: (document.getElementById("chTitle")||{}).textContent || CH || "",
       no: q.no || "", q: q.q || "", ans: q.ans || "",
       exp: q.exp || "", src: q.src || "",
-      myq: myQ.trim(),
+      myq: myq,
       link: location.origin + location.pathname + "?ch=" + encodeURIComponent(CH||"") + "&q=" + encodeURIComponent(q.no||""),
       t: Date.now()
     };
@@ -477,8 +594,9 @@ function renderAskBtn(q){
     try{
       const r = await fetch(ASK_URL, {method:"POST", body: JSON.stringify(payload)});
       if(!r.ok) throw new Error(r.status);
-      b.textContent="✅ 전송됨 — 텔레그램 확인";
-      toast("질문 전송 완료 · 텔레그램으로 답변이 갑니다");
+      b.style.display="none";
+      showAns(q, "waiting", {myq: myq});
+      pollAns(q, id, myq);
     }catch(e){
       b.disabled=false; b.textContent="⚠️ 전송 실패 — 다시 시도";
       toast("전송 실패: " + e.message);

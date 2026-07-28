@@ -541,30 +541,55 @@ function showAns(q, state, data){
   $("ansClear").onclick = () => { try{ localStorage.removeItem(ansKey(q.no)); }catch(e){} showAns(q,"hide"); $("askBtn").style.display=""; };
 }
 
-function pollAns(q, id, myq){
+/* 대기 중인 질문은 localStorage에 남긴다.
+   → 텔레그램으로 넘어가 탭이 잠들거나 새로고침돼도, 돌아오면 답변을 다시 찾아온다. */
+const pendKey = no => "fcPend:" + CH + ":" + no;
+function loadPend(no){ try{ return JSON.parse(localStorage.getItem(pendKey(no))||"null"); }catch(e){ return null; } }
+function savePend(no, obj){ try{ localStorage.setItem(pendKey(no), JSON.stringify(obj)); }catch(e){} }
+function dropPend(no){ try{ localStorage.removeItem(pendKey(no)); }catch(e){} }
+
+/* 답변 1회 조회 — 받았으면 저장·표시하고 true 반환 */
+async function checkAns(q, id, myq, quiet){
+  try{
+    const r = await fetch(ANS_BASE + id + ".json", {cache:"no-store"});
+    const d = await r.json();
+    if(d && d.a){
+      const rec = {a:d.a, myq:myq, t:Date.now()};
+      saveAns(q.no, rec); dropPend(q.no);
+      if(deck[idx] && deck[idx].no === q.no){ showAns(q, "done", rec); $("askBtn").style.display="none"; }
+      if(!quiet) toast("답변 도착 ✅");
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+function pollAns(q, id, myq, startedAt){
   clearInterval(ansTimer);
-  const started = Date.now();
+  const started = startedAt || Date.now();
   ansTimer = setInterval(async () => {
     if(Date.now() - started > ANS_TIMEOUT_MS){
-      clearInterval(ansTimer);
+      clearInterval(ansTimer); dropPend(q.no);
       toast("답변 대기 시간이 초과됐어요 — 텔레그램을 확인해 주세요");
-      $("askBtn").style.display=""; $("askBtn").disabled=false;
-      $("askBtn").textContent="💬 이 문제 텔레그램으로 질문하기";
-      showAns(q,"hide"); return;
-    }
-    try{
-      const r = await fetch(ANS_BASE + id + ".json", {cache:"no-store"});
-      const d = await r.json();
-      if(d && d.a){
-        clearInterval(ansTimer);
-        const rec = {a:d.a, myq:myq, t:Date.now()};
-        saveAns(q.no, rec);
-        if(deck[idx] && deck[idx].no === q.no) showAns(q, "done", rec);
-        toast("답변 도착 ✅");
+      if(deck[idx] && deck[idx].no === q.no){
+        $("askBtn").style.display=""; $("askBtn").disabled=false;
+        $("askBtn").textContent="💬 이 문제 질문하기 (답변은 여기에 표시)";
+        showAns(q,"hide");
       }
-    }catch(e){}
+      return;
+    }
+    if(await checkAns(q, id, myq)) clearInterval(ansTimer);
   }, ANS_POLL_MS);
 }
+
+/* 탭으로 돌아왔을 때 즉시 한 번 확인 (백그라운드에서 타이머가 멈춰 있었을 수 있음) */
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden) return;
+  const q = deck[idx]; if(!q) return;
+  if(loadAns(q.no)) return;
+  const p = loadPend(q.no); if(!p) return;
+  checkAns(q, p.id, p.myq, true);
+});
 
 function renderAskBtn(q){
   const b=$("askBtn");
@@ -574,7 +599,17 @@ function renderAskBtn(q){
 
   const cached = loadAns(q.no);                       // 이전에 받은 답변이 있으면 바로 보여준다
   if(cached && cached.a){ showAns(q, "done", cached); b.style.display="none"; }
-  else showAns(q, "hide");
+  else {
+    const p = loadPend(q.no);                          // 대기 중이던 질문이 있으면 이어서 확인
+    if(p && p.id && Date.now() - p.t < ANS_TIMEOUT_MS){
+      showAns(q, "waiting", {myq: p.myq}); b.style.display="none";
+      checkAns(q, p.id, p.myq, true);
+      pollAns(q, p.id, p.myq, p.t);
+    } else {
+      if(p) dropPend(q.no);
+      showAns(q, "hide");
+    }
+  }
 
   b.onclick=async()=>{
     const myQ = prompt("무엇이 궁금하세요?\n(비워두면 '왜 이렇게 되는지 설명해줘'로 보냅니다)", "");
@@ -594,6 +629,7 @@ function renderAskBtn(q){
     try{
       const r = await fetch(ASK_URL, {method:"POST", body: JSON.stringify(payload)});
       if(!r.ok) throw new Error(r.status);
+      savePend(q.no, {id:id, myq:myq, t:Date.now()});   // 탭이 꺼져도 이어받을 수 있게 기록
       b.style.display="none";
       showAns(q, "waiting", {myq: myq});
       pollAns(q, id, myq);

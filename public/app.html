@@ -51,6 +51,19 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .gotoTodo:disabled{opacity:.4;cursor:default}
 .jumplegend{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;font-size:11px;font-weight:700;color:var(--muted)}
 .jumplegend b{font-weight:900}
+/* 답안 확인(정답표) */
+.keysum{font-size:12.5px;font-weight:700;color:var(--muted);margin:2px 0 10px}
+.keysum b{font-weight:900}
+.keylist{display:flex;flex-direction:column;gap:6px}
+.keyrow{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:1.5px solid var(--line);border-radius:11px;background:#fff;cursor:pointer;text-align:left}
+.keyrow:active{transform:translateY(1px)}
+.keyrow .kno{flex:0 0 46px;font-size:13px;font-weight:900;color:var(--muted)}
+.keyrow .kg{flex:0 0 auto;font-size:10.5px;font-weight:900;color:#fff;border-radius:5px;padding:2px 6px;background:#8B97A3}
+.keyrow .ka{flex:0 0 auto;min-width:32px;text-align:center;font-size:13.5px;font-weight:900;border-radius:7px;padding:3px 8px;color:#fff}
+.keyrow .ka.aO{background:var(--right)} .keyrow .ka.aX{background:var(--wrong)} .keyrow .ka.aE{background:#5B6672}
+.keyrow .kq{flex:1;min-width:0;font-size:12px;font-weight:700;color:#5B6672;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.keyrow .kst{flex:0 0 auto;font-size:12px;font-weight:900;color:var(--muted)}
+.keyrow .kst.kw{color:var(--wrong)} .keyrow .kst.ko{color:var(--right)}
 .qscroll{flex:1;overflow-y:auto;padding:12px 20px 16px 22px}
 .qtext{font-size:17.5px;line-height:1.62;font-weight:600;word-break:keep-all;white-space:pre-wrap}
 .qtext mark{background:linear-gradient(transparent 42%,var(--hl) 42%);padding:0 2px;border-radius:2px}
@@ -193,6 +206,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     <span class="pill" id="scorePill">⭕ <b id="okCnt">0</b> · ❌ <b id="noCnt">0</b></span>
     <button class="iconbtn" onclick="location.href='index.html'">목차</button>
     <button class="iconbtn" id="introBtn" style="display:none">📖요약</button>
+    <button class="iconbtn" id="keyBtn">📋답안</button>
     <button class="iconbtn" id="weakBtn">⭐취약</button>
     <button class="iconbtn" id="filterBtn">필터</button>
   </div>
@@ -286,6 +300,21 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
       <span>● 안 푼 문제</span>
       <span>⭐ 취약·체크</span>
       <span><b style="color:var(--ink)">검정</b> 현재</span>
+    </div>
+  </div>
+</div>
+
+<div class="sheetwrap" id="keyWrap">
+  <div class="sheet">
+    <div class="introhead"><h3 id="keyTitle">📋 답안 확인</h3>
+      <div class="introhbtns"><button class="introx" id="keyClose">✕</button></div></div>
+    <div class="keysum" id="keySum"></div>
+    <div class="keylist" id="keyList"></div>
+    <div class="jumplegend">
+      <span>번호순 정답표 — 줄을 누르면 해당 문제로 이동</span>
+      <span><b style="color:var(--right)">⭕</b> 맞힘 기록</span>
+      <span><b style="color:var(--wrong)">❌n</b> 누적 오답</span>
+      <span>⭐ 체크</span>
     </div>
   </div>
 </div>
@@ -986,6 +1015,49 @@ function openJump(){
   gt.disabled = todo===0;
   $("jumpWrap").classList.add("show");
 }
+/* ── 답안 확인(챕터 정답표) : 번호순으로 정답·내 기록 한눈에 ── */
+const numNo = v => parseInt(String(v).replace(/[^0-9]/g,""),10) || 0;
+function openKey(){
+  if(!QUESTIONS.length) return;
+  if($("introWrap").classList.contains("show")) closeIntro();   // 요약 오버레이에 가려지지 않도록
+  const list=[...QUESTIONS].sort((a,b)=>numNo(a.no)-numNo(b.no));
+  const el=$("keyList"); el.innerHTML="";
+  let cO=0,cX=0,cM=0,solved=0;
+  list.forEach(q=>{
+    const a=String(q.ans||"").trim();
+    const kind = a==="O" ? "aO" : (a==="X" ? "aX" : "aE");
+    if(kind==="aO") cO++; else if(kind==="aX") cX++; else cM++;
+    const g=((q.grade||"").trim())||"-";
+    const st=S.qstat[q.no];
+    const seen=!!(st&&st.s>0), w=(st&&st.w)||0;
+    if(seen) solved++;
+    const mine = seen ? (w>0 ? `❌${w}` : "⭕") : "–";
+    const b=document.createElement("button");
+    b.className="keyrow";
+    b.innerHTML =
+      `<span class="kno">${esc(String(q.no))}${qmark(q.no)?"⭐":""}</span>`+
+      `<span class="kg" style="background:${GC[g]||"#8B97A3"}">${esc(g)}</span>`+
+      `<span class="ka ${kind}">${esc(a||"?")}</span>`+
+      `<span class="kq">${esc(String(q.theme||q.q||""))}</span>`+
+      `<span class="kst ${w>0?"kw":(seen?"ko":"")}">${mine}</span>`;
+    b.onclick=()=>jumpToNo(q.no);
+    el.appendChild(b);
+  });
+  $("keySum").innerHTML=`총 <b>${list.length}</b>문항 · <b style="color:var(--right)">O ${cO}</b> · `+
+    `<b style="color:var(--wrong)">X ${cX}</b> · 객관식 <b>${cM}</b> · 푼 문항 <b>${solved}</b>`;
+  $("keyWrap").classList.add("show");
+}
+function jumpToNo(qno){
+  let i = deck.findIndex(q=>String(q.no)===String(qno));
+  if(i<0){                       // 필터에 걸려 빠진 문항이면 전체 덱으로 재구성 후 이동
+    deck=[...QUESTIONS]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
+    $("doneBox").style.display="none"; $("card").style.display="flex";
+    i = deck.findIndex(q=>String(q.no)===String(qno));
+  }
+  if(i<0) return;
+  $("keyWrap").classList.remove("show");
+  jumpTo(i);
+}
 function jumpTo(i){
   if(i<0 || i>=deck.length) return;
   if($("doneBox").style.display==="block"){ $("doneBox").style.display="none"; $("card").style.display="flex"; }
@@ -1136,6 +1208,9 @@ $("introStart").addEventListener("click",closeIntro);
 $("ttsBtn").addEventListener("click",()=>{ if(ttsOn) ttsStop(); else ttsStart(); });
 $("lvlBtn").addEventListener("click",toggleIntroLevel);
 $("introWrap").addEventListener("click",e=>{if(e.target===$("introWrap"))closeIntro();});
+$("keyBtn").addEventListener("click",openKey);
+$("keyClose").addEventListener("click",()=>$("keyWrap").classList.remove("show"));
+$("keyWrap").addEventListener("click",e=>{if(e.target===$("keyWrap"))$("keyWrap").classList.remove("show");});
 $("weakBtn").addEventListener("click",startWeakDeck);
 $("weakStartBtn").addEventListener("click",startWeakDeck);
 $("restartBtn").addEventListener("click",buildDeck);
@@ -1234,6 +1309,7 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
     QUESTIONS = d.questions;
     document.title = d.title + " 플래시카드";
     $("chTitle").textContent = d.title;
+    $("keyTitle").textContent = "📋 답안 확인 — " + d.title;
     loadIntro(d.title);   // 챕터 핵심 요약 준비(초보자용) — 있으면 버튼 노출·1회 자동표시
     initChips(); applyToggleUI(); updateRoundPill(); renderHistory();
     const JUMPQ = new URLSearchParams(location.search).get("q");

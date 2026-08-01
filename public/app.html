@@ -878,7 +878,7 @@ function renderBackBar(){
 renderBackBar();
 function reveal(q, correct){
   const v=$("verdict"); v.className="verdict "+(correct?"ok":"no");
-  $("vMark").textContent=correct?"⭕ 정답!":"❌ 오답";
+  $("vMark").textContent=correct?"정답!":"땡!";
   const chip=$("ansChip"); chip.textContent=q.ans;
   chip.className="anschip "+(q.ans==="O"?"O":q.ans==="X"?"X":"etc");
   $("expBox").innerHTML=renderExp(q.exp, q.kw2||q.kw);
@@ -1303,7 +1303,7 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
 (async () => {
   try {
     await Promise.all([pullCloud(), pullOpts()]);  // 다른 기기의 진도·필터 설정 먼저 반영
-    const r = await fetch(`chapters/${CH}.json`);
+    const r = await fetch(`chapters/${CH}.json`, {cache:"no-store"});
     if(!r.ok) throw new Error();
     const d = await r.json();
     QUESTIONS = d.questions;

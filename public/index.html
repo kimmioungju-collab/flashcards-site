@@ -191,7 +191,7 @@ async function ensureQGrades(){
   const miss=chapters.filter(c=>!qgrades[c.id]);
   await Promise.all(miss.map(async c=>{
     try{
-      const r=await fetch(`chapters/${c.id}.json`);
+      const r=await fetch(`chapters/${c.id}.json`, {cache:"no-store"});
       if(r.ok){ const d=await r.json(); const m={};
         (d.questions||[]).forEach(q=>{ m[q.no]=((q.grade||"").trim())||"-"; });
         qgrades[c.id]=m;
@@ -763,7 +763,7 @@ async function exportCheckedPdf(){
     let totalQ=0; const sections=[];
     for(const t of targets){
       let data=null;
-      try{ const r=await fetch(`chapters/${t.c.id}.json`); if(r.ok) data=await r.json(); }catch(e){}
+      try{ const r=await fetch(`chapters/${t.c.id}.json`, {cache:"no-store"}); if(r.ok) data=await r.json(); }catch(e){}
       const qs=((data&&data.questions)||[]).filter(q=>t.nos.has(String(q.no)));
       if(!qs.length) continue;
       totalQ+=qs.length;

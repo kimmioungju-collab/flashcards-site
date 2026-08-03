@@ -1348,7 +1348,13 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
     }
   } catch(e) {
     $("chTitle").textContent = "챕터를 불러올 수 없습니다";
-    $("qText").innerHTML = "URL에 <b>?ch=챕터ID</b>가 필요합니다.<br>목차(index.html)에서 챕터를 선택해 주세요.";
+    if(!CH){
+      $("qText").innerHTML = "URL에 <b>?ch=챕터ID</b>가 필요합니다.<br>목차(index.html)에서 챕터를 선택해 주세요.";
+    } else {
+      $("qText").innerHTML = `일시적인 오류로 <b>${esc(CH)}</b> 챕터를 불러오지 못했습니다.<br>잠시 후 다시 시도해 주세요.`
+        + `<br><small style="color:#999">${esc(String((e&&e.message)||e||"알 수 없는 오류"))}</small>`
+        + `<br><button onclick="location.reload()" style="margin-top:12px;padding:10px 20px;font-size:15px;border-radius:10px;border:1px solid #ccc;background:#fff">🔄 다시 시도</button>`;
+    }
   }
 })();
 </script>

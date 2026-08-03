@@ -1303,8 +1303,9 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
 (async () => {
   try {
     await Promise.all([pullCloud(), pullOpts()]);  // 다른 기기의 진도·필터 설정 먼저 반영
-    const r = await fetch(`chapters/${CH}.json`, {cache:"no-store"});
-    if(!r.ok) throw new Error();
+    let r = await fetch(`chapters/${CH}.json`, {cache:"no-store"}).catch(()=>null);
+    if(!r || !r.ok) r = await fetch(`chapters/${CH}.json?v=${Date.now()}`, {cache:"no-store"}); // 1회 자동 재시도(캐시 우회)
+    if(!r.ok) throw new Error(`챕터 파일 로드 실패 (HTTP ${r.status})`);
     const d = await r.json();
     QUESTIONS = d.questions;
     document.title = d.title + " 플래시카드";
@@ -1347,6 +1348,10 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
       buildDeck();
     }
   } catch(e) {
+    // 원격 오류 로그 — 실제 기기에서 무슨 오류인지 수집 (개인정보 없음)
+    try{ fetch(`${DBURL}/flashcards/errlog.json`, {method:"POST", body:JSON.stringify({
+      ch:CH, msg:String((e&&e.message)||e||""), stack:String((e&&e.stack)||"").slice(0,800),
+      ua:navigator.userAgent.slice(0,140), at:Date.now() })}); }catch(_){}
     $("chTitle").textContent = "챕터를 불러올 수 없습니다";
     if(!CH){
       $("qText").innerHTML = "URL에 <b>?ch=챕터ID</b>가 필요합니다.<br>목차(index.html)에서 챕터를 선택해 주세요.";

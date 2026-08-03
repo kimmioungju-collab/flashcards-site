@@ -974,7 +974,7 @@ function renderHistory(){
     row.innerHTML=`<span class="hn">${h.n}회차</span><span>${d.getMonth()+1}/${d.getDate()}</span>
       <span>${h.ok}/${h.total}</span>
       <span class="hr8" style="color:${h.rate>=80?'#2E7D32':'#C62828'}">${h.rate}%</span>
-      ${h.wrongNos.length?`<span class="hw">오답 ${h.wrongNos.length}</span>`:""}`;
+      ${(h.wrongNos||[]).length?`<span class="hw">오답 ${h.wrongNos.length}</span>`:""}`;
     list.appendChild(row);
   }
 }

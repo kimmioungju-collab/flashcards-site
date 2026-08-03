@@ -421,7 +421,7 @@ let S = { rounds:0, best:0, last:0, wrongNos:[], history:[], qstat:{}, prog:null
 try { const raw = JSON.parse(localStorage.getItem(LSKEY) || "null"); if(raw) S = Object.assign(S, raw); } catch(e) {}
 if(!S.qstat) S.qstat = {};
 if(!S.history) S.history = [];
-function save(){ if(CH){ S._at=Date.now(); try{ localStorage.setItem(LSKEY, JSON.stringify(S)); }catch(e){} pushCloud(); } }
+function save(){ if(CH){ S._at=Date.now(); S._st=S._at; try{ localStorage.setItem(LSKEY, JSON.stringify(S)); }catch(e){} pushCloud(); } }
 
 /* 오늘 푼 문항수(전 챕터 공통) — 날짜별 누적 카운트 */
 function bumpDaily(){

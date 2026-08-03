@@ -263,7 +263,7 @@ function makeCard(c,gset){
     }
   }
   if(!stats) stats = `<span class="stat new">미학습</span>`;
-  const lt = s && (s._at || s.when);
+  const lt = s && (s._st || s._at || s.when);
   if(lt){
     const d=new Date(lt), now=new Date();
     const ymd = d.getFullYear()!==now.getFullYear()
@@ -720,6 +720,7 @@ async function startNewRound(){
     const s=stat(c.id); if(!s) continue;
     if(s.qstat){ for(const k in s.qstat){ if(s.qstat[k]) s.qstat[k].s=0; } }
     s.prog=null;   // 이전 회독의 '풀던 중' 세션 폐기
+    if(!s._st && s._at) s._st=s._at;  // 실제 학습 시각 보존 (🕐 표시용 — 리셋 시각으로 덮지 않음)
     s._at=Date.now();
     try{ localStorage.setItem("fc:"+c.id, JSON.stringify(s)); }catch(e){}
     if(code){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/ch/${c.id}.json`,{method:"PUT",body:JSON.stringify(s)}); }catch(e){} }

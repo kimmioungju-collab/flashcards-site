@@ -195,6 +195,19 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .ttsbtn.on{background:#C0392B}
 .introbody .ttsread{background:#ffe98a;border-radius:6px;box-shadow:0 0 0 5px #ffe98a;transition:background .15s ease}
 .introbody h4.ttsread{box-shadow:0 0 0 4px #ffe98a}
+/* 오답·취약 요약 풀이 시트 */
+.rvsum{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.rvtheme{font-size:13.5px;font-weight:900;color:#4A5561;border-left:4px solid #D9A400;padding-left:8px;margin:16px 0 8px}
+.rvitem{border:1.5px solid var(--line);border-radius:12px;background:#fff;padding:11px 12px;margin-bottom:8px}
+.rvhead{display:flex;align-items:center;gap:7px;margin-bottom:7px;cursor:pointer}
+.rvno{font-weight:900;font-size:12.5px}
+.rvbadge{font-size:11px;font-weight:900;color:#fff;border-radius:5px;padding:2px 7px}
+.rvtag{font-size:11.5px;font-weight:900;color:var(--wrong)}
+.rvhead .anschip{margin-left:auto;font-size:12.5px}
+.rvq{font-size:13.5px;line-height:1.58;font-weight:600}
+.rvexp{font-size:13px;line-height:1.6;background:#F7F5EF;border-radius:9px;padding:9px 11px;margin-top:7px}
+.rvempty{text-align:center;color:var(--muted);font-weight:700;padding:30px 0;line-height:1.7}
+.done .weakreview{background:#4A5561;color:#fff}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -207,6 +220,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     <button class="iconbtn" onclick="location.href='index.html'">목차</button>
     <button class="iconbtn" id="introBtn" style="display:none">📖요약</button>
     <button class="iconbtn" id="keyBtn">📋답안</button>
+    <button class="iconbtn" id="reviewBtn">📝풀이</button>
     <button class="iconbtn" id="weakBtn">⭐취약</button>
     <button class="iconbtn" id="filterBtn">필터</button>
   </div>
@@ -249,6 +263,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     <p id="doneMsg"></p>
     <div class="btns">
       <button class="nextch" id="nextChBtn">다음 챕터 →</button>
+      <button class="weakreview" id="reviewBtn2">📝 오답·취약 요약 풀이 보기</button>
       <button class="weakstart" id="weakStartBtn">⭐ 체크·취약 문제만 풀기</button>
       <button class="retryWrong" id="retryWrongBtn">❌ 이번 오답만 다시 풀기</button>
       <button class="restart" id="restartBtn">처음부터 다시</button>
@@ -316,6 +331,16 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
       <span><b style="color:var(--wrong)">❌n</b> 누적 오답</span>
       <span>⭐ 체크</span>
     </div>
+  </div>
+</div>
+
+<div class="sheetwrap" id="reviewWrap">
+  <div class="sheet">
+    <div class="introhead"><h3>📝 오답·취약 요약 풀이</h3>
+      <div class="introhbtns"><button class="introx" id="reviewClose">✕</button></div></div>
+    <div class="rvsum" id="reviewSum"></div>
+    <div id="reviewList"></div>
+    <button class="apply" id="reviewSolveBtn">⭐ 이 문제들만 다시 풀기</button>
   </div>
 </div>
 
@@ -1047,6 +1072,47 @@ function openKey(){
     `<b style="color:var(--wrong)">X ${cX}</b> · 객관식 <b>${cM}</b> · 푼 문항 <b>${solved}</b>`;
   $("keyWrap").classList.add("show");
 }
+/* ── 오답·취약 요약 풀이 : 틀렸거나 ⭐체크한 문제를 주제별로 묶어 정답·해설을 한 번에 복습 ── */
+function openReview(){
+  if(!QUESTIONS.length) return;
+  const list=QUESTIONS.filter(q=>isWeak(q.no)).sort((a,b)=>numNo(a.no)-numNo(b.no));
+  const el=$("reviewList"); el.innerHTML="";
+  const sum=$("reviewSum");
+  if(!list.length){
+    sum.textContent="";
+    el.innerHTML='<div class="rvempty">틀렸거나 ⭐체크한 문제가 아직 없습니다.<br>문제를 풀면 자동으로 이곳에 모입니다.</div>';
+    $("reviewSolveBtn").style.display="none";
+    $("reviewWrap").classList.add("show");
+    return;
+  }
+  const nw=list.filter(q=>qw(q.no)>0).length, nm=list.filter(q=>qmark(q.no)).length;
+  sum.innerHTML=`취약 <b>${list.length}</b>문항 — 오답 <b style="color:var(--wrong)">${nw}</b> · ⭐체크 <b>${nm}</b> · 문항 번호를 누르면 바로 풀 수 있습니다`;
+  const groups=new Map();
+  list.forEach(q=>{ const t=(q.theme||"기타").trim()||"기타"; if(!groups.has(t)) groups.set(t,[]); groups.get(t).push(q); });
+  for(const [theme,qs] of groups){
+    const h=document.createElement("div"); h.className="rvtheme"; h.textContent=`${theme} (${qs.length})`;
+    el.appendChild(h);
+    qs.forEach(q=>{
+      const w=qw(q.no), m=qmark(q.no);
+      const a=String(q.ans||"").trim();
+      const kind=a==="O"?"O":a==="X"?"X":"etc";
+      const g=((q.grade||"").trim())||"-";
+      const d=document.createElement("div"); d.className="rvitem";
+      d.innerHTML=
+        `<div class="rvhead"><span class="rvno">문항 ${esc(String(q.no))}</span>`+
+        `<span class="rvbadge" style="background:${GC[g]||"#8B97A3"}">${esc(g)}</span>`+
+        `<span class="rvtag">${w>0?"❌"+w:""}${m?" ⭐":""}</span>`+
+        `<span class="anschip ${kind}">${esc(a||"?")}</span></div>`+
+        `<div class="rvq qtext">${hl(esc(q.q||""), q.kw, q.kwr)}</div>`+
+        `<div class="rvexp exp">${renderExp(q.exp||"", q.kw2||q.kw)}</div>`;
+      d.querySelector(".rvhead").onclick=()=>{ $("reviewWrap").classList.remove("show"); jumpToNo(q.no); };
+      el.appendChild(d);
+    });
+  }
+  $("reviewSolveBtn").style.display="";
+  $("reviewWrap").classList.add("show");
+  $("reviewWrap").querySelector(".sheet").scrollTop=0;
+}
 function jumpToNo(qno){
   let i = deck.findIndex(q=>String(q.no)===String(qno));
   if(i<0){                       // 필터에 걸려 빠진 문항이면 전체 덱으로 재구성 후 이동
@@ -1212,6 +1278,11 @@ $("keyBtn").addEventListener("click",openKey);
 $("keyClose").addEventListener("click",()=>$("keyWrap").classList.remove("show"));
 $("keyWrap").addEventListener("click",e=>{if(e.target===$("keyWrap"))$("keyWrap").classList.remove("show");});
 $("weakBtn").addEventListener("click",startWeakDeck);
+$("reviewBtn").addEventListener("click",openReview);
+$("reviewBtn2").addEventListener("click",openReview);
+$("reviewClose").addEventListener("click",()=>$("reviewWrap").classList.remove("show"));
+$("reviewWrap").addEventListener("click",e=>{if(e.target===$("reviewWrap"))$("reviewWrap").classList.remove("show");});
+$("reviewSolveBtn").addEventListener("click",()=>{ $("reviewWrap").classList.remove("show"); startWeakDeck(); });
 $("weakStartBtn").addEventListener("click",startWeakDeck);
 $("restartBtn").addEventListener("click",buildDeck);
 $("retryWrongBtn").addEventListener("click",()=>{

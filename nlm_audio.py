@@ -10,6 +10,7 @@
 노트북 생성·소스 업로드·한국어 오디오 생성(--wait) → mp3 다운로드 → 텔레그램 전송.
 소요 시간: 오디오 생성에 보통 5~15분 (반드시 백그라운드로 실행할 것).
 """
+import html
 import json
 import os
 import re
@@ -21,6 +22,7 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
 CHAPTER_DIR = BASE / "public" / "chapters"
+INTRO_DIR = BASE / "public" / "intros"     # 앱에 이미 만들어 둔 챕터 핵심 요약
 TMP_DIR = Path("/tmp/notebooklm").resolve()  # macOS /tmp 심볼릭 링크 해소 (업로드 거부 방지)
 OUT_DIR = Path.home() / "Downloads"
 ENV_FILE = Path.home() / "telegram-claude-bridge" / ".env"
@@ -37,9 +39,12 @@ STUDY_PROMPT = """이 자료는 행정법 객관식·OX 시험 대비 기출 지
 
 [진행 방식]
 1. 인사말·자기소개·잡담·소스 소개는 생략하고 첫 문장부터 바로 핵심 개념으로 들어갑니다.
-2. 주제(소제목) 단위로 묶어서, 각 주제마다 이 순서를 지킵니다.
+2. 자료 1부('핵심 개념 요약')를 먼저 차례대로 설명해 뼈대를 세운 뒤,
+   2부('기출 OX 지문')로 넘어가 그 개념이 시험에서 어떻게 함정으로 나오는지 확인시켜 줍니다.
+   1부의 소제목 순서와 강조점을 그대로 따르고, 임의로 순서를 바꾸지 않습니다.
+3. 주제 단위로 묶어서, 각 주제마다 이 순서를 지킵니다.
    ① 개념을 한 문장으로 정의 → ② 시험에 나오는 함정 → ③ 정답을 가르는 판단 기준.
-3. 문항 번호는 읽지 말고, 내용 중심으로 자연스럽게 이어서 설명합니다.
+4. 문항 번호는 읽지 말고, 내용 중심으로 자연스럽게 이어서 설명합니다.
 
 [가장 중요 — 함정 처리]
 4. 틀린 지문(함정)은 반드시 "이렇게 나오면 틀린다 → 옳은 표현은 이것이다" 형태로
@@ -74,6 +79,26 @@ def load_chapter(ch: str) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def intro_text(ch: str) -> str:
+    """앱의 '이 챕터 핵심 요약'(intros/chNN.json) HTML을 낭독용 평문으로 변환."""
+    path = INTRO_DIR / f"{ch}.json"
+    if not path.exists():
+        return ""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    raw = (data.get("intro") or data.get("introEasy") or "").strip()
+    if not raw:
+        return ""
+    text = re.sub(r"<(h[1-6])[^>]*>", r"\n\n### ", raw)          # 소제목
+    text = re.sub(r"<(p|div|li|tr)[^>]*>", "\n", text)            # 문단/항목 줄바꿈
+    text = re.sub(r"</(td|th)>\s*<(td|th)[^>]*>", " · ", text)    # 표 셀 구분
+    text = re.sub(r"<br\s*/?>", "\n", text)
+    text = re.sub(r"<[^>]+>", "", text)                           # 남은 태그 제거
+    text = html.unescape(text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
 def weak_nos(ch: str) -> set[str]:
     """weak_report.py 로 오답·체크 문제 번호 조회."""
     r = subprocess.run(
@@ -90,14 +115,23 @@ def build_summary(chap: dict, ch: str, only_nos: set[str] | None) -> str:
     """주제별로 묶은 OX 요약 텍스트 생성 (팟캐스트 소스용)."""
     title = chap.get("title", ch)
     lines = [
-        f"# {title} — OX 퀴즈 핵심 요약",
+        f"# {title}",
         "",
-        "이 문서는 행정법 시험 대비 OX 퀴즈 요약입니다.",
-        "각 항목의 '핵심'이 시험에 나오는 올바른 법리이며,",
+        "이 문서는 두 부분으로 되어 있습니다.",
+        "1부는 이 챕터의 '핵심 개념 요약'이고, 2부는 실제 기출 OX 지문입니다.",
+        "1부의 개념을 먼저 설명한 뒤, 2부의 지문으로 함정을 확인시켜 주세요.",
+        "2부에서 '핵심'은 시험에 나오는 올바른 법리이고,",
         "'함정'은 시험에서 틀리게 변형되어 출제되는 지문입니다.",
-        "청취자가 개념과 함정 포인트를 확실히 구분하도록 설명해 주세요.",
         "",
     ]
+
+    intro = intro_text(ch)
+    if intro:
+        lines += ["", "=" * 50, "# 1부 · 핵심 개념 요약 (먼저 설명할 내용)", "=" * 50, "", intro, ""]
+        print(f"[1/5] 기존 요약본 포함: {len(intro)}자", flush=True)
+    else:
+        print("[1/5] 요약본 없음 — 기출 지문만 사용", flush=True)
+    lines += ["", "=" * 50, "# 2부 · 기출 OX 지문 (함정 확인용)", "=" * 50]
     current_theme = None
     count = 0
     for q in chap.get("questions", []):

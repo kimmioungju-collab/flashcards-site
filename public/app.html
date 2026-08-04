@@ -197,7 +197,8 @@ body.podon .sheet{padding-bottom:84px}
 .rbox{background:var(--paper);border-radius:18px;padding:26px 22px;max-width:380px;width:100%;text-align:center}
 .rbox h3{font-size:18px;font-weight:900;margin-bottom:6px}
 .rbox p{font-size:13.5px;color:var(--muted);font-weight:600;margin-bottom:18px}
-.rbox button{width:100%;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:900;cursor:pointer;margin-bottom:9px}
+.rbox button{width:100%;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:900;cursor:pointer;margin-bottom:9px;
+  touch-action:manipulation;-webkit-appearance:none;position:relative;z-index:1}
 .rbox .go{background:var(--hl);color:#3B3400}
 .rbox .fresh{background:var(--ink);color:#fff}
 /* 챕터 핵심 요약 오버레이 */
@@ -901,6 +902,19 @@ function startWeakDeck(){
   $("doneBox").style.display="none"; $("card").style.display="flex";
   show();
 }
+/* 이어하기 버튼 —
+   예전에는 초기화가 끝날 때 onclick을 붙였다. 그 사이 어디서든 오류가 나면
+   창은 떠 있는데 버튼만 죽어버려 "눌러도 반응 없음"이 됐다.
+   그래서 스크립트가 읽히는 시점에 문서 전체에 한 번만 위임해 둔다. */
+let RESUME_PROG = null;
+document.addEventListener("click", e => {
+  const b = e.target && e.target.closest && e.target.closest("#resumeGo, #resumeFresh");
+  if(!b) return;
+  $("resumeBox").classList.remove("show");
+  if(b.id === "resumeGo" && RESUME_PROG) resumeSession(RESUME_PROG);
+  else buildDeck();
+});
+
 function resumeSession(p){
   mode = p.mode || "quiz";
   const byNo = Object.fromEntries(QUESTIONS.map(q=>[q.no,q]));
@@ -1646,9 +1660,8 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
     if(S.prog && S.prog.nos && S.prog.nos.length && (S.prog.ans||[]).length < S.prog.nos.length){
       const done=(S.prog.ans||[]).length, total=S.prog.nos.length;
       $("resumeMsg").textContent=`${total}문제 중 ${done}문제까지 풀었습니다. (${S.prog.mode==="learn"?"개념 먼저":"실전"} 모드)`;
+      RESUME_PROG = S.prog;                 // 버튼 동작은 아래 위임 핸들러가 처리한다
       $("resumeBox").classList.add("show");
-      $("resumeGo").onclick=()=>{$("resumeBox").classList.remove("show"); resumeSession(S.prog);};
-      $("resumeFresh").onclick=()=>{$("resumeBox").classList.remove("show"); buildDeck();};
     } else {
       buildDeck();
     }

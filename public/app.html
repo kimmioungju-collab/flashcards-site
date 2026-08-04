@@ -125,6 +125,10 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .ansbox .ansfoot button{flex:1;border:1.5px solid #B9DFF5;background:#fff;border-radius:9px;padding:8px;font-size:12.5px;font-weight:800;color:#1179AE;cursor:pointer}
 .ansbox.waiting{background:#FFF8E8;border-color:#F0D9A0}
 .ansbox.waiting .anshead{color:#9A7208}
+.ansjump{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);border:none;background:#2E7D32;color:#fff;
+  padding:12px 20px;border-radius:99px;font-size:13.5px;font-weight:800;z-index:99;white-space:nowrap;cursor:pointer;
+  box-shadow:0 6px 20px rgba(0,0,0,.45)}
+body.podon .ansjump{bottom:150px}
 .asktoast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:rgba(20,26,32,.94);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;font-weight:700;z-index:99;white-space:nowrap}
 .done .weakstart{background:#D9A400;color:#fff}
 .controls{margin-top:14px}
@@ -579,6 +583,7 @@ function toast(msg){
 }
 const ANS_BASE = "https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com/flashcards/answer/";
 const ANS_POLL_MS = 3000, ANS_TIMEOUT_MS = 300000;   // 3초 간격 · 최대 5분 대기
+const PEND_KEEP_MS = 86400000;                       // 대기 기록은 하루 보관 (뒤늦게라도 답변 회수)
 let ansTimer = null;
 
 /* 답변 마크다운(경량) → HTML : 표·굵게·코드·목록만 지원 */
@@ -683,14 +688,55 @@ function pollAns(q, id, myq, startedAt){
   }, ANS_POLL_MS);
 }
 
-/* 탭으로 돌아왔을 때 즉시 한 번 확인 (백그라운드에서 타이머가 멈춰 있었을 수 있음) */
-document.addEventListener("visibilitychange", () => {
-  if(document.hidden) return;
-  const q = deck[idx]; if(!q) return;
-  if(loadAns(q.no)) return;
-  const p = loadPend(q.no); if(!p) return;
-  checkAns(q, p.id, p.myq, true);
-});
+/* 답변 도착 알림 — 지금 보고 있는 문항이 아니면 눌러서 이동할 수 있게 띄운다 */
+function ansJumpBanner(qno){
+  const old = document.getElementById("ansJump"); if(old) old.remove();
+  const el = document.createElement("button");
+  el.id = "ansJump"; el.className = "ansjump";
+  el.textContent = `💡 ${qno}번 답변이 도착했어요 — 보러가기`;
+  el.onclick = () => {
+    el.remove(); jumpToNo(qno);
+    // 답변을 읽으러 온 것이므로 해설·답변 패널까지 바로 펼쳐 준다
+    const q = deck[idx], rec = loadAns(qno);
+    if(q && String(q.no) === String(qno) && rec && !$("result").classList.contains("show")){
+      reveal(q, (answers[idx]||{}).correct === true);
+    }
+  };
+  document.body.appendChild(el);
+  setTimeout(()=>{ if(el.isConnected) el.remove(); }, 15000);
+}
+
+/* 질문을 보낸 뒤 텔레그램으로 넘어가면 탭이 잠들거나 통째로 버려진다.
+   → 돌아왔을 때 "현재 카드"만이 아니라 이 챕터의 대기 중인 질문을 전부 확인한다. */
+async function sweepPending(){
+  const jobs = [];
+  const prefix = "fcPend:" + CH + ":";
+  for(let i=0; i<localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(k && k.startsWith(prefix)) jobs.push(k.slice(prefix.length));
+  }
+  for(const qno of jobs){
+    const p = loadPend(qno); if(!p || !p.id) continue;
+    if(loadAns(qno)){ dropPend(qno); continue; }
+    // 화면의 "생성 중" 표시는 5분에 접지만, 답변 회수는 하루 동안 계속 시도한다
+    // (텔레그램에서 오래 읽다 돌아와도 이미 도착한 답변을 잃지 않게)
+    if(Date.now() - p.t > PEND_KEEP_MS){ dropPend(qno); continue; }
+    try{
+      const r = await fetch(ANS_BASE + p.id + ".json", {cache:"no-store"});
+      const d = await r.json();
+      if(!(d && d.a)) continue;
+      const rec = {a:d.a, myq:p.myq, t:Date.now()};
+      saveAns(qno, rec); dropPend(qno);
+      const cur = deck[idx];
+      if(cur && String(cur.no) === String(qno)){ showAns(cur, "done", rec); $("askBtn").style.display="none"; }
+      else ansJumpBanner(qno);
+    }catch(e){}
+  }
+}
+
+/* 탭으로 돌아왔을 때 즉시 확인 (백그라운드에서 타이머가 멈춰 있었을 수 있음) */
+document.addEventListener("visibilitychange", () => { if(!document.hidden) sweepPending(); });
+window.addEventListener("pageshow", () => sweepPending());
 
 function renderAskBtn(q){
   const b=$("askBtn");
@@ -706,8 +752,11 @@ function renderAskBtn(q){
       showAns(q, "waiting", {myq: p.myq}); b.style.display="none";
       checkAns(q, p.id, p.myq, true);
       pollAns(q, p.id, p.myq, p.t);
+    } else if(p && p.id){
+      // 5분이 지났어도 답변은 이미 도착해 있을 수 있으니 지우기 전에 한 번 더 확인한다
+      showAns(q, "hide");
+      checkAns(q, p.id, p.myq, true).then(got=>{ if(!got) dropPend(q.no); });
     } else {
-      if(p) dropPend(q.no);
       showAns(q, "hide");
     }
   }

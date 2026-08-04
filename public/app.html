@@ -734,9 +734,24 @@ async function sweepPending(){
   }
 }
 
-/* 탭으로 돌아왔을 때 즉시 확인 (백그라운드에서 타이머가 멈춰 있었을 수 있음) */
+/* 상시 회수 타이머 —
+   PC에서는 탭을 바꾸지 않고 옆 창의 텔레그램을 보므로 visibilitychange가 안 뜬다.
+   게다가 다음 문제로 넘어가면 renderAskBtn이 그 문항의 폴링을 끊어버려 답변을 영영 못 받았다.
+   현재 카드와 무관하게 대기 질문이 남아 있는 동안 계속 훑는다. */
+function hasPending(){
+  const prefix = "fcPend:" + CH + ":";
+  for(let i=0; i<localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(k && k.startsWith(prefix)) return true;
+  }
+  return false;
+}
+setInterval(() => { if(hasPending()) sweepPending(); }, 5000);
+
+/* 탭·창으로 돌아왔을 때 즉시 확인 (백그라운드에서 타이머가 멈춰 있었을 수 있음) */
 document.addEventListener("visibilitychange", () => { if(!document.hidden) sweepPending(); });
 window.addEventListener("pageshow", () => sweepPending());
+window.addEventListener("focus", () => sweepPending());
 
 function renderAskBtn(q){
   const b=$("askBtn");

@@ -25,6 +25,14 @@ a.ch.done::before{background:var(--right)}
 .row1{display:flex;align-items:baseline;gap:8px}
 .cid{font-size:11.5px;font-weight:900;color:var(--muted);letter-spacing:.5px}
 .ctitle{font-size:15.5px;font-weight:800;flex:1;word-break:keep-all}
+.podchip{flex:0 0 auto;align-self:center;border:none;border-radius:99px;padding:4px 10px;font-size:11.5px;font-weight:800;
+  background:#EFECE3;color:#6B6558;cursor:pointer;line-height:1.3;white-space:nowrap}
+.podchip.done{background:#E2F0D9;color:#2E7D32}
+.podchip.wait{background:#FFF3C4;color:#8A7B1E}
+.podchip.err{background:#FDEBEC;color:#C62828}
+.podtoast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:90;max-width:86vw;
+  background:rgba(20,26,34,.94);color:#fff;font-size:13px;font-weight:700;padding:10px 16px;border-radius:99px;
+  box-shadow:0 6px 20px rgba(0,0,0,.4);text-align:center}
 .row2{display:flex;gap:8px;margin-top:7px;font-size:12px;font-weight:700;color:var(--muted);flex-wrap:wrap}
 .stat{background:#EFECE3;border-radius:99px;padding:2.5px 10px}
 .stat.best{background:#E2F0D9;color:#2E7D32}
@@ -272,11 +280,72 @@ function makeCard(c,gset){
       : `${d.getMonth()+1}/${d.getDate()}`;
     stats += `<span class="stat last">🕐 ${ymd}</span>`;
   }
-  a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span></div>
+  a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span>${podChip(c.id)}</div>
     <div class="row2"><span class="stat">${c.count}문항</span>${stats}</div>
     ${gradesHtml(c.grades)}`;
   return a;
 }
+
+/* ── 🎧 AI 음성(노트북LM) 상태 표시 · 목록에서 바로 생성 ── */
+const POD = {};                       // {챕터id: {status,url,mins}}
+let podPollTimer = null;
+
+function podChip(id){
+  const d = POD[id], s = (d && d.status) || "none";
+  if(s === "done")    return `<button class="podchip done" data-pod="${id}" title="AI 음성 듣기">🎧 ${d.mins?d.mins+"분":"듣기"}</button>`;
+  if(s === "running" || s === "pending") return `<button class="podchip wait" data-pod="${id}">⏳ 생성중</button>`;
+  if(s === "error")   return `<button class="podchip err" data-pod="${id}" title="다시 만들기">⚠️ 재시도</button>`;
+  return `<button class="podchip" data-pod="${id}" title="AI 음성 만들기">🎧 +</button>`;
+}
+
+async function podLoad(){
+  try{
+    const r = await fetch(`${DBURL}/flashcards/audio.json`, {cache:"no-store"});
+    const d = (await r.json()) || {};
+    for(const k in POD) delete POD[k];
+    for(const key in d){                       // key 형식: ch01_full
+      const v = d[key];
+      if(v && typeof v === "object" && key.endsWith("_full")) POD[key.slice(0,-5)] = v;
+    }
+  }catch(e){}
+}
+
+function podPoll(){
+  clearTimeout(podPollTimer);
+  if(!Object.values(POD).some(v => v.status==="pending" || v.status==="running")) return;
+  podPollTimer = setTimeout(async ()=>{ await podLoad(); render(podFilterVal()); podPoll(); }, 20000);
+}
+
+async function podMake(id, title){
+  POD[id] = {status:"pending"};
+  render(podFilterVal());
+  try{
+    await fetch(`${DBURL}/flashcards/audio/${id}_full.json`, {method:"PUT",
+      body: JSON.stringify({status:"pending", ch:id, mode:"full", t:Date.now(), title:title||id})});
+    podToast(`🎙 ${id.toUpperCase()} AI 음성을 만들기 시작했어요 (5~15분)`);
+    podPoll();
+  }catch(e){ POD[id] = {status:"error"}; render(podFilterVal()); podToast("요청에 실패했어요"); }
+}
+
+function podFilterVal(){ const el = document.getElementById("q"); return el ? el.value : ""; }
+
+function podToast(msg){
+  const t=document.createElement("div"); t.className="podtoast"; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 3000);
+}
+
+/* 칩 클릭 — 카드의 챕터 이동은 막고 칩 동작만 수행 */
+document.addEventListener("click", e=>{
+  const chip = e.target && e.target.closest && e.target.closest("[data-pod]");
+  if(!chip) return;
+  e.preventDefault(); e.stopPropagation();
+  const id = chip.dataset.pod, d = POD[id], s = d && d.status;
+  if(s === "done" && d.url) location.href = `app.html?ch=${id}&play=1`;
+  else if(s !== "pending" && s !== "running"){
+    const c = chapters.find(x => x.id === id);
+    podMake(id, c && c.title);
+  }
+}, true);
 function render(filter=""){
   dailyT=computeDailyTarget();
   const gset=planGradeSet();   // 완료 판정도 플랜의 계산 대상 등급과 동일하게
@@ -862,6 +931,9 @@ fetch("data/manifest.json").then(r=>r.json()).then(async d=>{
   renderPlan();
   renderStudyLog();
   render();
+  await podLoad();          // AI 음성 상태 반영 (목록 표시가 먼저 뜨도록 나중에 로드)
+  render(podFilterVal());
+  podPoll();
 });
 document.getElementById("q").addEventListener("input",e=>render(e.target.value));
 /* 공부 시간대 페이스는 시각에 따라 바뀌므로 1분마다 갱신 */

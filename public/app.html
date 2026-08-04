@@ -1548,6 +1548,11 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
     $("keyTitle").textContent = "📋 답안 확인 — " + d.title;
     loadIntro(d.title);   // 챕터 핵심 요약 준비(초보자용) — 있으면 버튼 노출·1회 자동표시
     initChips(); applyToggleUI(); updateRoundPill(); renderHistory();
+    if(new URLSearchParams(location.search).get("play")){   // 목차의 🎧 칩에서 넘어온 경우 바로 재생
+      fetch(podUrl(), {cache:"no-store"}).then(r=>r.json()).then(pd=>{
+        if(pd && pd.status === "done" && pd.url) podPlay(pd.url, pd.t, d.title);
+      }).catch(()=>{});
+    }
     const JUMPQ = new URLSearchParams(location.search).get("q");
     if(JUMPQ){
       // URL로 특정 문항 지정 시: 전체 덱을 구성한 뒤 해당 문항으로 바로 이동

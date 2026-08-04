@@ -191,7 +191,10 @@ def make_audio(src_file: Path, nb_title: str, out_mp3: Path) -> None:
         sys.exit(f"ERROR: 오디오 생성 실패 — {(r.stdout + r.stderr)[:300]}")
     print("[4/5] 오디오 생성 완료", flush=True)
 
+    out_mp3.unlink(missing_ok=True)   # 남아 있던 이전 회차 파일 재사용 방지
     r = run_nlm(["download", "audio", str(out_mp3), "-n", nb_id], timeout=300)
+    if r.returncode != 0:
+        sys.exit(f"ERROR: 다운로드 실패 — {(r.stdout + r.stderr)[:300]}")
     if not out_mp3.exists() or out_mp3.stat().st_size < 10_000:
         sys.exit(f"ERROR: 다운로드 실패 — {(r.stdout + r.stderr)[:300]}")
     print(f"[5/5] 다운로드 완료: {out_mp3} ({out_mp3.stat().st_size // 1024}KB)", flush=True)

@@ -402,11 +402,12 @@ function render(filter=""){
 }
 /* ── 클라우드 동기화 ── */
 const DBURL="https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com";
-const DEFAULT_SYNC="kmj";   // 개인용 앱 — 코드 미설정 기기는 이 코드로 자동 동기화
+const DEFAULT_SYNC="1111";  // 개인용 앱 — 코드 미설정 기기는 이 코드로 자동 동기화
+const LEGACY_SYNC="kmj";    // 예전 기본값 — 실제 진도는 1111에 있어 자동으로 옮겨준다
 function syncCode(){
   const c=(localStorage.getItem("fc:synccode")||"").trim();
-  if(c) return c;
-  if(localStorage.getItem("fc:syncoff")==="1") return "";   // 사용자가 직접 끈 경우만 꺼짐
+  if(c && c!==LEGACY_SYNC) return c;
+  if(!c && localStorage.getItem("fc:syncoff")==="1") return "";   // 사용자가 직접 끈 경우만 꺼짐
   try{ localStorage.setItem("fc:synccode", DEFAULT_SYNC); }catch(e){}
   return DEFAULT_SYNC;
 }

@@ -421,11 +421,12 @@ const GC = {"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD
 
 /* ── 클라우드 동기화 (기기 간 진도 공유) ── */
 const DBURL = "https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com";
-const DEFAULT_SYNC = "kmj";   // 코드 미설정 기기는 자동으로 이 코드 사용 (index.html과 동일)
+const DEFAULT_SYNC = "1111";  // 코드 미설정 기기는 자동으로 이 코드 사용 (index.html과 동일)
+const LEGACY_SYNC = "kmj";    // 예전 기본값 — 실제 진도는 1111에 있으므로 자동으로 옮겨준다
 const SYNC = (function(){
   const c = (localStorage.getItem("fc:synccode") || "").trim();
-  if(c) return c;
-  if(localStorage.getItem("fc:syncoff") === "1") return "";
+  if(c && c !== LEGACY_SYNC) return c;
+  if(!c && localStorage.getItem("fc:syncoff") === "1") return "";
   try{ localStorage.setItem("fc:synccode", DEFAULT_SYNC); }catch(e){}
   return DEFAULT_SYNC;
 })();

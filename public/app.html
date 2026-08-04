@@ -10,7 +10,7 @@
   --hl:#FFE34D; --wrong:#D64550; --right:#2E75B6; --muted:#7A8694; --line:#E4E0D6;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
+html,body{height:100%;max-width:100%;overflow-x:hidden}
 body{
   font-family:"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;
   background:linear-gradient(160deg,var(--desk) 0%,var(--desk-deep) 100%);
@@ -18,8 +18,12 @@ body{
   min-height:100dvh; padding:14px 14px 20px;
 }
 .app{width:100%;max-width:560px;display:flex;flex-direction:column;flex:1;min-height:0}
-.topbar{display:flex;align-items:center;gap:8px;color:#DDE5EC;margin-bottom:10px}
-.topbar h1{font-size:15px;font-weight:800;letter-spacing:-.3px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar{display:flex;align-items:center;gap:8px;color:#DDE5EC;margin-bottom:10px;flex-wrap:wrap}
+.topbar h1{font-size:15px;font-weight:800;letter-spacing:-.3px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 버튼은 별도 줄에서 가로 스크롤 → 화면 밖으로 밀리지 않음 */
+.tbtns{flex:1 1 100%;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.tbtns::-webkit-scrollbar{display:none}
+.tbtns .iconbtn{flex:0 0 auto}
 .pill{background:rgba(255,255,255,.12);border-radius:99px;padding:5px 11px;font-size:12px;font-weight:700;white-space:nowrap}
 .pill b{color:var(--hl)}
 button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border-radius:99px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
@@ -217,12 +221,14 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
     <h1 id="chTitle">불러오는 중…</h1>
     <span class="pill" id="roundPill" style="display:none"></span>
     <span class="pill" id="scorePill">⭕ <b id="okCnt">0</b> · ❌ <b id="noCnt">0</b></span>
-    <button class="iconbtn" onclick="location.href='index.html'">목차</button>
-    <button class="iconbtn" id="introBtn" style="display:none">📖요약</button>
-    <button class="iconbtn" id="keyBtn">📋답안</button>
-    <button class="iconbtn" id="reviewBtn">📝풀이</button>
-    <button class="iconbtn" id="weakBtn">⭐취약</button>
-    <button class="iconbtn" id="filterBtn">필터</button>
+    <div class="tbtns">
+      <button class="iconbtn" onclick="location.href='index.html'">목차</button>
+      <button class="iconbtn" id="introBtn" style="display:none">📖요약</button>
+      <button class="iconbtn" id="keyBtn">📋답안</button>
+      <button class="iconbtn" id="reviewBtn">📝풀이</button>
+      <button class="iconbtn" id="weakBtn">⭐취약</button>
+      <button class="iconbtn" id="filterBtn">필터</button>
+    </div>
   </div>
   <div class="progress"><i id="progBar"></i></div>
   <button class="backbar" id="backBar" style="display:none"></button>

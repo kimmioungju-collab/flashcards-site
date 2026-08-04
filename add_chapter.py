@@ -56,6 +56,8 @@ def add_chapter(json_file, chapter_num):
 
     # manifest 갱신 (문항수 + 등급별 카운트)
     update_manifest(project_root, f"ch{ch_num}", title, chapter_data['questions'])
+    # 목차에서 쓰는 문항별 등급 통합 파일 갱신
+    update_qgrades(project_root, f"ch{ch_num}", chapter_data['questions'])
 
     return True
 
@@ -98,6 +100,23 @@ def update_manifest(project_root, chapter_id, title, questions):
     with open(mpath, 'w', encoding='utf-8') as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
     print(f"✅ manifest 갱신: {chapter_id} 등급 {grade_counts(questions)}")
+
+def update_qgrades(project_root, chapter_id, questions):
+    """목차가 등급 필터를 계산할 때 쓰는 문항별 등급 통합 파일 upsert"""
+    qpath = project_root / "public" / "data" / "qgrades.json"
+    try:
+        with open(qpath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = {}
+
+    merged = {**data, chapter_id: {
+        str(q.get("no")): (q.get("grade") or "").strip() or "-" for q in questions
+    }}
+    with open(qpath, 'w', encoding='utf-8') as f:
+        json.dump(merged, f, ensure_ascii=False, separators=(",", ":"))
+    print(f"✅ qgrades 갱신: {chapter_id} ({len(questions)}문항)")
+
 
 def deploy_firebase():
     """Firebase에 배포"""

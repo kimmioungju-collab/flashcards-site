@@ -197,8 +197,17 @@ function planGradeSet(){
   const p=loadPlan();
   return (p&&Array.isArray(p.grades)&&p.grades.length)? new Set(p.grades) : null;  // null = 전체
 }
+let qgradesTried=false;
 async function ensureQGrades(){
-  const miss=chapters.filter(c=>!qgrades[c.id]);
+  // 문항별 등급은 통합 파일 1개로 받는다 (예전엔 챕터 JSON 82개를 매번 받아서 목록이 크게 느렸음)
+  if(!qgradesTried){
+    qgradesTried=true;
+    try{
+      const r=await fetch("data/qgrades.json");
+      if(r.ok){ const all=await r.json(); for(const k in all) if(!qgrades[k]) qgrades[k]=all[k]; }
+    }catch(e){}
+  }
+  const miss=chapters.filter(c=>!qgrades[c.id]);   // 통합 파일에 없는 챕터만 개별 보충
   await Promise.all(miss.map(async c=>{
     try{
       const r=await fetch(`chapters/${c.id}.json`, {cache:"no-store"});

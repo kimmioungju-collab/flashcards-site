@@ -13,6 +13,7 @@
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -23,8 +24,40 @@ CHAPTER_DIR = BASE / "public" / "chapters"
 TMP_DIR = Path("/tmp/notebooklm").resolve()  # macOS /tmp 심볼릭 링크 해소 (업로드 거부 방지)
 OUT_DIR = Path.home() / "Downloads"
 ENV_FILE = Path.home() / "telegram-claude-bridge" / ".env"
-NLM = "notebooklm"
+NLM = shutil.which("notebooklm") or "/opt/homebrew/bin/notebooklm"  # 크론 환경 PATH 대비
 UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+
+# 오디오 스타일: brief=요약 브리핑(군더더기 없이 핵심만), length=default(약 10분 내외)
+AUDIO_FORMAT = "brief"
+AUDIO_LENGTH = "default"
+
+# 공부용 진행 지침 — 이동 중 듣기만 해도 정리가 되도록 설계
+STUDY_PROMPT = """이 자료는 행정법 객관식·OX 시험 대비 기출 지문 모음입니다.
+수험생이 이동 중 귀로만 듣고 정리하는 용도이므로, 아래 지침을 반드시 지켜 한국어로 진행해 주세요.
+
+[진행 방식]
+1. 인사말·자기소개·잡담·소스 소개는 생략하고 첫 문장부터 바로 핵심 개념으로 들어갑니다.
+2. 주제(소제목) 단위로 묶어서, 각 주제마다 이 순서를 지킵니다.
+   ① 개념을 한 문장으로 정의 → ② 시험에 나오는 함정 → ③ 정답을 가르는 판단 기준.
+3. 문항 번호는 읽지 말고, 내용 중심으로 자연스럽게 이어서 설명합니다.
+
+[가장 중요 — 함정 처리]
+4. 틀린 지문(함정)은 반드시 "이렇게 나오면 틀린다 → 옳은 표현은 이것이다" 형태로
+   잘못된 표현과 올바른 표현을 짝지어 대비시켜 말합니다.
+5. 자주 바꿔치기되는 단어(전부/일부, ~할 수 있다/~하여야 한다, 기속/재량, 취소/무효,
+   처분성 인정/부정 등)는 어느 쪽이 정답인지 분명히 못 박아 줍니다.
+
+[암기 지원]
+6. 헷갈리는 두 개념은 "A는 ~인 반면, B는 ~이다" 비교 형식으로 나란히 설명합니다.
+7. 기간·요건·숫자와 법령·판례 명칭은 또박또박 말하고 한 번 더 반복해 강조합니다.
+8. 각 주제가 끝날 때마다 "한 줄 정리:"로 시작하는 암기 문장을 한 문장으로 남깁니다.
+9. 마지막에는 이 챕터에서 시험에 나올 확률이 높은 핵심을 3~5문장으로 정리하고,
+   특히 자주 틀리는 함정 두세 가지를 다시 짚어 주며 마무리합니다.
+
+[말하기 규칙]
+10. "보시다시피", "화면에서" 같은 시각 자료 표현은 절대 쓰지 않습니다.
+11. 근거 없는 추측이나 자료에 없는 내용은 덧붙이지 않습니다.
+12. 속도는 차분하게, 문장은 짧게 끊어 말합니다."""
 
 
 def norm_chapter(raw: str) -> str:
@@ -117,8 +150,8 @@ def make_audio(src_file: Path, nb_title: str, out_mp3: Path) -> None:
     print("[3/5] 소스 업로드 완료, 인덱싱 대기 10초", flush=True)
     time.sleep(10)
 
-    desc = "행정법 시험 대비 OX 퀴즈 요약. 옳은 법리와 함정 지문의 차이를 중심으로 한국어로 설명"
-    r = run_nlm(["generate", "audio", desc, "-n", nb_id,
+    r = run_nlm(["generate", "audio", STUDY_PROMPT, "-n", nb_id,
+                 "--format", AUDIO_FORMAT, "--length", AUDIO_LENGTH,
                  "--language", "ko", "--wait", "--retry", "3"], timeout=2400)
     if r.returncode != 0:
         sys.exit(f"ERROR: 오디오 생성 실패 — {(r.stdout + r.stderr)[:300]}")

@@ -171,6 +171,17 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .podmode.on{border-color:var(--right);background:#E8F1FA;color:var(--right)}
 .podstat{background:#F2EFE7;border-radius:12px;padding:13px 14px;font-size:13.5px;font-weight:700;line-height:1.55;color:#3A424C}
 .podnote{margin-top:12px;font-size:12px;font-weight:600;color:var(--muted);line-height:1.6}
+/* 시트보다 위(z-index)에 떠 있어 요약을 보는 중에도 재생이 끊기지 않음 */
+.podbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(18,24,31,.97);
+  padding:8px 12px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(0,0,0,.35)}
+.podbar audio{width:100%;height:36px;display:block}
+.podbarhead{display:flex;align-items:center;justify-content:space-between;color:#DDE5EC;
+  font-size:12px;font-weight:800;padding:0 2px 5px}
+.podbarhead button{background:none;border:none;color:#9AA7B4;font-size:15px;font-weight:900;cursor:pointer;padding:0 4px}
+body.podon{padding-bottom:86px}
+body.podon .sheet{padding-bottom:84px}
+.intropod{margin:10px 0 2px;background:#F2EFE7;border-radius:11px;padding:10px 12px;
+  font-size:12.5px;font-weight:700;color:#3A424C;line-height:1.5}
 .togglerow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;font-size:14px;font-weight:800}
 .togglerow small{display:block;font-size:11px;font-weight:600;color:var(--muted)}
 .sw{width:48px;height:28px;border-radius:99px;background:#C7CDD4;position:relative;cursor:pointer;transition:.2s;border:none;flex-shrink:0}
@@ -186,8 +197,8 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .rbox .go{background:var(--hl);color:#3B3400}
 .rbox .fresh{background:var(--ink);color:#fff}
 /* 챕터 핵심 요약 오버레이 */
-.introhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-.introhead h3{margin:0}
+.introhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:8px;flex-wrap:wrap}
+.introhead h3{margin:0;flex:1 1 auto;min-width:0}
 .introx{border:none;background:rgba(0,0,0,.06);color:var(--muted);width:30px;height:30px;border-radius:50%;font-size:15px;font-weight:900;cursor:pointer}
 .introbody{font-size:14.5px;line-height:1.72;color:var(--ink)}
 .introbody h4{font-size:14.5px;font-weight:900;margin:16px 0 7px;color:#2E75B6;display:flex;align-items:center;gap:6px}
@@ -199,7 +210,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .introbody b{color:#C0392B;font-weight:800}
 .introbody .tip{background:#fff7e6;border-left:3px solid #D9A400;border-radius:8px;padding:9px 12px;margin:10px 0}
 .introbody .tip b{color:#9a7400}
-.introhbtns{display:flex;gap:6px;align-items:center}
+.introhbtns{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .ttsbtn{border:none;background:#2E75B6;color:#fff;border-radius:99px;padding:7px 13px;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap}
 .ttsbtn.on{background:#C0392B}
 .introbody .ttsread{background:#ffe98a;border-radius:6px;box-shadow:0 0 0 5px #ffe98a;transition:background .15s ease}
@@ -368,10 +379,18 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 <div class="sheetwrap" id="introWrap">
   <div class="sheet introsheet">
     <div class="introhead"><h3 id="introTitle">📖 이 챕터 핵심 요약</h3>
-      <div class="introhbtns"><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
+      <div class="introhbtns"><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="introPodBtn">🎧 AI음성</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
+    <div class="intropod" id="introPodStat" style="display:none"></div>
     <div class="introbody" id="introBody"></div>
     <button class="apply" id="introStart">읽었어요 · 문제 풀기 →</button>
   </div>
+</div>
+
+<!-- 어느 화면에서도 계속 재생되는 고정 플레이어 (요약을 보면서 들을 수 있음) -->
+<div class="podbar" id="podBar" style="display:none">
+  <div class="podbarhead"><span id="podBarTitle">🎧 AI 음성 요약</span>
+    <button id="podBarClose" title="닫기">✕</button></div>
+  <audio id="podAudio" controls preload="none"></audio>
 </div>
 
 <div class="sheetwrap" id="podWrap">
@@ -383,7 +402,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
       <button class="podmode" data-mode="weak">⭐ 오답·취약만</button>
     </div>
     <div class="podstat" id="podStat">상태 확인 중…</div>
-    <audio id="podAudio" controls preload="none" style="display:none;width:100%;margin-top:12px"></audio>
+    <button class="apply" id="podPlay" style="display:none;background:var(--right);color:#fff">▶️ 재생하기</button>
     <button class="apply" id="podMake">🎙 오디오 만들기</button>
     <div class="podnote">AI 진행자 두 명이 대화로 설명해 줍니다. 생성에 5~15분 정도 걸리며,
       만들어두면 다음부터는 바로 재생됩니다.</div>
@@ -1200,7 +1219,8 @@ async function loadIntro(title){
     if(!localStorage.getItem(introSeenKey)) openIntro();  // 첫 방문 시 자동 표시
   }catch(e){}
 }
-function openIntro(){ if(!INTRO_HTML) return; $("introWrap").classList.add("show"); }
+function openIntro(){ if(!INTRO_HTML) return; $("introWrap").classList.add("show");
+  try{ podFetch(); }catch(e){} }
 function closeIntro(){ ttsStop(); $("introWrap").classList.remove("show"); try{localStorage.setItem(introSeenKey,"1");}catch(e){} }
 
 /* ── 요약 읽어주기(TTS) + 현재 읽는 부분 하이라이트 ── */
@@ -1299,16 +1319,31 @@ let podMode = "full", podTimer = null;
 function podKey(){ return CH + "_" + podMode; }
 function podUrl(){ return POD_BASE + podKey() + ".json"; }
 
+/* 재생은 고정 바에서 — 시트를 닫거나 요약을 열어도 소리가 끊기지 않는다 */
+function podPlay(url, t, label){
+  const au = $("podAudio"), src = url + "?v=" + (t || 0);
+  ttsStop();                                   // 읽어주기와 겹치지 않게
+  if(au.getAttribute("src") !== src){ au.setAttribute("src", src); au.load(); }
+  $("podBarTitle").textContent = "🎧 " + (label || "AI 음성 요약");
+  $("podBar").style.display = "";
+  document.body.classList.add("podon");
+  au.play().catch(()=>toast("재생 버튼을 한 번 더 눌러주세요"));
+}
+function podHideBar(){
+  try{ $("podAudio").pause(); }catch(e){}
+  $("podBar").style.display = "none";
+  document.body.classList.remove("podon");
+}
+
 function podRender(d){
-  const stat = $("podStat"), au = $("podAudio"), btn = $("podMake");
+  const stat = $("podStat"), btn = $("podMake"), play = $("podPlay");
   const s = (d && d.status) || "none";
-  au.style.display = "none"; btn.disabled = false;
+  btn.disabled = false; play.style.display = "none";
   btn.textContent = "🎙 오디오 만들기";
   if(s === "done" && d.url){
-    stat.innerHTML = "✅ 준비 완료 — 아래에서 바로 들으세요."
+    stat.innerHTML = "✅ 준비 완료 — 재생하면 요약을 보는 중에도 계속 들립니다."
       + (d.mins ? " <span style='color:#7A8694'>(약 " + d.mins + "분)</span>" : "");
-    au.src = d.url + "?v=" + (d.t || 0);
-    au.style.display = "";
+    play.style.display = ""; play.dataset.url = d.url; play.dataset.t = d.t || 0;
     btn.textContent = "🔄 새로 만들기";
   }else if(s === "pending" || s === "running"){
     stat.textContent = (d.msg || "오디오 만드는 중…") + " ⏳ 이 창을 닫아도 계속 진행됩니다.";
@@ -1322,11 +1357,42 @@ function podRender(d){
 
 function podFetch(){
   return fetch(podUrl(), {cache:"no-store"}).then(r=>r.json()).then(d=>{
-    podRender(d);
+    podRender(d); introPodRender(d);
     const s = d && d.status;
     if(s === "pending" || s === "running"){ podSchedule(); }
     else { clearTimeout(podTimer); podTimer = null; }
+    return d;
   }).catch(()=>{ $("podStat").textContent = "상태를 불러오지 못했습니다. 네트워크를 확인해 주세요."; });
+}
+
+/* 요약 시트 안에서 바로 생성·재생 */
+function introPodRender(d){
+  const box = $("introPodStat"), btn = $("introPodBtn");
+  const s = (d && d.status) || "none";
+  if(s === "done" && d.url){
+    btn.textContent = "🎧 AI음성 듣기"; btn.disabled = false;
+    box.style.display = "none";
+  }else if(s === "pending" || s === "running"){
+    btn.textContent = "⏳ 생성 중"; btn.disabled = true;
+    box.style.display = "";
+    box.textContent = (d.msg || "AI 음성을 만드는 중이에요") + " — 다 되면 여기서 바로 재생됩니다. (5~15분)";
+  }else{
+    btn.textContent = "🎧 AI음성 만들기"; btn.disabled = false;
+    box.style.display = "none";
+  }
+}
+
+function introPodTap(){
+  $("introPodBtn").disabled = true;
+  fetch(podUrl(), {cache:"no-store"}).then(r=>r.json()).then(d=>{
+    if(d && d.status === "done" && d.url){
+      introPodRender(d);
+      podPlay(d.url, d.t, (document.getElementById("chTitle").textContent||"") + " 요약");
+    }else{
+      podRequest();                       // 없으면 바로 생성 요청 + 상태 폴링
+      introPodRender({status:"pending"});
+    }
+  }).catch(()=>{ $("introPodBtn").disabled = false; toast("연결에 실패했어요"); });
 }
 function podSchedule(){ clearTimeout(podTimer); podTimer = setTimeout(podFetch, POD_POLL_MS); }
 
@@ -1341,14 +1407,21 @@ function podRequest(){
 }
 
 function openPod(){ $("podWrap").classList.add("show"); podFetch(); }
-function closePod(){ $("podWrap").classList.remove("show"); clearTimeout(podTimer); podTimer=null;
-  try{ $("podAudio").pause(); }catch(e){} }
+/* 시트만 닫고 재생은 유지 — 생성 중이면 폴링도 계속 */
+function closePod(){ $("podWrap").classList.remove("show"); }
 
 /* 이벤트 */
 $("podBtn").addEventListener("click", openPod);
 $("podClose").addEventListener("click", closePod);
 $("podWrap").addEventListener("click", e=>{ if(e.target===$("podWrap")) closePod(); });
 $("podMake").addEventListener("click", podRequest);
+$("podPlay").addEventListener("click", e=>{
+  const b = e.currentTarget;
+  podPlay(b.dataset.url, b.dataset.t, (document.getElementById("chTitle").textContent||"") + " 요약");
+  closePod();
+});
+$("introPodBtn").addEventListener("click", introPodTap);
+$("podBarClose").addEventListener("click", podHideBar);
 document.querySelectorAll(".podmode").forEach(b=>b.addEventListener("click", ()=>{
   document.querySelectorAll(".podmode").forEach(x=>x.classList.remove("on"));
   b.classList.add("on"); podMode = b.dataset.mode; podFetch();

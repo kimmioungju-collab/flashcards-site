@@ -548,11 +548,17 @@ const SYNC = (function(){
   return DEFAULT_SYNC;
 })();
 function cloudUrl(p){ return `${DBURL}/flashcards/${encodeURIComponent(SYNC)}/${p}.json`; }
+/* 빈(사실상 기록 없는) 레코드 판별 — 빈 기록이 실기록을 덮어쓰는 사고 방지용
+   (2026-08-05 ch01·02 진도 소실 원인) */
+function emptyRec(x){ return !x || ((x.rounds||0)===0 && !(x.history||[]).length && Object.keys(x.qstat||{}).length<=1); }
+let _pulledCloud=false;
 let _pushTimer=null;
 function pushCloud(){
   if(!SYNC || !CH) return;
   clearTimeout(_pushTimer);
   _pushTimer = setTimeout(()=>{
+    // 클라우드를 한 번도 확인하지 못한 상태에서 빈 로컬 기록을 통째로 올리지 않는다
+    if(emptyRec(S) && !_pulledCloud) return;
     fetch(cloudUrl("ch/"+CH), {method:"PUT", body:JSON.stringify(S)}).catch(()=>{});
   }, 1200);
 }
@@ -562,7 +568,11 @@ async function pullCloud(){
     const r = await fetch(cloudUrl("ch/"+CH), {cache:"no-store"});
     if(!r.ok) return;
     const c = await r.json();
-    if(c && (c._at||0) > (S._at||0)){
+    _pulledCloud = true;
+    const newer = c && (c._at||0) > (S._at||0);
+    const adopt = (newer && !(emptyRec(c) && !emptyRec(S)))   // 빈 클라우드는 실기록을 못 지움
+               || (c && emptyRec(S) && !emptyRec(c));         // 빈 로컬은 시각 무관 실기록 수용
+    if(adopt){
       S = Object.assign({rounds:0,best:0,last:0,wrongNos:[],history:[],qstat:{},prog:null}, c);
       if(!S.qstat) S.qstat={};
       if(!S.history) S.history=[];

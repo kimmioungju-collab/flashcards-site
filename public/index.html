@@ -416,6 +416,9 @@ function updateSyncUI(){
   if(c){ el.textContent="☁️ 동기화 켜짐 · 코드 "+c; el.classList.add("on"); btn.textContent="변경/끄기"; }
   else { el.textContent="☁️ 동기화 꺼짐"; el.classList.remove("on"); btn.textContent="코드 설정"; }
 }
+/* 빈(사실상 기록 없는) 레코드 판별 — 빈 기록이 실기록을 덮어쓰는 사고 방지용
+   (2026-08-05 ch01·02 진도 소실 원인: 캐시 오래된 기기의 빈 로컬에 _at 도장 후 클라우드 덮어씀) */
+function emptyRec(s){ return !s || ((s.rounds||0)===0 && !(s.history||[]).length && Object.keys(s.qstat||{}).length<=1); }
 async function pullAll(){
   const c=syncCode(); if(!c) return;
   try{
@@ -425,7 +428,10 @@ async function pullAll(){
     for(const id of Object.keys(cloud)){
       const rec=cloud[id]; if(!rec) continue;
       const local=stat(id);
-      if(!local || (rec._at||0) > (local._at||0)){
+      const newer = !local || (rec._at||0) > (local._at||0);
+      const adopt = (newer && !(emptyRec(rec) && !emptyRec(local)))   // 빈 클라우드는 실기록을 못 지움
+                 || (emptyRec(local) && !emptyRec(rec));              // 빈 로컬은 시각 무관 실기록 수용
+      if(adopt){
         try{ localStorage.setItem("fc:"+id, JSON.stringify(rec)); }catch(e){}
       }
     }
@@ -443,8 +449,12 @@ async function pushAll(){
   try{ const r=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/ch.json`,{cache:"no-store"}); if(r.ok) cloud=(await r.json())||{}; }catch(e){}
   for(const ch of chapters){
     const local=stat(ch.id); if(!local) continue;
-    if(local._at==null){ local._at=Date.now(); try{ localStorage.setItem("fc:"+ch.id, JSON.stringify(local)); }catch(e){} }
     const cl=cloud[ch.id];
+    if(emptyRec(local) && !emptyRec(cl)) continue;   // 빈 로컬이 클라우드 실기록을 덮어쓰지 않게 차단
+    if(local._at==null){
+      if(cl) continue;                                // 시각 없는 로컬은 클라우드에 기록이 있으면 밀지 않는다
+      local._at=Date.now(); try{ localStorage.setItem("fc:"+ch.id, JSON.stringify(local)); }catch(e){}
+    }
     if(!cl || (local._at||0) > (cl._at||0)){
       try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/ch/${ch.id}.json`,{method:"PUT",body:JSON.stringify(local)}); }catch(e){}
     }
@@ -559,17 +569,30 @@ function renderStudyLog(){
     cols.push(`<div class="hcol">${col}</div>`);
   }
   const recent=dates.slice(-5).reverse().map(k=>`${k.slice(5).replace("-","/")}(${d[k]})`).join(" · ");
+  // 기본은 접힘 — 제목 줄을 누르면 펼쳐지고, 선택은 이 기기에 기억된다
+  const open = localStorage.getItem("fc:slogOpen") === "1";
   card.innerHTML=`
-    <div class="ph">🔥 학습 날짜 기록</div>
-    <div class="sstats">
-      <span>총 공부한 날 <b>${totalDays}</b>일</span>
-      <span>현재 연속 <b>${cur}</b>일</span>
-      <span>최장 연속 <b>${best}</b>일</span>
-      <span>누적 <b>${totalQ.toLocaleString()}</b>문항</span>
-    </div>
-    <div class="heat">${cols.join("")}</div>
-    <div class="hleg">적음 <span class="hc l1"></span><span class="hc l2"></span><span class="hc l3"></span><span class="hc l4"></span> 많음</div>
-    <div class="srecent">최근: ${recent}</div>`;
+    <div class="ph" id="slogHead" style="cursor:pointer;user-select:none">🔥 학습 날짜 기록
+      <span style="font-weight:700;color:var(--muted);font-size:12px"> — 연속 ${cur}일 · 총 ${totalDays}일</span>
+      <span id="slogArrow" style="float:right">${open?"▾":"▸"}</span></div>
+    <div id="slogBody" style="${open?"":"display:none"}">
+      <div class="sstats" style="margin-top:8px">
+        <span>총 공부한 날 <b>${totalDays}</b>일</span>
+        <span>현재 연속 <b>${cur}</b>일</span>
+        <span>최장 연속 <b>${best}</b>일</span>
+        <span>누적 <b>${totalQ.toLocaleString()}</b>문항</span>
+      </div>
+      <div class="heat">${cols.join("")}</div>
+      <div class="hleg">적음 <span class="hc l1"></span><span class="hc l2"></span><span class="hc l3"></span><span class="hc l4"></span> 많음</div>
+      <div class="srecent">최근: ${recent}</div>
+    </div>`;
+  document.getElementById("slogHead").onclick=()=>{
+    const body=document.getElementById("slogBody"), arrow=document.getElementById("slogArrow");
+    const nowOpen = body.style.display==="none";
+    body.style.display = nowOpen ? "" : "none";
+    arrow.textContent = nowOpen ? "▾" : "▸";
+    try{ localStorage.setItem("fc:slogOpen", nowOpen?"1":"0"); }catch(e){}
+  };
 }
 
 /* ── 공부 시간대(intraday) 페이스 ──
@@ -929,22 +952,45 @@ async function exportCheckedPdf(){
 }
 document.getElementById("pdfBtn").onclick=exportCheckedPdf;
 
-fetch("data/manifest.json").then(r=>r.json()).then(async d=>{
-  chapters=d.chapters;
-  updateSyncUI();
-  await pullAll();  // 다른 기기 진도 먼저 반영
-  await pushAll();  // 이 기기에만 있던 진도 올리기 (기기 간 누락 방지)
-  await pullDaily();  // 학습 날짜 기록도 병합
+/* 통신 대기 시간 제한 —
+   휴대폰 신호가 약하면 요청이 실패도 성공도 하지 않고 매달린다.
+   예전에는 동기화가 다 끝나야 목록을 그려서, 그럴 때 "불러오는 중…"에서 영영 멈췄다. */
+function capWait(p, ms){
+  return Promise.race([ Promise.resolve(p).catch(()=>null), new Promise(res=>setTimeout(()=>res(null), ms)) ]);
+}
+function drawList(){
   const studied=chapters.filter(c=>stat(c.id)).length;
   document.getElementById("summary").textContent=`전체 ${chapters.length}챕터 · 학습 시작 ${studied}챕터`;
-  if(planGradeSet()) await ensureQGrades();  // 등급 지정 플랜이면 문항 등급 로드
-  renderPlan();
-  renderStudyLog();
-  render();
-  await podLoad();          // AI 음성 상태 반영 (목록 표시가 먼저 뜨도록 나중에 로드)
+  renderPlan(); renderStudyLog(); render(podFilterVal());
+}
+
+fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
+  chapters=d.chapters;
+  updateSyncUI();
+  drawList();                        // 목록부터 먼저 그린다 — 통신을 기다리다 갇히지 않게
+
+  await capWait(pullAll(), 5000);    // 다른 기기 진도 반영 (최대 5초)
+  await capWait(pullDaily(), 4000);  // 학습 날짜 기록 병합 (최대 4초)
+  if(planGradeSet()) await capWait(ensureQGrades(), 6000);
+  drawList();                        // 받아온 내용으로 다시 그린다
+  capWait(pushAll(), 15000);         // 이 기기 진도 올리기 — 화면과 무관하므로 기다리지 않는다
+
+  await capWait(podLoad(), 6000);    // AI 음성 상태 반영
   render(podFilterVal());
   podPoll();
+}).catch(()=>{
+  document.getElementById("summary").innerHTML =
+    "목록을 불러오지 못했습니다."
+    + ` <button onclick="location.reload()" style="margin-left:6px;padding:6px 14px;border-radius:8px;border:1px solid #ccc;background:#fff">🔄 다시 시도</button>`;
 });
+
+/* 최후의 안전장치 — 12초가 지나도 목록이 안 뜨면 갇히지 않게 안내를 보여준다 */
+setTimeout(()=>{
+  if(document.getElementById("summary").textContent !== "불러오는 중…") return;
+  document.getElementById("summary").innerHTML =
+    "네트워크 응답이 없습니다."
+    + ` <button onclick="location.reload()" style="margin-left:6px;padding:6px 14px;border-radius:8px;border:1px solid #ccc;background:#fff">🔄 다시 시도</button>`;
+}, 12000);
 document.getElementById("q").addEventListener("input",e=>render(e.target.value));
 /* 공부 시간대 페이스는 시각에 따라 바뀌므로 1분마다 갱신 */
 setInterval(()=>{ const p=loadPlan(); if(p&&p.tstart!=null&&p.tend!=null&&document.getElementById("planCard")) renderPlan(); }, 60000);

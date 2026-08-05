@@ -192,9 +192,11 @@ body.podon .sheet{padding-bottom:84px}
 .sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
 .sw.on{background:var(--right)} .sw.on::after{left:23px}
 /* 이어하기 오버레이 */
-.resume{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:20;align-items:center;justify-content:center;padding:20px}
-.resume.show{display:flex}
-.rbox{background:var(--paper);border-radius:18px;padding:26px 22px;max-width:380px;width:100%;text-align:center}
+.resumebar{display:flex;align-items:center;gap:10px;margin:8px 14px 0;padding:9px 12px;
+  background:#FFF6D6;border:1px solid #EBD98A;border-radius:12px;font-size:12.5px;font-weight:700;color:#6B5E23}
+.resumebar span{flex:1;min-width:0}
+.resumebar button{flex:0 0 auto;border:none;border-radius:99px;padding:7px 13px;font-size:12px;font-weight:800;
+  background:#1F2937;color:#fff;touch-action:manipulation;cursor:pointer}
 .rbox h3{font-size:18px;font-weight:900;margin-bottom:6px}
 .rbox p{font-size:13.5px;color:var(--muted);font-weight:600;margin-bottom:18px}
 .rbox button{width:100%;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:900;cursor:pointer;margin-bottom:9px;
@@ -233,6 +235,20 @@ body.podon .sheet{padding-bottom:84px}
 .rvexp{font-size:13px;line-height:1.6;background:#F7F5EF;border-radius:9px;padding:9px 11px;margin-top:7px}
 .rvempty{text-align:center;color:var(--muted);font-weight:700;padding:30px 0;line-height:1.7}
 .done .weakreview{background:#4A5561;color:#fff}
+/* AI 취약 정리본 */
+.done .aisumbtn{background:#6B4FA1;color:#fff}
+.aisummeta{font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:8px;line-height:1.6}
+.aisumbody{font-size:13.5px;line-height:1.72}
+.aisumbody h4{margin:18px 0 8px;font-size:14.5px;color:#3B4754;border-left:4px solid #6B4FA1;padding-left:8px}
+.aisumbody p{margin:7px 0}
+.aisumbody ul{padding-left:20px;margin:6px 0}
+.aisumbody li{margin:3px 0}
+.aisumbody mark{background:#ffe98a;border-radius:4px;padding:0 3px}
+.aisumbody table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12.5px}
+.aisumbody th,.aisumbody td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.aisumbody th{background:#F1EDF8}
+.aisumbody .tip{background:#EFF7EF;border-radius:9px;padding:9px 11px;margin:7px 0}
+.aisumbody .trap{background:#FBEEEE;border-radius:9px;padding:9px 11px;margin:7px 0}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -247,6 +263,7 @@ body.podon .sheet{padding-bottom:84px}
       <button class="iconbtn" id="introBtn" style="display:none">📖요약</button>
       <button class="iconbtn" id="keyBtn">📋답안</button>
       <button class="iconbtn" id="reviewBtn">📝풀이</button>
+      <button class="iconbtn" id="aiSumBtn">🧠정리</button>
       <button class="iconbtn" id="weakBtn">⭐취약</button>
       <button class="iconbtn" id="podBtn">🎧듣기</button>
       <button class="iconbtn" id="filterBtn">필터</button>
@@ -254,6 +271,14 @@ body.podon .sheet{padding-bottom:84px}
   </div>
   <div class="progress"><i id="progBar"></i></div>
   <button class="backbar" id="backBar" style="display:none"></button>
+
+  <!-- 풀던 기록이 있으면 묻지 않고 바로 이어서 시작한다.
+       예전에는 "이어서 풀기"를 눌러야 넘어갔는데, 아이폰에서 그 버튼이 눌리지 않아
+       학습 자체가 막히는 일이 있었다. 눌러야만 넘어가는 관문을 없앴다. -->
+  <div class="resumebar" id="resumeBar" style="display:none">
+    <span id="resumeBarMsg"></span>
+    <button id="resumeFresh">처음부터 새로</button>
+  </div>
 
   <div class="card" id="card">
     <div class="cardhead">
@@ -292,6 +317,7 @@ body.podon .sheet{padding-bottom:84px}
     <div class="btns">
       <button class="nextch" id="nextChBtn">다음 챕터 →</button>
       <button class="weakreview" id="reviewBtn2">📝 오답·취약 요약 풀이 보기</button>
+      <button class="aisumbtn" id="aiSumBtn2">🧠 AI 취약 정리본 (헷갈림 진단·암기법)</button>
       <button class="weakstart" id="weakStartBtn">⭐ 체크·취약 문제만 풀기</button>
       <button class="retryWrong" id="retryWrongBtn">❌ 이번 오답만 다시 풀기</button>
       <button class="restart" id="restartBtn">처음부터 다시</button>
@@ -372,12 +398,15 @@ body.podon .sheet{padding-bottom:84px}
   </div>
 </div>
 
-<div class="resume" id="resumeBox">
-  <div class="rbox">
-    <h3>풀던 기록이 있습니다</h3>
-    <p id="resumeMsg"></p>
-    <button class="go" id="resumeGo">이어서 풀기</button>
-    <button class="fresh" id="resumeFresh">처음부터 새로 시작</button>
+<div class="sheetwrap" id="aiSumWrap">
+  <div class="sheet introsheet">
+    <div class="introhead"><h3>🧠 AI 취약 정리본</h3>
+      <div class="introhbtns"><button class="introx" id="aiSumClose">✕</button></div></div>
+    <div class="aisummeta" id="aiSumStat">상태 확인 중…</div>
+    <div class="aisumbody" id="aiSumBody"></div>
+    <button class="apply" id="aiSumMake" style="background:#6B4FA1;color:#fff">🧠 정리본 만들기</button>
+    <div class="podnote">내가 틀린 문제와 ⭐체크한 문제만 모아 AI가 '왜 헷갈리는지' 진단하고,
+      쉬운 설명과 암기법으로 정리해 줍니다. 만드는 데 1~3분 걸리며 창을 닫아도 계속 진행됩니다.</div>
   </div>
 </div>
 
@@ -419,6 +448,93 @@ let QUESTIONS = [];
 const CH = new URLSearchParams(location.search).get("ch") || "";
 const LSKEY = "fc:" + CH;
 const GC = {"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F"};
+
+/* ── 화면이 안 뜨는 사고를 막는 최소 안전장치 ──
+   어떤 오류가 나든 (1) 원인이 기록되고 (2) 화면은 반드시 무언가를 보여준다.
+   아래 두 블록은 다른 어떤 코드보다 먼저 등록되어야 의미가 있다. */
+const _RTDB = "https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com";
+function report(k, extra){
+  try{
+    const b = Object.assign({k:k, ch:CH, ua:navigator.userAgent.slice(0,90), at:Date.now()}, extra||{});
+    fetch(_RTDB + "/flashcards/taplog.json", {method:"POST", body:JSON.stringify(b)}).catch(()=>{});
+  }catch(e){}
+}
+window.addEventListener("error", e => {
+  report("err", {msg:String((e && e.message) || "").slice(0,160),
+                 src:String((e && e.filename) || "").slice(-40), line:(e && e.lineno) || 0});
+});
+window.addEventListener("unhandledrejection", e => {
+  const r = e && e.reason;
+  report("rej", {msg:String((r && r.message) || r || "").slice(0,160)});
+});
+
+/* 스크립트가 시작됐다는 사실 자체를 남긴다 — 화면이 완성되기 전에 페이지가 죽는지 알아내기 위함 */
+(function(){
+  let nav="?"; try{ const e0=(performance.getEntriesByType("navigation")||[])[0]; if(e0) nav=e0.type; }catch(e){}
+  report("boot", {nav:nav, items:(function(){try{return localStorage.length;}catch(e){return -1;}})()});
+})();
+
+/* 이 기기의 저장값이 꼬였을 때를 위한 전체 초기화 — ?wipe=1
+   진도·회독·오답은 클라우드에 있으므로, 로컬만 비우고 다시 받아오면 그대로 복구된다. */
+if(new URLSearchParams(location.search).get("wipe") === "1"){
+  try{
+    const code = (localStorage.getItem("fc:synccode") || "1111").trim();
+    const n = localStorage.length;
+    localStorage.clear();
+    localStorage.setItem("fc:synccode", code);
+    report("wipe", {cleared:n});
+  }catch(e){}
+}
+
+/* 진행 상태가 꼬여도 사용자가 갇히지 않도록, 주소에 ?fresh=1 을 붙이면 이 챕터만 초기화한다.
+   회독수·오답 기록(qstat)은 건드리지 않고, '풀던 중간 세션'만 지운다. */
+const FRESH = new URLSearchParams(location.search).get("fresh") === "1";
+if(FRESH && CH){
+  try{
+    const raw = JSON.parse(localStorage.getItem(LSKEY) || "{}");
+    delete raw.prog;
+    localStorage.setItem(LSKEY, JSON.stringify(raw));
+    const kill = [];
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && (k.indexOf("fcAns:"+CH+":")===0 || k.indexOf("fcPend:"+CH+":")===0)) kill.push(k);
+    }
+    kill.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+    fetch(_RTDB + "/flashcards/" + encodeURIComponent((localStorage.getItem("fc:synccode")||"1111").trim())
+          + "/ch/" + CH + "/prog.json", {method:"DELETE"}).catch(()=>{});
+    report("fresh", {killed:kill.length});
+  }catch(e){}
+}
+
+/* 화면 감시 — 어떤 예외가 나도 이 타이머만은 살아 있어야 하므로 가장 먼저 걸어둔다.
+   문제가 비어 있으면 스스로 되살리고, 그래도 안 되면 사용자가 빠져나갈 길을 보여준다. */
+function rescue(stage){
+  const q = document.getElementById("qText"), t = document.getElementById("chTitle");
+  const qlen = ((q && q.textContent) || "").trim().length;
+  report("screen", {stage:stage, title:((t&&t.textContent)||"").slice(0,24), qlen:qlen,
+                    qs:(QUESTIONS||[]).length, deck:(typeof deck!=="undefined"&&deck)?deck.length:-1});
+  if(qlen > 3) return true;                       // 정상 표시 중
+  if(stage === "t1.5") return false;              // 이 시점은 아직 준비 중 — 기록만 하고 손대지 않는다
+  try{ if(typeof deck!=="undefined" && deck && deck.length && typeof show==="function") show(); }catch(e){}
+  if(((document.getElementById("qText").textContent)||"").trim().length > 3) return true;
+  try{                                            // 진행 기록을 버리고 처음부터라도 띄운다
+    if(typeof clearProg==="function" && typeof buildDeck==="function"){ clearProg(); buildDeck(); }
+  }catch(e){}
+  if(((document.getElementById("qText").textContent)||"").trim().length > 3) return true;
+  if(stage === "last"){                           // 끝내 실패 — 갇히지 않게 탈출구를 보여준다
+    if(t) t.textContent = "화면을 여는 데 실패했습니다";
+    if(q) q.innerHTML = "이 챕터의 저장된 진행 정보가 손상된 것 같습니다.<br>아래 버튼을 누르면 이 챕터만 처음부터 다시 시작합니다."
+      + "<br>(회독수·오답 기록은 그대로 유지됩니다)"
+      + `<br><button onclick="location.href='app.html?ch=${encodeURIComponent(CH)}&fresh=1'" `
+      + `style="margin-top:14px;padding:11px 22px;font-size:15px;font-weight:800;border-radius:10px;border:none;background:#1F2937;color:#fff">`
+      + `🔄 이 챕터 처음부터 시작</button>`;
+    const c = document.getElementById("card"); if(c) c.style.display = "flex";
+  }
+  return false;
+}
+setTimeout(()=>{ rescue("t1.5"); }, 1500);   // 페이지가 언제 죽는지 알기 위해 이른 시점도 기록
+setTimeout(()=>{ rescue("mid"); }, 4000);
+setTimeout(()=>{ rescue("last"); }, 9000);
 
 /* ── 클라우드 동기화 (기기 간 진도 공유) ── */
 const DBURL = "https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com";
@@ -499,7 +615,51 @@ let S = { rounds:0, best:0, last:0, wrongNos:[], history:[], qstat:{}, prog:null
 try { const raw = JSON.parse(localStorage.getItem(LSKEY) || "null"); if(raw) S = Object.assign(S, raw); } catch(e) {}
 if(!S.qstat) S.qstat = {};
 if(!S.history) S.history = [];
-function save(){ if(CH){ S._at=Date.now(); S._st=S._at; try{ localStorage.setItem(LSKEY, JSON.stringify(S)); }catch(e){} pushCloud(); } }
+/* 통신 대기 시간 제한 —
+   휴대폰에서 신호가 약하면 요청이 실패도 성공도 하지 않고 매달릴 수 있다.
+   그러면 화면이 "불러오는 중…"에서 영영 멈춘다. 정해진 시간이 지나면 그냥 넘어간다. */
+function capWait(p, ms){
+  return Promise.race([ p.catch(()=>null), new Promise(res=>setTimeout(()=>res(null), ms)) ]);
+}
+async function fetchCap(url, ms){
+  try{
+    const ac = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    const t = setTimeout(()=>{ try{ ac && ac.abort(); }catch(e){} }, ms);
+    try{ return await fetch(url, ac ? {cache:"no-store", signal:ac.signal} : {cache:"no-store"}); }
+    finally{ clearTimeout(t); }
+  }catch(e){ return null; }
+}
+
+/* 기기 저장 공간이 꽉 차면 저장이 조용히 실패해서, 방금 푼 진도가 사라지고
+   다음에 열었을 때 예전 지점으로 되돌아간다. 그래서 꽉 찼을 때는
+   오래된 질문·답변 기록부터 정리하고 다시 저장한다. */
+function pruneLocal(){
+  const olds=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k && (k.indexOf("fcAns:")===0 || k.indexOf("fcPend:")===0)) olds.push(k);
+  }
+  olds.sort((a,b)=>{
+    const g=k=>{ try{ return (JSON.parse(localStorage.getItem(k)||"{}").t)||0; }catch(e){ return 0; } };
+    return g(a)-g(b);
+  });
+  olds.slice(0, Math.max(1, Math.ceil(olds.length/2))).forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+  return olds.length;
+}
+function lsSet(k, v){
+  try{ localStorage.setItem(k, v); return true; }
+  catch(e){
+    const n = pruneLocal();
+    try{ localStorage.setItem(k, v); return true; }
+    catch(_){
+      try{ fetch(`${DBURL}/flashcards/errlog.json`,{method:"POST",body:JSON.stringify({
+        ch:CH, msg:"저장공간 부족 — 정리 후에도 실패 (정리대상 "+n+"건)",
+        ua:navigator.userAgent.slice(0,140), at:Date.now()})}); }catch(__){}
+      return false;
+    }
+  }
+}
+function save(){ if(CH){ S._at=Date.now(); S._st=S._at; lsSet(LSKEY, JSON.stringify(S)); pushCloud(); } }
 
 /* 오늘 푼 문항수(전 챕터 공통) — 날짜별 누적 카운트 */
 function bumpDaily(){
@@ -629,7 +789,7 @@ function mdLite(src){
 
 const ansKey = no => "fcAns:" + CH + ":" + no;
 function loadAns(no){ try{ return JSON.parse(localStorage.getItem(ansKey(no))||"null"); }catch(e){ return null; } }
-function saveAns(no, obj){ try{ localStorage.setItem(ansKey(no), JSON.stringify(obj)); }catch(e){} }
+function saveAns(no, obj){ lsSet(ansKey(no), JSON.stringify(obj)); }
 
 function showAns(q, state, data){
   const box = $("ansBox");
@@ -653,7 +813,7 @@ function showAns(q, state, data){
    → 텔레그램으로 넘어가 탭이 잠들거나 새로고침돼도, 돌아오면 답변을 다시 찾아온다. */
 const pendKey = no => "fcPend:" + CH + ":" + no;
 function loadPend(no){ try{ return JSON.parse(localStorage.getItem(pendKey(no))||"null"); }catch(e){ return null; } }
-function savePend(no, obj){ try{ localStorage.setItem(pendKey(no), JSON.stringify(obj)); }catch(e){} }
+function savePend(no, obj){ lsSet(pendKey(no), JSON.stringify(obj)); }
 function dropPend(no){ try{ localStorage.removeItem(pendKey(no)); }catch(e){} }
 
 /* 답변 1회 조회 — 받았으면 저장·표시하고 true 반환 */
@@ -898,22 +1058,64 @@ function startWeakDeck(){
   deck=[...wd]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
   clearProg();
   $("sheetWrap").classList.remove("show");
-  $("resumeBox").classList.remove("show");
+  $("resumeBar").style.display="none";
   $("doneBox").style.display="none"; $("card").style.display="flex";
   show();
 }
-/* 이어하기 버튼 —
-   예전에는 초기화가 끝날 때 onclick을 붙였다. 그 사이 어디서든 오류가 나면
-   창은 떠 있는데 버튼만 죽어버려 "눌러도 반응 없음"이 됐다.
-   그래서 스크립트가 읽히는 시점에 문서 전체에 한 번만 위임해 둔다. */
+/* 풀던 기록 처리 —
+   예전에는 "이어서 풀기" 버튼을 눌러야 넘어갔는데, 아이폰에서 그 버튼이 눌리지 않아
+   학습이 아예 막히는 일이 반복됐다. 그래서 묻지 않고 바로 이어서 시작하고,
+   되돌리고 싶을 때만 위쪽 띠에서 "처음부터 새로"를 누르게 했다. */
 let RESUME_PROG = null;
+
+function showResumeBar(done, total){
+  RESUME_BAR_MSG(done, total);
+  $("resumeBar").style.display = "flex";
+  clearTimeout(showResumeBar._t);
+  showResumeBar._t = setTimeout(()=>{ $("resumeBar").style.display="none"; }, 12000);
+}
+function RESUME_BAR_MSG(done, total){
+  $("resumeBarMsg").textContent = `풀던 기록에서 이어서 진행합니다 (${done}/${total}문제)`;
+}
+
+let _freshAt = 0;
+function doFresh(){
+  if(Date.now() - _freshAt < 800) return;   // 탭 한 번이 두 번 처리되지 않게
+  _freshAt = Date.now();
+  $("resumeBar").style.display = "none";
+  clearProg(); buildDeck();
+}
 document.addEventListener("click", e => {
-  const b = e.target && e.target.closest && e.target.closest("#resumeGo, #resumeFresh");
-  if(!b) return;
-  $("resumeBox").classList.remove("show");
-  if(b.id === "resumeGo" && RESUME_PROG) resumeSession(RESUME_PROG);
-  else buildDeck();
+  const b = e.target && e.target.closest && e.target.closest("#resumeFresh");
+  if(b) doFresh();
 });
+/* 아이폰 사파리에서 click이 끝내 발생하지 않는 경우가 있어, 손을 뗀 시점에 바로 처리한다 */
+$("resumeFresh").addEventListener("touchend", e => { e.preventDefault(); doFresh(); }, {passive:false});
+
+/* ---- 실기기 진단 로그 ----
+   특정 기기에서만 터치가 먹지 않는 경우를 눈으로 확인할 방법이 없어서,
+   버튼 근처를 눌렀을 때 무슨 일이 있었는지 짧게 남긴다. 개인정보는 담지 않는다. */
+function tapLog(kind, e, t){
+  try{
+    const x = t ? t.clientX : e.clientX, y = t ? t.clientY : e.clientY;
+    const el = (x!=null && y!=null) ? document.elementFromPoint(x,y) : null;
+    const tg = e.target;
+    fetch(`${DBURL}/flashcards/taplog.json`, {method:"POST", body:JSON.stringify({
+      k:kind, ch:CH, x:Math.round(x||0), y:Math.round(y||0),
+      target:(tg&&(tg.id||tg.tagName+"."+String(tg.className).slice(0,30)))||"",
+      hit:(el&&(el.id||el.tagName+"."+String(el.className).slice(0,30)))||"",
+      bar:$("resumeBar")?$("resumeBar").style.display:"?",
+      sheets:document.querySelectorAll(".sheetwrap.show").length,
+      sy:Math.round(window.scrollY), ua:navigator.userAgent.slice(0,90), at:Date.now()
+    })}).catch(()=>{});
+  }catch(_){}
+}
+document.addEventListener("touchend", e => {
+  const t = e.changedTouches && e.changedTouches[0];
+  if(!t) return;
+  const near = e.target && e.target.closest && e.target.closest("#resumeFresh, .controls button, .tbtns button");
+  if(near || $("resumeBar").style.display === "flex") tapLog("touchend", e, t);
+}, {passive:true});
 
 function resumeSession(p){
   mode = p.mode || "quiz";
@@ -1263,6 +1465,66 @@ function updateHud(){
   $("progBar").style.width=p+"%";
 }
 
+/* ── AI 취약 정리본 : 오답·⭐체크 문제를 AI가 분석해 헷갈림 진단 + 쉬운 설명 + 암기법으로 정리 ──
+   앱은 RTDB flashcards/aisum/<sync>_<ch> 에 요청만 쓰고, 맥의 ai_summary.py가 만들어서 채워 넣는다. */
+const AISUM_POLL_MS = 10000;
+let aiSumTimer = null;
+function aiSumKey(){ return (SYNC||"anon").replace(/[.#$\[\]\/]/g,"_") + "_" + CH; }
+function aiSumUrl(){ return `${DBURL}/flashcards/aisum/${aiSumKey()}.json`; }
+function weakNosNow(){ return QUESTIONS.filter(q=>isWeak(q.no)).map(q=>String(q.no)); }
+function aiSumRender(d){
+  const stat=$("aiSumStat"), btn=$("aiSumMake"), body=$("aiSumBody");
+  const s=(d&&d.status)||"none";
+  const wc=weakNosNow().length;
+  btn.disabled=false; btn.textContent="🧠 정리본 만들기";
+  if(s==="done" && d.html){
+    body.innerHTML=d.html;
+    const when=d.t? new Date(d.t).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+    stat.innerHTML=`✅ ${when} 생성 · 취약 <b>${d.weakCount||"?"}</b>문항 기준`
+      + (wc && wc!==d.weakCount ? ` — 지금은 <b>${wc}</b>문항이니 다시 만들면 최신으로 반영됩니다` : "");
+    btn.textContent="🔄 최신 기록으로 다시 만들기";
+  }else if(s==="pending" || s==="running"){
+    stat.textContent=(d.msg||"AI가 정리본을 만드는 중…")+" ⏳ 창을 닫아도 계속 진행됩니다. (1~3분)";
+    btn.disabled=true; btn.textContent="⏳ 생성 중…";
+  }else if(s==="error"){
+    stat.textContent="⚠️ 생성 실패 — "+(d.msg||"알 수 없는 오류")+" · 다시 시도해 주세요.";
+  }else{
+    body.innerHTML="";
+    stat.textContent = wc
+      ? `틀렸거나 ⭐체크한 ${wc}문항을 AI가 분석해 '무엇을 왜 헷갈리는지'와 암기법까지 정리해 드립니다.`
+      : "아직 오답·⭐체크 문제가 없습니다. 문제를 풀면 만들 수 있어요.";
+    if(!wc) btn.disabled=true;
+  }
+}
+function aiSumFetch(){
+  return fetch(aiSumUrl(),{cache:"no-store"}).then(r=>r.json()).then(d=>{
+    aiSumRender(d);
+    const s=d&&d.status;
+    clearTimeout(aiSumTimer);
+    if($("aiSumWrap").classList.contains("show") && (s==="pending"||s==="running"))
+      aiSumTimer=setTimeout(aiSumFetch, AISUM_POLL_MS);
+    return d;
+  }).catch(()=>{ $("aiSumStat").textContent="상태를 불러오지 못했습니다. 네트워크를 확인해 주세요."; });
+}
+function aiSumRequest(){
+  const nos=weakNosNow();
+  if(!nos.length){ toast("오답·⭐체크 문제가 아직 없어요"); return; }
+  const st={}; nos.forEach(n=>{ st[n]={w:qw(n), m:qmark(n)?1:0}; });
+  const body={status:"pending", ch:CH, sync:SYNC||"", t:Date.now(),
+              title:($("chTitle").textContent||CH), nos:nos, stat:st};
+  $("aiSumMake").disabled=true; $("aiSumStat").textContent="요청 보내는 중…";
+  fetch(aiSumUrl(),{method:"PUT", body:JSON.stringify(body)})
+    .then(()=>{ toast("🧠 정리본 생성을 시작했어요"); aiSumFetch(); })
+    .catch(()=>{ $("aiSumStat").textContent="요청 실패 — 다시 시도해 주세요."; $("aiSumMake").disabled=false; });
+}
+function openAiSum(){
+  $("aiSumWrap").classList.add("show");
+  $("aiSumWrap").querySelector(".sheet").scrollTop=0;
+  $("aiSumStat").textContent="상태 확인 중…";
+  aiSumFetch();
+}
+function closeAiSum(){ $("aiSumWrap").classList.remove("show"); clearTimeout(aiSumTimer); }
+
 /* ── 챕터 핵심 요약(초보자용) ── */
 let INTRO_HTML="", INTRO_HTML_EASY="", INTRO_MODE="full";
 const introSeenKey="fc:introseen:"+CH;
@@ -1295,7 +1557,8 @@ async function loadIntro(title){
     if($("lvlBtn")) $("lvlBtn").style.display = INTRO_HTML_EASY ? "" : "none";
     renderIntroBody();
     $("introBtn").style.display="";   // 상단 버튼 노출
-    if(!localStorage.getItem(introSeenKey)) openIntro();  // 첫 방문 시 자동 표시
+    // 첫 방문 시 자동 표시 — 단, 풀던 기록을 이어가는 중이면 문제 화면을 가리므로 건너뛴다
+    if(!localStorage.getItem(introSeenKey) && !RESUME_PROG) openIntro();
   }catch(e){}
 }
 function openIntro(){ if(!INTRO_HTML) return; $("introWrap").classList.add("show");
@@ -1526,6 +1789,11 @@ $("reviewBtn2").addEventListener("click",openReview);
 $("reviewClose").addEventListener("click",()=>$("reviewWrap").classList.remove("show"));
 $("reviewWrap").addEventListener("click",e=>{if(e.target===$("reviewWrap"))$("reviewWrap").classList.remove("show");});
 $("reviewSolveBtn").addEventListener("click",()=>{ $("reviewWrap").classList.remove("show"); startWeakDeck(); });
+$("aiSumBtn").addEventListener("click",openAiSum);
+$("aiSumBtn2").addEventListener("click",openAiSum);
+$("aiSumClose").addEventListener("click",closeAiSum);
+$("aiSumWrap").addEventListener("click",e=>{if(e.target===$("aiSumWrap"))closeAiSum();});
+$("aiSumMake").addEventListener("click",aiSumRequest);
 $("weakStartBtn").addEventListener("click",startWeakDeck);
 $("restartBtn").addEventListener("click",buildDeck);
 $("retryWrongBtn").addEventListener("click",()=>{
@@ -1614,11 +1882,24 @@ uosw.onclick=()=>{uosw.classList.toggle("on"); unsolvedOnlyOn=uosw.classList.con
 $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); buildDeck();};
 
 /* 로딩 */
+/* 최후의 안전장치 — 12초가 지나도 화면이 안 뜨면 갇히지 않게 안내와 재시도 버튼을 보여준다 */
+setTimeout(()=>{
+  if($("chTitle").textContent !== "불러오는 중…") return;
+  $("chTitle").textContent = "불러오지 못했습니다";
+  $("qText").innerHTML = "네트워크 응답이 없습니다. 잠시 후 다시 시도해 주세요."
+    + `<br><button onclick="location.reload()" style="margin-top:12px;padding:12px 22px;font-size:15px;border-radius:10px;border:1px solid #ccc;background:#fff">🔄 다시 시도</button>`;
+  try{ fetch(`${DBURL}/flashcards/errlog.json`,{method:"POST",body:JSON.stringify({
+    ch:CH, msg:"초기 로딩 12초 초과", ua:navigator.userAgent.slice(0,140), at:Date.now()})}); }catch(e){}
+}, 12000);
+
 (async () => {
   try {
-    await Promise.all([pullCloud(), pullOpts()]);  // 다른 기기의 진도·필터 설정 먼저 반영
-    let r = await fetch(`chapters/${CH}.json`, {cache:"no-store"}).catch(()=>null);
-    if(!r || !r.ok) r = await fetch(`chapters/${CH}.json?v=${Date.now()}`, {cache:"no-store"}); // 1회 자동 재시도(캐시 우회)
+    // 통신이 응답 없이 매달리면 "불러오는 중…"에서 영영 멈춘다 → 모든 대기에 시간 제한을 둔다
+    await capWait(Promise.all([pullCloud(), pullOpts()]), 3500);  // 다른 기기의 진도·필터 반영(최대 3.5초)
+    if(FRESH) delete S.prog;   // 초기화 요청 — 클라우드에서 되돌아온 중간 세션도 쓰지 않는다
+    let r = await fetchCap(`chapters/${CH}.json`, 8000);
+    if(!r || !r.ok) r = await fetchCap(`chapters/${CH}.json?v=${Date.now()}`, 8000); // 1회 자동 재시도(캐시 우회)
+    if(!r) throw new Error("네트워크가 응답하지 않습니다");
     if(!r.ok) throw new Error(`챕터 파일 로드 실패 (HTTP ${r.status})`);
     const d = await r.json();
     QUESTIONS = d.questions;
@@ -1656,15 +1937,35 @@ $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); b
         return;
       }
     }
-    // 진행중 세션이 있으면 이어하기 제안
+    // 실기기 상태 1건 기록 — 무엇이 잘못됐는지 눈으로 볼 방법이 없어 남긴다 (개인정보 없음)
+    try{
+      let bytes=0, pend=0;
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i); bytes += k.length + (localStorage.getItem(k)||"").length;
+        if(k && k.indexOf("fcPend:")===0) pend++;
+      }
+      // nav = navigate(직접 이동) / reload(새로고침·사파리 강제 재시작) / back_forward(뒤로가기)
+      let nav = "?";
+      try{ const e0=(performance.getEntriesByType("navigation")||[])[0]; if(e0) nav = e0.type; }catch(_){}
+      report("load", {kb:Math.round(bytes/1024), items:localStorage.length, pend:pend, nav:nav,
+        done:((S.prog&&S.prog.ans)||[]).length, total:((S.prog&&S.prog.nos)||[]).length});
+    }catch(e){}
+    // 진행중 세션이 있으면 묻지 않고 바로 이어서 시작한다.
+    // 이어하기 복원이 어떤 이유로든 실패해도 화면이 비어 있으면 안 되므로 처음부터라도 띄운다.
     if(S.prog && S.prog.nos && S.prog.nos.length && (S.prog.ans||[]).length < S.prog.nos.length){
       const done=(S.prog.ans||[]).length, total=S.prog.nos.length;
-      $("resumeMsg").textContent=`${total}문제 중 ${done}문제까지 풀었습니다. (${S.prog.mode==="learn"?"개념 먼저":"실전"} 모드)`;
-      RESUME_PROG = S.prog;                 // 버튼 동작은 아래 위임 핸들러가 처리한다
-      $("resumeBox").classList.add("show");
+      RESUME_PROG = S.prog;
+      try{
+        resumeSession(S.prog);
+        showResumeBar(done, total);         // 되돌리고 싶을 때만 쓰는 안내 띠 (12초 후 사라짐)
+      }catch(e){
+        report("resumefail", {msg:String((e&&e.message)||e).slice(0,160)});
+        try{ clearProg(); buildDeck(); }catch(_){}   // 복원이 안 되면 처음부터라도 반드시 띄운다
+      }
     } else {
-      buildDeck();
+      try{ buildDeck(); }catch(e){ report("buildfail", {msg:String((e&&e.message)||e).slice(0,160)}); }
     }
+
   } catch(e) {
     // 원격 오류 로그 — 실제 기기에서 무슨 오류인지 수집 (개인정보 없음)
     try{ fetch(`${DBURL}/flashcards/errlog.json`, {method:"POST", body:JSON.stringify({

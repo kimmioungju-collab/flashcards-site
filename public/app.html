@@ -1819,6 +1819,7 @@ $("studyBtn").addEventListener("click",()=>{
   $("numRow").style.display=isMC?"flex":"none";
   $("studyBtn").style.display="none";
 });
+let wsScrollLast=0, wsScrollStreak=0;
 document.addEventListener("keydown",e=>{
   const k=e.key;
   const kl=k.toLowerCase();
@@ -1831,7 +1832,12 @@ document.addEventListener("keydown",e=>{
   const scrollBox=openSheet || (doneVisible?doneBox:null);
   if(scrollBox && (isUpKey||isDownKey)){
     e.preventDefault();
-    scrollBox.scrollBy({top:isDownKey?180:-180,behavior:"smooth"});
+    // 연속 입력(450ms 이내) 시 가속: 1회=70px, 연속/꾹 누름=250px
+    const now=Date.now();
+    wsScrollStreak=(now-wsScrollLast<450)?wsScrollStreak+1:0;
+    wsScrollLast=now;
+    const step=wsScrollStreak>=1?250:70;
+    scrollBox.scrollBy({top:isDownKey?step:-step,behavior:"smooth"});
     return;
   }
   if(openSheet) return; // 시트가 열려 있으면 퀴즈 단축키 무시

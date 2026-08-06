@@ -1822,6 +1822,19 @@ $("studyBtn").addEventListener("click",()=>{
 document.addEventListener("keydown",e=>{
   const k=e.key;
   const kl=k.toLowerCase();
+  // W/S 스크롤: 요약·AI정리본 등 시트가 열려 있으면 시트를, 완료 화면이면 완료 박스를 스크롤
+  const isUpKey = kl==="w" || k==="ㅈ" || k==="ㅉ" || e.code==="KeyW";
+  const isDownKey = kl==="s" || k==="ㄴ" || e.code==="KeyS";
+  const openSheet=document.querySelector(".sheetwrap.show .sheet");
+  const doneBox=$("doneBox");
+  const doneVisible=doneBox && getComputedStyle(doneBox).display!=="none";
+  const scrollBox=openSheet || (doneVisible?doneBox:null);
+  if(scrollBox && (isUpKey||isDownKey)){
+    e.preventDefault();
+    scrollBox.scrollBy({top:isDownKey?180:-180,behavior:"smooth"});
+    return;
+  }
+  if(openSheet) return; // 시트가 열려 있으면 퀴즈 단축키 무시
   // 한글 입력 상태에서도 동작하도록 물리 키(e.code)와 한글 자모를 함께 인식
   const isPrevKey = k==="ArrowLeft" || kl==="q" || k==="ㅂ" || k==="ㅃ" || e.code==="KeyQ";
   const isNextKey = k==="ArrowRight" || kl==="e" || k==="ㄷ" || k==="ㄸ" || e.code==="KeyE";

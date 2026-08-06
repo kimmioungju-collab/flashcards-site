@@ -72,6 +72,17 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .qtext mark{background:linear-gradient(transparent 42%,var(--hl) 42%);padding:0 2px;border-radius:2px}
 .qtext mark.kwr{background:linear-gradient(transparent 42%,#ffc9c9 42%);color:var(--wrong);font-weight:800}
 .src{margin-top:10px;font-size:12px;color:var(--muted);font-weight:700}
+/* 시험지 모드 — 선지(①~)가 포함된 기출 문항을 실제 시험지처럼 렌더링 */
+.exampaper{background:#fdfdf8;color:#151515;border:1px solid #b9b9ae;border-radius:8px;padding:18px 16px 14px;font-family:"Nanum Myeongjo","Batang","AppleMyungjo",serif;font-weight:400;line-height:1.66;font-size:15.5px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.exampaper .exstem{font-weight:700;margin-bottom:12px;white-space:pre-wrap;word-break:keep-all}
+.exampaper .exbogi{border:1.5px solid #444;padding:10px 12px;margin:10px 0 12px;font-weight:400;white-space:pre-wrap;word-break:keep-all;background:#fff;border-radius:2px;font-size:14.5px}
+.exampaper .exch{display:block;padding:7px 8px 7px 30px;margin:2px 0;cursor:pointer;border-radius:5px;white-space:pre-wrap;word-break:keep-all;text-indent:-22px;transition:background .12s}
+.exampaper .exch:not(.done):hover{background:#eef2ff}
+.exampaper .exch:not(.done):active{background:#dde6ff}
+.exampaper .exch.done{cursor:default}
+.exampaper .exch.ok{background:#e3f6e6;font-weight:700;box-shadow:inset 0 0 0 1.5px #2f9e44}
+.exampaper .exch.no{background:#fdeaea;box-shadow:inset 0 0 0 1.5px #e03131;color:#c92a2a}
+.exampaper mark{background:linear-gradient(transparent 42%,var(--hl) 42%);padding:0 2px;border-radius:2px}
 .concept{display:none;background:#FFF9DE;border:1.5px solid #EFDD8F;border-radius:12px;padding:14px 16px;margin-bottom:4px}
 .concept.show{display:block;animation:rise .28s ease}
 .concept .clabel{font-size:12px;font-weight:900;color:#8A7B1E;letter-spacing:.5px;margin-bottom:6px}
@@ -1152,6 +1163,51 @@ function resumeSession(p){
 // 덱에 남은 미응답이 없는지 — 이번 세션 응답 + 과거 회차에 이미 푼 문항 모두 인정
 const allAnswered=()=>deck.length>0 && deck.every((q,i)=>answers[i]||isSolved(q.no));
 
+/* ===== 시험지 모드: 선지(줄 시작 ①~)가 포함된 기출 문항 파싱·렌더 ===== */
+function examParse(q){
+  if(["O","X"].includes(q.ans)) return null;
+  const t=q.q||"";
+  const cut=t.indexOf("\n①");
+  if(cut<0) return null;
+  const stem=t.slice(0,cut).trim();
+  const choices=t.slice(cut+1).split(/\n(?=[②③④⑤])/).map(s=>s.trim()).filter(Boolean);
+  if(choices.length<2) return null;
+  return {stem, choices};
+}
+function hasFifth(q){
+  const p=examParse(q);
+  if(p) return p.choices.some(c=>c.startsWith("⑤"));
+  return q.ans==="⑤" || (q.q||"").includes("⑤");
+}
+function renderExamQ(q, state){
+  const p=examParse(q);
+  let stemHtml;
+  const bi=p.stem.indexOf("<보기>");
+  if(bi>=0){
+    const pre=p.stem.slice(0,bi).trim();
+    const box=p.stem.slice(bi+4).trim();
+    stemHtml=`<div class="exstem">문 ${Number(q.no)||esc(q.no)}. ${esc(pre)}</div><div class="exbogi">${esc(box)}</div>`;
+  } else {
+    stemHtml=`<div class="exstem">문 ${Number(q.no)||esc(q.no)}. ${esc(p.stem)}</div>`;
+  }
+  const ch=p.choices.map(c=>{
+    const mk=c[0];
+    let cls="exch";
+    if(state){
+      cls+=" done";
+      if(mk===state.ans) cls+=" ok";
+      else if(state.pick && mk===state.pick) cls+=" no";
+    }
+    return `<div class="${cls}" data-a="${mk}">${esc(c)}</div>`;
+  }).join("");
+  return `<div class="exampaper">${stemHtml}${ch}</div>`;
+}
+/* ⑤ 선지가 없는 문항이면 하단 ⑤ 버튼 숨김 */
+function updateNumRow(q){
+  const b5=document.querySelector('#numRow button[data-a="⑤"]');
+  if(b5) b5.style.display=hasFifth(q)?"":"none";
+}
+
 function show(){
   updateHud();
   if(idx>=deck.length){ return finish(); }
@@ -1164,11 +1220,13 @@ function show(){
   $("themeLbl").textContent=q.theme;
   renderWeakChip(q);
   $("qnoLbl").innerHTML=`${idx+1} / ${deck.length} · 문항 ${q.no} <span class="jarrow">▾</span>`;
-  $("qText").innerHTML=esc(q.q);
+  const exam=examParse(q);
+  $("qText").innerHTML = exam ? renderExamQ(q, null) : esc(q.q);
   $("srcLbl").textContent="출처: "+q.src;
   $("result").classList.remove("show");
   $("nextBtn").style.display="none";
   const isMC = !["O","X"].includes(q.ans);
+  updateNumRow(q);
   const done = answers[idx];
   if(done){
     $("conceptBox").classList.remove("show");
@@ -1246,6 +1304,11 @@ function reveal(q, correct){
   chip.className="anschip "+(q.ans==="O"?"O":q.ans==="X"?"X":"etc");
   $("expBox").innerHTML=renderExp(q.exp, q.kw2||q.kw);
   renderLinks(q);
+  const exam=examParse(q);
+  if(exam){
+    // 시험지 모드: 정답 선지 초록, 내가 고른 오답 빨강 표시
+    $("qText").innerHTML=renderExamQ(q,{ans:q.ans,pick:(answers[idx]||{}).a});
+  } else {
   const trap = q.ans==="X" ? trapPhrase(q.exp) : null;
   if(trap){
     const raw=esc(q.q), et=esc(trap);
@@ -1253,6 +1316,7 @@ function reveal(q, correct){
     else $("qText").innerHTML=hl(esc(q.q), q.kw, q.kwr);
   } else {
     $("qText").innerHTML=hl(esc(q.q), q.kw, q.kwr);
+  }
   }
   renderMarkBtn(q);
   renderAskBtn(q);
@@ -1817,7 +1881,15 @@ $("studyBtn").addEventListener("click",()=>{
   $("qText").style.display=""; $("srcLbl").style.display="";
   $("oxRow").style.display=isMC?"none":"flex";
   $("numRow").style.display=isMC?"flex":"none";
+  updateNumRow(q);
   $("studyBtn").style.display="none";
+});
+/* 시험지 모드: 선지를 직접 클릭해서 답 선택 */
+$("qText").addEventListener("click",e=>{
+  const el=e.target.closest(".exch");
+  if(!el || el.classList.contains("done")) return;
+  if($("studyBtn").style.display==="block") return; // 학습모드 개념 화면에서는 무시
+  answer(el.dataset.a);
 });
 let wsScrollLast=0, wsScrollStreak=0;
 document.addEventListener("keydown",e=>{
@@ -1865,6 +1937,7 @@ document.addEventListener("keydown",e=>{
   const q=deck[idx]; if(!q) return;
   const isMC = !["O","X"].includes(q.ans);
   if(isMC){
+    if(k==="5" && !hasFifth(q)) return; // ⑤ 선지 없는 문항은 5키 무시
     if("12345".includes(k)) answer("①②③④⑤"[Number(k)-1]);
   } else {
     if(k==="1"||k.toLowerCase()==="o") answer("O");

@@ -1044,7 +1044,7 @@ function renderExp(exp, kws){
 function saveProg(){
   S.prog = { mode, nos: deck.map(q=>q.no), idx,
              ans: answers.map((a,i)=>a?[deck[i].no,a.a,a.correct]:null).filter(Boolean),
-             ok, no };
+             ok, no, redo: REDO_SESSION };
   save();
 }
 function clearProg(){ S.prog=null; save(); }
@@ -1067,6 +1067,7 @@ function buildDeck(){
     for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
   }
   idx=0; ok=0; no=0; wrongs=[]; answers=[];
+  markRedo();
   clearProg();
   $("doneBox").style.display="none";
   $("card").style.display="flex";
@@ -1077,6 +1078,7 @@ function startWeakDeck(){
   const wd = QUESTIONS.filter(q=>isWeak(q.no)).sort((a,b)=>weakWeight(b.no)-weakWeight(a.no));
   if(!wd.length){ alert("틀렸거나 ⭐체크한 문제가 아직 없습니다.\n문제를 풀거나 결과 화면에서 체크해 보세요."); return; }
   deck=[...wd]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
+  markRedo();
   clearProg();
   $("sheetWrap").classList.remove("show");
   $("resumeBar").style.display="none";
@@ -1142,6 +1144,8 @@ function resumeSession(p){
   mode = p.mode || "quiz";
   const byNo = Object.fromEntries(QUESTIONS.map(q=>[q.no,q]));
   deck = p.nos.map(n=>byNo[n]).filter(Boolean);
+  // 저장된 재도전 플래그 우선, 없던 옛 기록이면 덱 상태로 재계산
+  REDO_SESSION = ("redo" in p) ? !!p.redo : (deck.length>0 && deck.every(q=>isSolved(q.no)));
   answers = new Array(deck.length);
   ok=0; no=0; wrongs=[];
   const ansByNo = Object.fromEntries((p.ans||[]).map(a=>[a[0],a]));
@@ -1160,8 +1164,12 @@ function resumeSession(p){
   show();
 }
 
-// 덱에 남은 미응답이 없는지 — 이번 세션 응답 + 과거 회차에 이미 푼 문항 모두 인정
-const allAnswered=()=>deck.length>0 && deck.every((q,i)=>answers[i]||isSolved(q.no));
+// 재도전 세션: 덱 전체가 이미 푼 문항(오답 재도전·취약 풀기 등)이면
+// "과거에 푼 문항 인정" 규칙을 끈다 — 안 그러면 1문제만 풀어도 학습완료로 점프한다
+let REDO_SESSION=false;
+function markRedo(){ REDO_SESSION = deck.length>0 && deck.every(q=>isSolved(q.no)); }
+// 덱에 남은 미응답이 없는지 — 이번 세션 응답 + (진도 채우기 세션에 한해) 과거 회차에 이미 푼 문항 인정
+const allAnswered=()=>deck.length>0 && deck.every((q,i)=>answers[i]||(!REDO_SESSION&&isSolved(q.no)));
 
 /* ===== 시험지 모드: 선지(줄 시작 ①~)가 포함된 기출 문항 파싱·렌더 ===== */
 function examParse(q){
@@ -1406,8 +1414,8 @@ function renderHistory(){
   }
 }
 /* ── 문항 이동 ── */
-// 아직 안 푼 문항: 이번 세션 미응답 + 과거에도 푼 적 없음
-const isTodo=(q,i)=>!answers[i] && !isSolved(q.no);
+// 아직 안 푼 문항: 이번 세션 미응답 + (재도전 세션이 아니면) 과거에도 푼 적 없음
+const isTodo=(q,i)=>!answers[i] && (REDO_SESSION || !isSolved(q.no));
 function findNextTodo(){
   const n=deck.length; if(!n) return -1;
   for(let k=1;k<=n;k++){                 // 현재 위치 다음부터 순환 탐색
@@ -1519,6 +1527,7 @@ function jumpToNo(qno){
   let i = deck.findIndex(q=>String(q.no)===String(qno));
   if(i<0){                       // 필터에 걸려 빠진 문항이면 전체 덱으로 재구성 후 이동
     deck=[...QUESTIONS]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
+    markRedo();
     $("doneBox").style.display="none"; $("card").style.display="flex";
     i = deck.findIndex(q=>String(q.no)===String(qno));
   }
@@ -1872,6 +1881,7 @@ $("weakStartBtn").addEventListener("click",startWeakDeck);
 $("restartBtn").addEventListener("click",buildDeck);
 $("retryWrongBtn").addEventListener("click",()=>{
   deck=[...wrongs]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
+  markRedo();
   clearProg();
   $("doneBox").style.display="none"; $("card").style.display="flex"; show();
 });
@@ -2024,6 +2034,7 @@ setTimeout(()=>{
         // 현재 필터에 걸려 빠진 문항이면 필터 무시하고 전체 덱으로 다시 구성
         deck = [...QUESTIONS];
         idx=0; ok=0; no=0; wrongs=[]; answers=[];
+        markRedo();
         $("doneBox").style.display="none"; $("card").style.display="flex";
         i = deck.findIndex(q=>String(q.no)===String(JUMPQ));
       }
@@ -2031,7 +2042,7 @@ setTimeout(()=>{
       return;
     }
     // 남은 미응답이 없는 세션(과거 회차에 푼 문항 포함) → 이어하기 대신 바로 결과로 마무리
-    if(S.prog && S.prog.nos && S.prog.nos.length){
+    if(S.prog && S.prog.nos && S.prog.nos.length && !S.prog.redo){
       const ansNos=new Set((S.prog.ans||[]).map(a=>a[0]));
       if(S.prog.nos.every(n=>ansNos.has(n)||isSolved(n))){
         resumeSession(S.prog);

@@ -260,6 +260,11 @@ body.podon .sheet{padding-bottom:84px}
 .aisumbody th{background:#F1EDF8}
 .aisumbody .tip{background:#EFF7EF;border-radius:9px;padding:9px 11px;margin:7px 0}
 .aisumbody .trap{background:#FBEEEE;border-radius:9px;padding:9px 11px;margin:7px 0}
+
+/* 📅 전날 오답 복습 모드 — 챕터 전용 기능 버튼 숨김 */
+body.review #reviewBtn,body.review #aiSumBtn,body.review #weakBtn,body.review #podBtn,body.review #filterBtn,
+body.review #reviewBtn2,body.review #aiSumBtn2,body.review #weakStartBtn,body.review #nextChBtn,
+body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!important}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -458,6 +463,9 @@ body.podon .sheet{padding-bottom:84px}
 let QUESTIONS = [];
 const CH = new URLSearchParams(location.search).get("ch") || "";
 const LSKEY = "fc:" + CH;
+/* 📅 전날 오답 복습 모드 — ?review=prev (챕터 없이 어제 오답을 전 챕터에서 모아 푼다) */
+const REVIEW = new URLSearchParams(location.search).get("review") === "prev";
+if(REVIEW) document.body.classList.add("review");
 const GC = {"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F"};
 
 /* ── 화면이 안 뜨는 사고를 막는 최소 안전장치 ──
@@ -709,6 +717,44 @@ function pushDaily(local){
       for(const key in local){ merged[key]=Math.max(cloud[key]||0, local[key]||0); }
       try{ localStorage.setItem("fc:daily", JSON.stringify(merged)); }catch(e){}
       await fetch(cloudUrl("daily"),{method:"PUT",body:JSON.stringify(merged)});
+    }catch(e){}
+  }, 1500);
+}
+
+/* ── 날짜별 오답 로그 — 전날 오답 복습(?review=prev)의 데이터 원천 ──
+   구조: {"YYYY-MM-DD": {"chNN": {"문항no":1}}} — 로컬·클라우드를 합집합으로 병합 */
+function wlogDay(t){ const x=new Date(t); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
+function mergeWlog(a,b){
+  const m={};
+  [a,b].forEach(src=>{ for(const d in (src||{})){ if(!m[d]) m[d]={};
+    for(const c in src[d]){ m[d][c]=Object.assign({}, m[d][c]||{}, src[d][c]); } } });
+  return m;
+}
+function bumpWrong(ch, qno){
+  if(!ch) return;
+  try{
+    const d=JSON.parse(localStorage.getItem("fc:wlog")||"{}");
+    const key=wlogDay(Date.now());
+    if(!d[key]) d[key]={};
+    d[key][ch]=Object.assign({}, d[key][ch]||{});
+    d[key][ch][String(qno)]=1;
+    const keys=Object.keys(d).sort(); while(keys.length>60){ delete d[keys.shift()]; }  // 두 달치 보관
+    localStorage.setItem("fc:wlog", JSON.stringify(d));
+    pushWlog(d);
+  }catch(e){}
+}
+let _wlogTimer=null;
+function pushWlog(local){
+  if(!SYNC) return;
+  clearTimeout(_wlogTimer);
+  _wlogTimer=setTimeout(async ()=>{
+    try{
+      let cloud={};
+      const r=await fetch(cloudUrl("wlog"),{cache:"no-store"});
+      if(r.ok){ cloud=(await r.json())||{}; }
+      const merged=mergeWlog(cloud, local);
+      try{ localStorage.setItem("fc:wlog", JSON.stringify(merged)); }catch(e){}
+      await fetch(cloudUrl("wlog"),{method:"PUT",body:JSON.stringify(merged)});
     }catch(e){}
   }, 1500);
 }
@@ -1343,6 +1389,7 @@ function answer(a){
   // 문항별 누적 통계 즉시 저장 (중간에 꺼도 기록 유지)
   const st = S.qstat[q.no] || (S.qstat[q.no]={s:0,w:0});
   st.s++; if(!correct) st.w++;
+  if(!correct) bumpWrong(REVIEW ? q._ch : CH, q.no);   // 날짜별 오답 로그 (전날 오답 복습용)
   bumpDaily();
   saveProg();
   reveal(q, correct);
@@ -1993,6 +2040,75 @@ const uosw=$("unsolvedOnlySw"); uosw.classList.toggle("on",unsolvedOnlyOn);
 uosw.onclick=()=>{uosw.classList.toggle("on"); unsolvedOnlyOn=uosw.classList.contains("on");};
 $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); buildDeck();};
 
+/* ── 📅 전날 오답 복습 모드 (?review=prev) ──
+   어제(없으면 가장 최근 학습일)의 오답을 전 챕터에서 모아 한 덱으로 다시 푼다.
+   원천: 날짜별 오답 로그(wlog) + 회차 기록(history)의 when·wrongNos(과거 데이터 보충). */
+async function reviewBoot(){
+  $("chTitle").textContent="오답 모으는 중…";
+  $("qText").textContent="어제 푼 문제의 오답을 모으는 중입니다…";
+  // 복습 덱은 필터를 타지 않는다 (화면 세션에만 적용 — 전역 설정은 건드리지 않음)
+  selThemes=new Set(); selGrades=new Set(); weakOnlyOn=false; weakFirstOn=false; unsolvedOnlyOn=false;
+  // 1) 날짜별 오답 로그: 로컬 + 클라우드 병합
+  let wlog={};
+  try{ wlog=JSON.parse(localStorage.getItem("fc:wlog")||"{}"); }catch(e){}
+  let cloudCh=null;
+  if(SYNC){
+    const rw=await fetchCap(cloudUrl("wlog"), 4000);
+    try{ if(rw&&rw.ok) wlog=mergeWlog(wlog,(await rw.json())||{}); }catch(e){}
+    const rc=await fetchCap(cloudUrl("ch"), 7000);   // 회차 기록 보충용 전 챕터 레코드
+    try{ if(rc&&rc.ok) cloudCh=await rc.json(); }catch(e){}
+  }
+  // 2) 회차 기록(history)에서 날짜별 오답 보충 — 오답 로그 도입 이전 데이터 대비
+  const addHist=(id,rec)=>{ ((rec&&rec.history)||[]).forEach(h=>{
+    if(!h || !h.when || !(h.wrongNos||[]).length) return;
+    const d=wlogDay(h.when);
+    if(!wlog[d]) wlog[d]={};
+    wlog[d][id]=Object.assign({}, wlog[d][id]||{});
+    h.wrongNos.forEach(n=>{ wlog[d][id][String(n)]=1; });
+  }); };
+  if(cloudCh){ for(const id in cloudCh) addHist(id, cloudCh[id]); }
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k && /^fc:ch\d/.test(k)){ try{ addHist(k.slice(3), JSON.parse(localStorage.getItem(k)||"null")); }catch(e){} }
+  }
+  // 3) 대상 날짜: 오늘 이전의 가장 최근 학습일 (그마저 없으면 오늘)
+  const today=wlogDay(Date.now());
+  const days=Object.keys(wlog).filter(d=>Object.keys(wlog[d]||{}).length).sort();
+  const target=[...days].reverse().find(d=>d<today) || (days.indexOf(today)>=0 ? today : null);
+  if(!target){ reviewEmpty("복습할 오답 기록이 아직 없습니다.<br>문제를 풀면 날짜별 오답이 자동으로 쌓입니다."); return; }
+  // 4) 해당 날짜의 오답 문항을 챕터 파일에서 수집
+  const byCh=wlog[target], qs=[];
+  await Promise.all(Object.keys(byCh).map(async id=>{
+    const r=await fetchCap(`chapters/${id}.json`, 8000);
+    if(!r||!r.ok) return;
+    let d=null; try{ d=await r.json(); }catch(e){ return; }
+    const want=byCh[id]||{};
+    ((d&&d.questions)||[]).forEach(q=>{
+      if(want[String(q.no)])
+        qs.push(Object.assign({}, q, {_ch:id, theme:(id.replace(/^ch0?/,"")+"장"+(q.theme?" · "+q.theme:""))}));
+    });
+  }));
+  if(!qs.length){ reviewEmpty("해당 날짜의 오답 문항을 찾지 못했습니다."); return; }
+  qs.sort((a,b)=> a._ch===b._ch ? numNo(a.no)-numNo(b.no) : (a._ch<b._ch?-1:1));
+  QUESTIONS=qs;
+  const md=target.slice(5).replace("-","/");
+  const label = target===today ? "오늘" : (wlogDay(Date.now()-86400000)===target ? "어제" : md);
+  document.title="오답 복습 "+md;
+  $("chTitle").textContent=`📅 ${label} 오답 복습 (${md} · ${qs.length}문항)`;
+  $("keyTitle").textContent="📋 답안 확인 — "+label+" 오답 복습";
+  deck=[...qs]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
+  if(shuffleOn){ for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; } }
+  REDO_SESSION=true;   // 전부 이미 푼 문항 — "과거 풀이 인정" 규칙 끔
+  $("doneBox").style.display="none"; $("card").style.display="flex";
+  show();
+}
+function reviewEmpty(msg){
+  $("chTitle").textContent="📅 어제 오답 복습";
+  $("qText").innerHTML=msg
+    +`<br><button onclick="location.href='index.html'" style="margin-top:14px;padding:11px 22px;font-size:15px;font-weight:800;border-radius:10px;border:none;background:#1F2937;color:#fff">📚 목차로 돌아가기</button>`;
+  $("oxRow").style.display="none"; $("numRow").style.display="none";
+}
+
 /* 로딩 */
 /* 최후의 안전장치 — 12초가 지나도 화면이 안 뜨면 갇히지 않게 안내와 재시도 버튼을 보여준다 */
 setTimeout(()=>{
@@ -2006,6 +2122,7 @@ setTimeout(()=>{
 
 (async () => {
   try {
+    if(REVIEW){ await reviewBoot(); return; }   // 📅 전날 오답 복습 모드 — 챕터 로딩 없이 별도 부팅
     // 통신이 응답 없이 매달리면 "불러오는 중…"에서 영영 멈춘다 → 모든 대기에 시간 제한을 둔다
     await capWait(Promise.all([pullCloud(), pullOpts()]), 3500);  // 다른 기기의 진도·필터 반영(최대 3.5초)
     if(FRESH) delete S.prog;   // 초기화 요청 — 클라우드에서 되돌아온 중간 세션도 쓰지 않는다

@@ -184,8 +184,9 @@ const UNITS=[
   {name:"제7편 국가배상·손실보상",   from:71, to:75},
   {name:"제8편 정보공개·개인정보",   from:76, to:81},
   {name:"제9편 기출문제",            from:82, to:99},
+  {name:"📕 소방공무원법",           from:1001, to:1099},
 ];
-function chNum(c){ return parseInt((c.id||"").replace(/[^0-9]/g,""),10)||0; }
+function chNum(c){ const n=parseInt((c.id||"").replace(/[^0-9]/g,""),10)||0; return /^fs/.test(c.id||"") ? 1000+n : n; }
 function unitOf(c){ const n=chNum(c); for(const u of UNITS){ if(n>=u.from&&n<=u.to) return u; } return {name:"기타", from:9990, to:9999}; }
 function foldKey(name){ return "fc:fold:"+name; }
 function isFolded(name){ return localStorage.getItem(foldKey(name))==="1"; }
@@ -235,7 +236,8 @@ function chDoneP(c,gset){ const t=chCountP(c,gset); return t>0 && chSeenP(c,gset
 function computeDailyTarget(){
   const p=loadPlan(); if(!p) return null;
   const gset=planGradeSet();
-  const totalQ=chapters.reduce((s,c)=>s+chCountP(c,gset),0);
+  const planChs=chapters.filter(c=>!/^fs/.test(c.id));   // 소방공무원법(fs*)은 행정법 플랜 계산에서 제외
+  const totalQ=planChs.reduce((s,c)=>s+chCountP(c,gset),0);
   if(!totalQ) return null;
   const start=new Date(p.start+"T00:00:00");
   const today=new Date(); today.setHours(0,0,0,0);
@@ -244,7 +246,7 @@ function computeDailyTarget(){
   const targetQ=Math.min(totalQ, Math.ceil(Math.min(Math.max(dayNum,1),days)/days*totalQ));
   let cum=0, boundaryId=null, boundaryQno=0;
   const dueSet=new Set();
-  for(const c of chapters){
+  for(const c of planChs){
     const cnt=chCountP(c,gset); if(cnt<=0) continue;
     const s0=cum, e0=cum+cnt;
     if(s0 < targetQ){                       // 이 챕터 일부/전부가 오늘 목표 범위 안
@@ -617,7 +619,8 @@ function setupTimeWindow(){
 function computeTimeTarget(){
   const p=loadPlan(); if(!p||p.tstart==null||p.tend==null) return null;
   const gset=planGradeSet();
-  const totalQ=chapters.reduce((s,c)=>s+chCountP(c,gset),0);
+  const planChs=chapters.filter(c=>!/^fs/.test(c.id));   // 소방공무원법(fs*)은 행정법 플랜 계산에서 제외
+  const totalQ=planChs.reduce((s,c)=>s+chCountP(c,gset),0);
   if(!totalQ) return null;
   const start=new Date(p.start+"T00:00:00");
   const today=new Date(); today.setHours(0,0,0,0);
@@ -630,13 +633,13 @@ function computeTimeTarget(){
   let frac = nowMin<=p.tstart ? 0 : nowMin>=p.tend ? 1 : (nowMin-p.tstart)/(p.tend-p.tstart);
   const intra=Math.min(totalQ, Math.round(targetPrev + frac*(targetToday-targetPrev)));
   let cum=0, boundaryId=null, boundaryQno=0;
-  for(const c of chapters){
+  for(const c of planChs){
     const cnt=chCountP(c,gset); if(cnt<=0) continue;
     const s0=cum, e0=cum+cnt;
     if(intra>s0 && intra<=e0){ boundaryId=c.id; boundaryQno=intra-s0; }
     cum=e0;
   }
-  const seenQ=chapters.reduce((s,c)=>s+chSeenP(c,gset),0);
+  const seenQ=planChs.reduce((s,c)=>s+chSeenP(c,gset),0);
   return {intra, targetToday, targetPrev, seenQ, diff:seenQ-intra, nowMin,
           tstart:p.tstart, tend:p.tend, boundaryId, boundaryQno, done:seenQ>=totalQ};
 }

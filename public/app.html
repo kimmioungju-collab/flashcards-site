@@ -2069,7 +2069,7 @@ async function reviewBoot(){
   if(cloudCh){ for(const id in cloudCh) addHist(id, cloudCh[id]); }
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
-    if(k && /^fc:ch\d/.test(k)){ try{ addHist(k.slice(3), JSON.parse(localStorage.getItem(k)||"null")); }catch(e){} }
+    if(k && /^fc:(ch|fs)\d/.test(k)){ try{ addHist(k.slice(3), JSON.parse(localStorage.getItem(k)||"null")); }catch(e){} }
   }
   // 3) 대상 날짜: 오늘 이전의 가장 최근 학습일 (그마저 없으면 오늘)
   const today=wlogDay(Date.now());
@@ -2085,7 +2085,7 @@ async function reviewBoot(){
     const want=byCh[id]||{};
     ((d&&d.questions)||[]).forEach(q=>{
       if(want[String(q.no)])
-        qs.push(Object.assign({}, q, {_ch:id, theme:(id.replace(/^ch0?/,"")+"장"+(q.theme?" · "+q.theme:""))}));
+        qs.push(Object.assign({}, q, {_ch:id, theme:((/^fs/.test(id)?"공무원법"+id.replace(/^fs0?/,""):id.replace(/^ch0?/,""))+"장"+(q.theme?" · "+q.theme:""))}));
     });
   }));
   if(!qs.length){ reviewEmpty("해당 날짜의 오답 문항을 찾지 못했습니다."); return; }

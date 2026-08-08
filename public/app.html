@@ -275,7 +275,7 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
     <span class="pill" id="roundPill" style="display:none"></span>
     <span class="pill" id="scorePill">⭕ <b id="okCnt">0</b> · ❌ <b id="noCnt">0</b></span>
     <div class="tbtns">
-      <button class="iconbtn" onclick="location.href='index.html'">목차</button>
+      <button class="iconbtn" onclick="location.href='index.html'+(typeof CH==='string'&&CH?(/^fs/.test(CH)?'?s=fire':'?s=admin'):'')">목차</button>
       <button class="iconbtn" id="introBtn" style="display:none">📖요약</button>
       <button class="iconbtn" id="keyBtn">📋답안</button>
       <button class="iconbtn" id="reviewBtn">📝풀이</button>
@@ -1777,8 +1777,10 @@ function webSpeak(txt, cb){
 /* 다음 챕터 (manifest 순서 기준) */
 let NEXTCH=null;
 fetch("data/manifest.json").then(r=>r.json()).then(d=>{
-  const i=(d.chapters||[]).findIndex(c=>c.id===CH);
-  if(i>=0 && i+1<d.chapters.length) NEXTCH=d.chapters[i+1];
+  const fire=/^fs/.test(CH);
+  const list=(d.chapters||[]).filter(c=>/^fs/.test(c.id)===fire);   // 같은 과목 안에서만 이동
+  const i=list.findIndex(c=>c.id===CH);
+  if(i>=0 && i+1<list.length) NEXTCH=list[i+1];
 }).catch(()=>{});
 
 /* ── 🎧 팟캐스트 (NotebookLM 오디오) ────────────────────────

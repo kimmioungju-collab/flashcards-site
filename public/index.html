@@ -199,7 +199,8 @@ const UNITS=[
   {name:"제7편 국가배상·손실보상",   from:71, to:75},
   {name:"제8편 정보공개·개인정보",   from:76, to:81},
   {name:"제9편 기출문제",            from:82, to:99},
-  {name:"📕 소방공무원법",           from:1001, to:1099},
+  {name:"📕 소방공무원법 (OX)",      from:1001, to:1050},
+  {name:"📝 소방공무원법 실전문제",   from:1051, to:1099},
 ];
 function chNum(c){ const n=parseInt((c.id||"").replace(/[^0-9]/g,""),10)||0; return /^fs/.test(c.id||"") ? 1000+n : n; }
 function unitOf(c){ const n=chNum(c); for(const u of UNITS){ if(n>=u.from&&n<=u.to) return u; } return {name:"기타", from:9990, to:9999}; }

@@ -144,6 +144,12 @@ body.podon .ansjump{bottom:150px}
 .asktoast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:rgba(20,26,32,.94);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;font-weight:700;z-index:99;white-space:nowrap}
 .done .weakstart{background:#D9A400;color:#fff}
 .controls{margin-top:14px}
+.grip{display:flex;align-items:center;justify-content:center;gap:4px;margin:0 auto 7px;padding:4px 14px;width:max-content;
+  border-radius:99px;background:rgba(255,255,255,.13);color:#B9C4CE;font-size:11px;font-weight:800;
+  cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.grip:active{cursor:grabbing;background:rgba(255,255,255,.24)}
+.controls.float{position:fixed;z-index:60;width:min(92vw,420px);margin:0;left:0;top:0}
+.controls.float .grip{background:rgba(20,26,34,.55);color:#DDE5EC;box-shadow:0 3px 10px rgba(0,0,0,.3)}
 .oxrow{display:flex;gap:12px}
 .oxrow button{flex:1;border:none;border-radius:16px;padding:20px 0;font-size:30px;font-weight:900;cursor:pointer;color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.25);transition:transform .06s ease}
 .oxrow button:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.25)}
@@ -345,7 +351,8 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
     </div>
   </div>
 
-  <div class="controls">
+  <div class="controls" id="ctrlBox">
+    <div class="grip" id="dragGrip">⠿ 버튼 위치 이동 (끌기 · 두 번 탭=원위치)</div>
     <div class="oxrow" id="oxRow">
       <button class="btnO" data-a="O">O</button>
       <button class="btnX" data-a="X">X</button>
@@ -1906,6 +1913,62 @@ document.querySelectorAll(".podmode").forEach(b=>b.addEventListener("click", ()=
 document.querySelectorAll(".oxrow button,.numrow button").forEach(b=>b.addEventListener("click",()=>answer(b.dataset.a)));
 $("nextChBtn").addEventListener("click",()=>{ if(NEXTCH) location.href="app.html?ch="+NEXTCH.id; });
 $("nextBtn").addEventListener("click",next);
+
+/* ── 답 버튼 위치 이동 — 그립을 끌어 원하는 곳에 고정, 두 번 탭으로 원위치 (기기별 저장) ── */
+(function(){
+  const box=$("ctrlBox"), grip=$("dragGrip"), KEY="ctrlPos_v1";
+  function clampApply(x,y){
+    const w=box.offsetWidth, h=box.offsetHeight;
+    x=Math.min(Math.max(x,4), Math.max(4, innerWidth-w-4));
+    y=Math.min(Math.max(y,4), Math.max(4, innerHeight-h-4));
+    box.style.left=x+"px"; box.style.top=y+"px";
+    return {x,y};
+  }
+  function restore(){
+    try{
+      const p=JSON.parse(localStorage.getItem(KEY)||"null");
+      if(!p) return;
+      box.classList.add("float"); clampApply(p.x,p.y);
+    }catch(e){}
+  }
+  function reset(){
+    try{localStorage.removeItem(KEY);}catch(e){}
+    box.classList.remove("float"); box.style.left=box.style.top="";
+  }
+  let drag=null, moved=false, wasFloat=false, lastTap=0;
+  grip.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    try{grip.setPointerCapture(e.pointerId);}catch(err){}
+    const r=box.getBoundingClientRect();
+    wasFloat=box.classList.contains("float"); moved=false;
+    if(!wasFloat){ box.classList.add("float"); box.style.left=r.left+"px"; box.style.top=r.top+"px"; }
+    drag={dx:e.clientX-r.left, dy:e.clientY-r.top, sx:e.clientX, sy:e.clientY};
+  });
+  grip.addEventListener("pointermove",e=>{
+    if(!drag) return;
+    if(Math.abs(e.clientX-drag.sx)+Math.abs(e.clientY-drag.sy)>6) moved=true;
+    if(moved) clampApply(e.clientX-drag.dx, e.clientY-drag.dy);
+  });
+  grip.addEventListener("pointerup",e=>{
+    if(!drag) return; drag=null;
+    if(!moved){                       // 이동 없는 탭
+      if(!wasFloat){ box.classList.remove("float"); box.style.left=box.style.top=""; }
+      const now=Date.now();
+      if(now-lastTap<400){ reset(); lastTap=0; return; }  // 두 번 탭 → 원위치
+      lastTap=now; return;
+    }
+    const r=box.getBoundingClientRect();
+    try{localStorage.setItem(KEY, JSON.stringify({x:r.left, y:r.top}));}catch(err){}
+  });
+  grip.addEventListener("pointercancel",()=>{drag=null;});
+  addEventListener("resize",()=>{     // 회전·리사이즈 시 화면 밖으로 나가지 않게
+    if(!box.classList.contains("float")) return;
+    const p=clampApply(parseFloat(box.style.left)||0, parseFloat(box.style.top)||0);
+    try{localStorage.setItem(KEY, JSON.stringify(p));}catch(err){}
+  });
+  restore();
+})();
+
 $("qnoLbl").addEventListener("click",openJump);
 $("gotoTodoBtn").addEventListener("click",gotoNextTodo);
 $("jumpWrap").addEventListener("click",e=>{if(e.target===$("jumpWrap"))$("jumpWrap").classList.remove("show");});

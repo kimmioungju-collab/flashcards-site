@@ -27,6 +27,7 @@ a.ch.done::before{background:var(--right)}
 .ctitle{font-size:15.5px;font-weight:800;flex:1;word-break:keep-all}
 .podchip{flex:0 0 auto;align-self:center;border:none;border-radius:99px;padding:4px 10px;font-size:11.5px;font-weight:800;
   background:#EFECE3;color:#6B6558;cursor:pointer;line-height:1.3;white-space:nowrap}
+.podchip.sum{background:#E4EDF6;color:#2E75B6}
 .podchip.done{background:#E2F0D9;color:#2E7D32}
 .podchip.wait{background:#FFF3C4;color:#8A7B1E}
 .podchip.err{background:#FDEBEC;color:#C62828}
@@ -309,10 +310,25 @@ function makeCard(c,gset){
       : `${d.getMonth()+1}/${d.getDate()}`;
     stats += `<span class="stat last">🕐 ${ymd}</span>`;
   }
-  a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span>${podChip(c.id)}</div>
+  a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span>${sumChip(c.id)}${podChip(c.id)}</div>
     <div class="row2"><span class="stat">${c.count}문항</span>${stats}</div>
     ${gradesHtml(c.grades)}`;
   return a;
+}
+
+/* ── 📖 핵심요약 칩 — 요약이 있는 챕터만 표시, 클릭 시 요약 시트 바로 열기 ── */
+const INTRO_SET = new Set();
+async function sumLoad(){
+  try{
+    const r = await fetch("intros/manifest.json", {cache:"no-store"});
+    if(!r.ok) return;
+    const d = await r.json();
+    (d.chapters||[]).forEach(id=>INTRO_SET.add(id));
+  }catch(e){}
+}
+function sumChip(id){
+  if(!INTRO_SET.has(id)) return "";
+  return `<button class="podchip sum" data-sum="${id}" title="핵심요약 보기">📖 요약</button>`;
 }
 
 /* ── 🎧 AI 음성(노트북LM) 상태 표시 · 목록에서 바로 생성 ── */
@@ -365,6 +381,8 @@ function podToast(msg){
 
 /* 칩 클릭 — 카드의 챕터 이동은 막고 칩 동작만 수행 */
 document.addEventListener("click", e=>{
+  const sc = e.target && e.target.closest && e.target.closest("[data-sum]");
+  if(sc){ e.preventDefault(); e.stopPropagation(); location.href=`app.html?ch=${sc.dataset.sum}&summary=1`; return; }
   const chip = e.target && e.target.closest && e.target.closest("[data-pod]");
   if(!chip) return;
   e.preventDefault(); e.stopPropagation();
@@ -1033,7 +1051,7 @@ fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
   drawList();                        // 받아온 내용으로 다시 그린다
   capWait(pushAll(), 15000);         // 이 기기 진도 올리기 — 화면과 무관하므로 기다리지 않는다
 
-  await capWait(podLoad(), 6000);    // AI 음성 상태 반영
+  await capWait(Promise.all([podLoad(), sumLoad()]), 6000);  // AI 음성 상태 + 핵심요약 목록 반영
   render(podFilterVal());
   podPoll();
 }).catch(()=>{

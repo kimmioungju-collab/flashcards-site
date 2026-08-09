@@ -1021,9 +1021,15 @@ function drawList(){
 /* ── 과목 선택 화면 (과목별 진도 표시) ── */
 function subjProgress(fire){
   const list=allChapters.filter(c=>isFireCh(c.id)===fire);
-  let tq=0,sq=0,doneC=0;
-  for(const c of list){ tq+=c.count||0; const s=chSeen(c); sq+=s; if(c.count>0&&s>=c.count) doneC++; }
-  return {ch:list.length, doneC, tq, sq, pct:tq?Math.round(sq/tq*100):0};
+  const gset=fire?null:planGradeSet();   // 행정법은 플랜의 등급 필터를 그대로 반영 (제외 등급은 문항수에서 뺌)
+  let tq=0,sq=0,doneC=0,chN=0;
+  for(const c of list){
+    const cnt=chCountP(c,gset); if(cnt<=0) continue;
+    chN++; tq+=cnt;
+    const s=chSeenP(c,gset); sq+=s;
+    if(s>=cnt) doneC++;
+  }
+  return {ch:chN, doneC, tq, sq, pct:tq?Math.round(sq/tq*100):0};
 }
 function drawSubjectSelect(){
   document.getElementById("summary").textContent="공부할 과목을 선택하세요";
@@ -1047,8 +1053,10 @@ fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
 
   if(!SUBJ){                          // 과목 선택 화면
     document.body.classList.add("choose");
+    if(planGradeSet()) await capWait(ensureQGrades(), 6000);  // 등급 필터 반영에 문항별 등급 필요
     drawSubjectSelect();              // 로컬 진도로 먼저 그린다
     await capWait(pullAll(), 5000);   // 다른 기기 진도 반영 후 갱신
+    if(planGradeSet()) await capWait(ensureQGrades(), 6000);  // 클라우드에서 플랜이 새로 왔을 수도
     drawSubjectSelect();
     capWait(pushAll(), 15000);        // 이 기기 진도 올리기
     return;

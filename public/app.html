@@ -144,10 +144,11 @@ body.podon .ansjump{bottom:150px}
 .asktoast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:rgba(20,26,32,.94);color:#fff;padding:11px 18px;border-radius:99px;font-size:13.5px;font-weight:700;z-index:99;white-space:nowrap}
 .done .weakstart{background:#D9A400;color:#fff}
 .controls{margin-top:14px}
-.grip{display:flex;align-items:center;justify-content:center;gap:4px;margin:0 auto 7px;padding:4px 14px;width:max-content;
+.grip{display:none;align-items:center;justify-content:center;gap:4px;margin:0 auto 7px;padding:4px 14px;width:max-content;
   border-radius:99px;background:rgba(255,255,255,.13);color:#B9C4CE;font-size:11px;font-weight:800;
   cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .grip:active{cursor:grabbing;background:rgba(255,255,255,.24)}
+body.gripon .grip{display:flex}
 .controls.float{position:fixed;z-index:60;width:min(92vw,420px);margin:0;left:0;top:0}
 .controls.float .grip{background:rgba(20,26,34,.55);color:#DDE5EC;box-shadow:0 3px 10px rgba(0,0,0,.3)}
 .oxrow{display:flex;gap:12px}
@@ -378,6 +379,7 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
     <div class="togglerow"><span>취약 문제만<small>틀렸거나 ⭐체크한 문제</small></span><button class="sw" id="weakOnlySw"></button></div>
     <div class="togglerow"><span>취약 문제부터<small>누적 오답·체크 우선 정렬(섞기보다 우선)</small></span><button class="sw" id="weakFirstSw"></button></div>
     <div class="togglerow"><span>문제 순서 섞기</span><button class="sw" id="shuffleSw"></button></div>
+    <div class="togglerow"><span>답 버튼 위치 이동<small>⠿ 그립 표시 — 끌어서 배치 · 두 번 탭=원위치 (바로 적용)</small></span><button class="sw" id="gripSw"></button></div>
     <button class="apply" id="applyBtn">이 조건으로 새로 시작</button>
   </div>
 </div>
@@ -1961,6 +1963,12 @@ $("nextBtn").addEventListener("click",next);
     try{localStorage.setItem(KEY, JSON.stringify({x:r.left, y:r.top}));}catch(err){}
   });
   grip.addEventListener("pointercancel",()=>{drag=null;});
+  /* 설정 시트의 스위치로 그립 표시 여부 제어 (즉시 적용·기기별 저장) */
+  const GKEY="gripShow_v1", gsw=$("gripSw");
+  const gripOn=on=>{ document.body.classList.toggle("gripon", on); if(gsw) gsw.classList.toggle("on", on);
+    try{localStorage.setItem(GKEY, on?"1":"");}catch(e){} };
+  gripOn(!!localStorage.getItem(GKEY));
+  if(gsw) gsw.addEventListener("click",()=>gripOn(!document.body.classList.contains("gripon")));
   addEventListener("resize",()=>{     // 회전·리사이즈 시 화면 밖으로 나가지 않게
     if(!box.classList.contains("float")) return;
     const p=clampApply(parseFloat(box.style.left)||0, parseFloat(box.style.top)||0);

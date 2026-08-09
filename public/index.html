@@ -262,16 +262,21 @@ function computeDailyTarget(){
   const dayNum=Math.floor((today-start)/86400000)+1;
   const days=Math.max(1,p.days);
   const targetQ=Math.min(totalQ, Math.ceil(Math.min(Math.max(dayNum,1),days)/days*totalQ));
-  let cum=0, boundaryId=null, boundaryQno=0;
+  // 순서와 무관하게 이미 푼 문항은 건너뛰고, "앞으로 더 풀어야 할 몫"만큼만 목표선을 긋는다
+  // (뒤쪽 챕터를 먼저 푼 경우 '앞섬'인데도 목표선이 계속 남던 모순 해결)
+  const seenAll=planChs.reduce((s,c)=>s+chSeenP(c,gset),0);
+  let need=Math.max(0, targetQ-seenAll);
+  let boundaryId=null, boundaryQno=0;
   const dueSet=new Set();
-  for(const c of planChs){
-    const cnt=chCountP(c,gset); if(cnt<=0) continue;
-    const s0=cum, e0=cum+cnt;
-    if(s0 < targetQ){                       // 이 챕터 일부/전부가 오늘 목표 범위 안
-      if(!chDoneP(c,gset)) dueSet.add(c.id); // 아직 안 끝낸 건 오늘까지 할 몫
-      if(targetQ<=e0){ boundaryId=c.id; boundaryQno=targetQ-s0; } // 목표선이 이 챕터 안
+  if(need>0){
+    for(const c of planChs){
+      const cnt=chCountP(c,gset); if(cnt<=0) continue;
+      const seen=chSeenP(c,gset), un=cnt-seen;
+      if(un<=0) continue;                    // 이미 다 푼 챕터는 통과
+      dueSet.add(c.id);
+      if(need<=un){ boundaryId=c.id; boundaryQno=Math.min(cnt, seen+need); break; }
+      need-=un;
     }
-    cum=e0;
   }
   return {targetQ, totalQ, boundaryId, boundaryQno, dueSet, dayNum, days};
 }
@@ -667,14 +672,19 @@ function computeTimeTarget(){
   const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
   let frac = nowMin<=p.tstart ? 0 : nowMin>=p.tend ? 1 : (nowMin-p.tstart)/(p.tend-p.tstart);
   const intra=Math.min(totalQ, Math.round(targetPrev + frac*(targetToday-targetPrev)));
-  let cum=0, boundaryId=null, boundaryQno=0;
-  for(const c of planChs){
-    const cnt=chCountP(c,gset); if(cnt<=0) continue;
-    const s0=cum, e0=cum+cnt;
-    if(intra>s0 && intra<=e0){ boundaryId=c.id; boundaryQno=intra-s0; }
-    cum=e0;
-  }
   const seenQ=planChs.reduce((s,c)=>s+chSeenP(c,gset),0);
+  // 이미 푼 문항은 건너뛰고, 지금 시각까지 "더 풀어야 할 몫"만큼만 경계선을 긋는다
+  let need=Math.max(0, intra-seenQ);
+  let boundaryId=null, boundaryQno=0;
+  if(need>0){
+    for(const c of planChs){
+      const cnt=chCountP(c,gset); if(cnt<=0) continue;
+      const seen=chSeenP(c,gset), un=cnt-seen;
+      if(un<=0) continue;
+      if(need<=un){ boundaryId=c.id; boundaryQno=Math.min(cnt, seen+need); break; }
+      need-=un;
+    }
+  }
   return {intra, targetToday, targetPrev, seenQ, diff:seenQ-intra, nowMin,
           tstart:p.tstart, tend:p.tend, boundaryId, boundaryQno, done:seenQ>=totalQ};
 }
@@ -771,9 +781,11 @@ function renderPlan(){
     } else {
       const behind=tt.diff<0?-tt.diff:0, ahead=tt.diff>0?tt.diff:0;
       const okNow=tt.seenQ>=tt.intra;
-      const loc=tt.boundaryId?`${tt.boundaryId.toUpperCase()}의 ${tt.boundaryQno}번`:`${tt.intra}문항`;
       const status=okNow?`✅ 페이스 유지${ahead?` (+${ahead}문항 앞섬)`:""}`:`⚠️ ${behind}문항 뒤처짐`;
-      timeHtml=`<div class="ptime ${okNow?'ok':'bad'}">⏰ <b>${nowStr}</b> 기준 — 여기까진 풀었어야: <b>${loc}까지</b>
+      const head=okNow
+        ? `지금 몫까지 완료 🎉`
+        : `더 풀어야: <b>${tt.boundaryId?`${tt.boundaryId.toUpperCase()}의 ${tt.boundaryQno}번까지`:`${behind}문항`}</b>`;
+      timeHtml=`<div class="ptime ${okNow?'ok':'bad'}">⏰ <b>${nowStr}</b> 기준 — ${head}
         <span class="sub">누적 목표 ${tt.intra}문항 · 현재 ${tt.seenQ}문항 · ${status} (${win})</span></div>`;
     }
   }

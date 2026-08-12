@@ -29,8 +29,9 @@ ENV_FILE = Path.home() / "telegram-claude-bridge" / ".env"
 NLM = shutil.which("notebooklm") or "/opt/homebrew/bin/notebooklm"  # 크론 환경 PATH 대비
 UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
-# 오디오 스타일: deep-dive=심층 해설(전 문항 꼼꼼히), 길이는 문항수 비례 (최대 5~15분)
-AUDIO_FORMAT = "deep-dive"
+# 오디오 스타일: brief=단독 내레이션(1인 진행 — deep-dive는 2인 대화형이라 금지!)
+# 길이는 문항수 비례 (최대 5~15분)
+AUDIO_FORMAT = "brief"
 
 
 def pick_length(n_questions: int) -> str:

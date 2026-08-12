@@ -4,6 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OX 플래시카드 목차</title>
+<script>
+/* ── 접근 잠금 게이트 (비번 1회 입력 → 기기에 기억) ── */
+(function(){
+  const H="0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c";
+  const KEY="ox_gate_v1";
+  if(localStorage.getItem(KEY)===H) return;
+  document.documentElement.style.visibility="hidden";
+  async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+  window.addEventListener("DOMContentLoaded",async function(){
+    for(let i=0;i<3;i++){
+      const p=prompt("🔒 비밀번호를 입력하세요");
+      if(p===null) break;
+      if(await sha(p.trim())===H){
+        localStorage.setItem(KEY,H);
+        document.documentElement.style.visibility="";
+        return;
+      }
+    }
+    document.body.innerHTML="<div style='font-family:sans-serif;color:#fff;text-align:center;padding-top:40vh;font-size:18px'>🔒 접근 권한이 없습니다</div>";
+    document.documentElement.style.visibility="";
+  });
+})();
+</script>
 <style>
 :root{--desk:#2B3A4A;--desk-deep:#22303D;--paper:#FBFAF7;--ink:#1E242B;--hl:#FFE34D;--wrong:#D64550;--right:#2E75B6;--muted:#7A8694;--line:#E4E0D6}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}

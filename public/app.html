@@ -7,8 +7,8 @@
 <script>
 /* ── 접근 잠금 게이트 (비번 1회 입력 → 기기에 기억) ── */
 (function(){
-  const H="0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c";
-  const KEY="ox_gate_v1";
+  const H="2d4dd6abff89d0689f210ce69d566fb8d2d4a1c7941f9e17e357c67bcf9d208c";
+  const KEY="ox_gate_v2";
   if(localStorage.getItem(KEY)===H) return;
   document.documentElement.style.visibility="hidden";
   async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}

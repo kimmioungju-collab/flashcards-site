@@ -12,6 +12,7 @@
 """
 import html
 import json
+import math
 import os
 import re
 import shutil
@@ -30,17 +31,11 @@ NLM = shutil.which("notebooklm") or "/opt/homebrew/bin/notebooklm"  # 크론 환
 UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 # 오디오 스타일: brief=단독 내레이션(1인 진행 — deep-dive는 2인 대화형이라 금지!)
-# 길이는 문항수 비례 (최대 5~15분)
+# ⚠️ brief는 --length 옵션을 무시하고 항상 2~3분만 생성함.
+#    → 문항수 비례로 여러 편(15문항/편)을 만들어 ffmpeg로 이어붙인다. (총 5~15분)
 AUDIO_FORMAT = "brief"
-
-
-def pick_length(n_questions: int) -> str:
-    """문항수 비례 오디오 길이: <30 → short(~5분), 30~59 → default(~10분), 60+ → long(~15분)"""
-    if n_questions < 30:
-        return "short"
-    if n_questions < 60:
-        return "default"
-    return "long"
+CHUNK_Q = 15      # 1편이 다루는 문항수 (brief 1편 ≈ 2~3분)
+MAX_CHUNKS = 6    # 편수 상한 → 총 길이 약 15분
 
 # 공부용 진행 지침 — 이동 중 듣기만 해도 정리가 되도록 설계
 STUDY_PROMPT = """이 자료는 행정법 객관식·OX 시험 대비 기출 지문 모음입니다.
@@ -135,6 +130,75 @@ def weak_nos(ch: str) -> set[str]:
     return {w["no"] for w in data.get("weak", [])}
 
 
+def q_lines(q: dict) -> list[str]:
+    """문항 1개를 소스 텍스트 줄로 변환."""
+    no = str(q.get("no", ""))
+    ans = (q.get("ans") or "").strip()
+    text = (q.get("q") or "").strip()
+    exp = (q.get("exp") or "").strip()
+    lines: list[str] = []
+    if ans == "O":
+        lines.append(f"({no}) [핵심 — 옳은 내용] {text}")
+        if exp:
+            lines.append(f"    보충: {exp}")
+    elif ans == "X":
+        lines.append(f"({no}) [함정 — 틀린 지문] {text}")
+        if exp:
+            lines.append(f"    → 올바른 법리: {exp}")
+    else:  # 객관식 ①~⑤
+        lines.append(f"({no}) [객관식] {text}")
+        lines.append(f"    정답: {ans}")
+        if exp:
+            lines.append(f"    해설: {exp}")
+    lines.append("")
+    return lines
+
+
+def filter_questions(chap: dict, only_nos: set[str] | None) -> list[dict]:
+    qs = [q for q in chap.get("questions", [])
+          if only_nos is None or str(q.get("no", "")) in only_nos]
+    if not qs:
+        sys.exit("ERROR: 요약할 문제가 없습니다 (오답·체크 0건일 수 있음)")
+    return qs
+
+
+def split_chunks(qs: list[dict]) -> list[list[dict]]:
+    """문항수 비례 분할: 15문항/편, 최대 6편 (총 5~15분)."""
+    n_chunks = min(MAX_CHUNKS, max(1, math.ceil(len(qs) / CHUNK_Q)))
+    size = math.ceil(len(qs) / n_chunks)
+    return [qs[i:i + size] for i in range(0, len(qs), size)]
+
+
+def build_chunk_summary(title: str, ch: str, qs: list[dict], part: int, n_parts: int) -> str:
+    """분할된 1편 분량의 소스 텍스트 생성. 1편에만 챕터 핵심 요약(1부) 포함."""
+    lines = [f"# {title}" + (f" ({part}/{n_parts}편)" if n_parts > 1 else ""), ""]
+    if part == 1:
+        lines += [
+            "이 문서는 두 부분으로 되어 있습니다.",
+            "1부는 이 챕터의 '핵심 개념 요약'이고, 2부는 실제 기출 OX 지문입니다.",
+            "1부의 개념을 먼저 설명한 뒤, 2부의 지문으로 함정을 확인시켜 주세요.",
+            "",
+        ]
+        intro = intro_text(ch)
+        if intro:
+            lines += ["", "=" * 50, "# 1부 · 핵심 개념 요약 (먼저 설명할 내용)", "=" * 50, "", intro, ""]
+        lines += ["", "=" * 50, "# 2부 · 기출 OX 지문 (함정 확인용)", "=" * 50]
+    else:
+        lines += [
+            f"이 문서는 챕터의 {part}번째 부분 기출 OX 지문입니다.",
+            "'핵심'은 시험에 나오는 올바른 법리이고, '함정'은 틀리게 변형되어 출제되는 지문입니다.",
+            "",
+        ]
+    current_theme = None
+    for q in qs:
+        theme = q.get("theme", "") or "기타"
+        if theme != current_theme:
+            lines += ["", f"## {theme}", ""]
+            current_theme = theme
+        lines += q_lines(q)
+    return "\n".join(lines)
+
+
 def build_summary(chap: dict, ch: str, only_nos: set[str] | None) -> str:
     """주제별로 묶은 OX 요약 텍스트 생성 (팟캐스트 소스용)."""
     title = chap.get("title", ch)
@@ -194,26 +258,34 @@ def run_nlm(args: list[str], timeout: int = 1800) -> subprocess.CompletedProcess
     return subprocess.run([NLM] + args, capture_output=True, text=True, timeout=timeout)
 
 
-def make_audio(src_file: Path, nb_title: str, out_mp3: Path, length: str) -> None:
+def make_audio(src_file: Path, nb_title: str, out_mp3: Path, part: int, n_parts: int) -> None:
+    tag = f"{part}/{n_parts}편"
     r = run_nlm(["create", nb_title], timeout=120)
     m = UUID_RE.search(r.stdout + r.stderr)
     if not m:
-        sys.exit(f"ERROR: 노트북 생성 실패 — {(r.stdout + r.stderr)[:300]}")
+        sys.exit(f"ERROR: 노트북 생성 실패({tag}) — {(r.stdout + r.stderr)[:300]}")
     nb_id = m.group(0)
-    print(f"[2/5] 노트북 생성: {nb_id[:8]}…", flush=True)
+    print(f"[2/5] {tag} 노트북 생성: {nb_id[:8]}…", flush=True)
 
     r = run_nlm(["source", "add", str(src_file), "-n", nb_id], timeout=300)
     if r.returncode != 0:
-        sys.exit(f"ERROR: 소스 업로드 실패 — {(r.stdout + r.stderr)[:300]}")
-    print("[3/5] 소스 업로드 완료, 인덱싱 대기 10초", flush=True)
+        sys.exit(f"ERROR: 소스 업로드 실패({tag}) — {(r.stdout + r.stderr)[:300]}")
+    print(f"[3/5] {tag} 소스 업로드 완료, 인덱싱 대기 10초", flush=True)
     time.sleep(10)
 
-    r = run_nlm(["generate", "audio", STUDY_PROMPT, "-n", nb_id,
-                 "--format", AUDIO_FORMAT, "--length", length,
+    prompt = STUDY_PROMPT
+    if n_parts > 1:
+        prompt += (
+            f"\n\n[연작 안내] 이 오디오는 전체 강의 {n_parts}편 중 {part}편입니다. "
+            "시리즈 소개, 전체 개요, 이전 편·다음 편 언급, 인사와 마무리 멘트를 전부 생략하고 "
+            "이 자료의 내용만 처음부터 끝까지 설명한 뒤 내용으로 끝내세요."
+        )
+    r = run_nlm(["generate", "audio", prompt, "-n", nb_id,
+                 "--format", AUDIO_FORMAT, "--length", "long",
                  "--language", "ko", "--wait", "--retry", "3"], timeout=2400)
     if r.returncode != 0:
-        sys.exit(f"ERROR: 오디오 생성 실패 — {(r.stdout + r.stderr)[:300]}")
-    print("[4/5] 오디오 생성 완료", flush=True)
+        sys.exit(f"ERROR: 오디오 생성 실패({tag}) — {(r.stdout + r.stderr)[:300]}")
+    print(f"[4/5] {tag} 오디오 생성 완료", flush=True)
 
     out_mp3.unlink(missing_ok=True)   # 남아 있던 이전 회차 파일 재사용 방지
     r = run_nlm(["download", "audio", str(out_mp3), "-n", nb_id], timeout=300)
@@ -221,7 +293,24 @@ def make_audio(src_file: Path, nb_title: str, out_mp3: Path, length: str) -> Non
         sys.exit(f"ERROR: 다운로드 실패 — {(r.stdout + r.stderr)[:300]}")
     if not out_mp3.exists() or out_mp3.stat().st_size < 10_000:
         sys.exit(f"ERROR: 다운로드 실패 — {(r.stdout + r.stderr)[:300]}")
-    print(f"[5/5] 다운로드 완료: {out_mp3} ({out_mp3.stat().st_size // 1024}KB)", flush=True)
+    print(f"[4/5] {tag} 다운로드 완료: {out_mp3.name} ({out_mp3.stat().st_size // 1024}KB)", flush=True)
+
+
+def concat_mp3(parts: list[Path], out_mp3: Path) -> None:
+    """여러 편 mp3를 하나로 이어붙임 (스트림 복사, 재인코딩 없음)."""
+    out_mp3.unlink(missing_ok=True)
+    if len(parts) == 1:
+        shutil.copy(parts[0], out_mp3)
+        return
+    lst = TMP_DIR / "concat.txt"
+    lst.write_text("\n".join(f"file '{p}'" for p in parts), encoding="utf-8")
+    r = subprocess.run(
+        ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
+         "-c", "copy", str(out_mp3)],
+        capture_output=True, text=True, timeout=300,
+    )
+    if r.returncode != 0 or not out_mp3.exists() or out_mp3.stat().st_size < 10_000:
+        sys.exit(f"ERROR: mp3 병합 실패 — {r.stderr[-300:]}")
 
 
 def telegram_send(mp3: Path, caption: str) -> None:
@@ -254,22 +343,30 @@ def main() -> None:
 
     chap = load_chapter(ch)
     only = weak_nos(ch) if weak_only else None
-    summary, n_q = build_summary(chap, ch, only)
-    length = pick_length(n_q)
-    print(f"[1/5] 오디오 길이: {length} ({n_q}문항 기준)", flush=True)
+    title = chap.get("title", ch)
+    qs = filter_questions(chap, only)
+    chunks = split_chunks(qs)
+    n_parts = len(chunks)
+    print(f"[1/5] {len(qs)}문항 → {n_parts}편 분할 (편당 2~3분, 총 {n_parts * 2}~{n_parts * 3}분 예상)", flush=True)
 
     TMP_DIR.mkdir(parents=True, exist_ok=True)
     mode = "오답" if weak_only else "전체"
-    src_file = TMP_DIR / f"행정법_{ch}_{mode}_요약.txt"
-    src_file.write_text(summary, encoding="utf-8")
-
     stamp = time.strftime("%m%d-%H%M")
-    nb_title = f"행정법OX {ch} {mode} {stamp}"
+    part_files: list[Path] = []
+    for i, part_qs in enumerate(chunks, 1):
+        summary = build_chunk_summary(title, ch, part_qs, i, n_parts)
+        src_file = TMP_DIR / f"행정법_{ch}_{mode}_{i}부.txt"
+        src_file.write_text(summary, encoding="utf-8")
+        part_mp3 = TMP_DIR / f"{ch}_{mode}_{i}.mp3"
+        make_audio(src_file, f"행정법OX {ch} {mode} {i}-{n_parts} {stamp}", part_mp3, i, n_parts)
+        part_files.append(part_mp3)
+
     out_mp3 = OUT_DIR / f"행정법_{ch}_{mode}요약.mp3"
-    make_audio(src_file, nb_title, out_mp3, length)
+    concat_mp3(part_files, out_mp3)
+    print(f"[5/5] 병합 완료: {out_mp3} ({out_mp3.stat().st_size // 1024}KB)", flush=True)
 
     if send:
-        telegram_send(out_mp3, f"🎧 {chap.get('title', ch)} — {mode} OX 요약 오디오 (NotebookLM)")
+        telegram_send(out_mp3, f"🎧 {title} — {mode} OX 단독 강의 ({len(qs)}문항, {n_parts}편 연속)")
     print(f"DONE {out_mp3}", flush=True)
 
 

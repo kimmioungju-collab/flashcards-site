@@ -76,8 +76,8 @@ def process(key: str, item: dict) -> None:
         args.append("weak")
     args.append("--no-send")
 
-    set_state(key, status="running", msg="AI가 오디오를 만드는 중이에요 (5~15분)")
-    r = subprocess.run(args, capture_output=True, text=True, timeout=2700)
+    set_state(key, status="running", msg="AI가 오디오를 만드는 중이에요 (10~30분)")
+    r = subprocess.run(args, capture_output=True, text=True, timeout=5400)
     if r.returncode != 0:
         tail = (r.stdout + r.stderr).strip().splitlines()
         set_state(key, status="error", msg=(tail[-1] if tail else "오디오 생성 실패")[:200])

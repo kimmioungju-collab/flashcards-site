@@ -29,9 +29,17 @@ ENV_FILE = Path.home() / "telegram-claude-bridge" / ".env"
 NLM = shutil.which("notebooklm") or "/opt/homebrew/bin/notebooklm"  # 크론 환경 PATH 대비
 UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
-# 오디오 스타일: deep-dive=심층 해설(전 문항 꼼꼼히), length=long(최대 길이)
+# 오디오 스타일: deep-dive=심층 해설(전 문항 꼼꼼히), 길이는 문항수 비례 (최대 5~15분)
 AUDIO_FORMAT = "deep-dive"
-AUDIO_LENGTH = "long"
+
+
+def pick_length(n_questions: int) -> str:
+    """문항수 비례 오디오 길이: <30 → short(~5분), 30~59 → default(~10분), 60+ → long(~15분)"""
+    if n_questions < 30:
+        return "short"
+    if n_questions < 60:
+        return "default"
+    return "long"
 
 # 공부용 진행 지침 — 이동 중 듣기만 해도 정리가 되도록 설계
 STUDY_PROMPT = """이 자료는 행정법 객관식·OX 시험 대비 기출 지문 모음입니다.
@@ -48,12 +56,12 @@ STUDY_PROMPT = """이 자료는 행정법 객관식·OX 시험 대비 기출 지
    ① 개념을 한 문장으로 정의 → ② 시험에 나오는 함정 → ③ 정답을 가르는 판단 기준.
 4. 문항 번호는 읽지 말고, 내용 중심으로 자연스럽게 이어서 설명합니다.
 
-[가장 중요 — 빠짐없이 꼼꼼하게]
+[가장 중요 — 빠짐없이, 그러나 간결하게]
 - 자료에 있는 모든 주제와 모든 지문을 하나도 건너뛰지 말고 전부 다룹니다.
-  일부만 골라 요약하는 것을 금지합니다. 시간이 길어져도 전 문항을 커버합니다.
-- 각 지문마다 왜 옳은지/왜 틀린지 근거(법리·판례 결론)까지 설명합니다.
-  단순히 "이건 맞다/틀리다"로 넘어가지 않습니다.
-- 해설에 있는 예외·단서 조항("다만", "단", "예외적으로")은 반드시 언급합니다.
+  일부만 골라 요약하는 것을 금지합니다.
+- 대신 지문 하나하나를 길게 늘어놓지 말고, 근거(법리·판례 결론)를 한두 문장으로
+  간결하게 짚고 다음으로 넘어갑니다. 같은 말 반복·부연 설명 금지.
+- 해설에 있는 예외·단서 조항("다만", "단", "예외적으로")은 빠뜨리지 않고 언급합니다.
 
 [가장 중요 — 함정 처리]
 4. 틀린 지문(함정)은 반드시 "이렇게 나오면 틀린다 → 옳은 표현은 이것이다" 형태로
@@ -172,14 +180,14 @@ def build_summary(chap: dict, ch: str, only_nos: set[str] | None) -> str:
     if count == 0:
         sys.exit("ERROR: 요약할 문제가 없습니다 (오답·체크 0건일 수 있음)")
     print(f"[1/5] 요약 생성: {count}문항", flush=True)
-    return "\n".join(lines)
+    return "\n".join(lines), count
 
 
 def run_nlm(args: list[str], timeout: int = 1800) -> subprocess.CompletedProcess:
     return subprocess.run([NLM] + args, capture_output=True, text=True, timeout=timeout)
 
 
-def make_audio(src_file: Path, nb_title: str, out_mp3: Path) -> None:
+def make_audio(src_file: Path, nb_title: str, out_mp3: Path, length: str) -> None:
     r = run_nlm(["create", nb_title], timeout=120)
     m = UUID_RE.search(r.stdout + r.stderr)
     if not m:
@@ -194,7 +202,7 @@ def make_audio(src_file: Path, nb_title: str, out_mp3: Path) -> None:
     time.sleep(10)
 
     r = run_nlm(["generate", "audio", STUDY_PROMPT, "-n", nb_id,
-                 "--format", AUDIO_FORMAT, "--length", AUDIO_LENGTH,
+                 "--format", AUDIO_FORMAT, "--length", length,
                  "--language", "ko", "--wait", "--retry", "3"], timeout=2400)
     if r.returncode != 0:
         sys.exit(f"ERROR: 오디오 생성 실패 — {(r.stdout + r.stderr)[:300]}")
@@ -239,7 +247,9 @@ def main() -> None:
 
     chap = load_chapter(ch)
     only = weak_nos(ch) if weak_only else None
-    summary = build_summary(chap, ch, only)
+    summary, n_q = build_summary(chap, ch, only)
+    length = pick_length(n_q)
+    print(f"[1/5] 오디오 길이: {length} ({n_q}문항 기준)", flush=True)
 
     TMP_DIR.mkdir(parents=True, exist_ok=True)
     mode = "오답" if weak_only else "전체"
@@ -249,7 +259,7 @@ def main() -> None:
     stamp = time.strftime("%m%d-%H%M")
     nb_title = f"행정법OX {ch} {mode} {stamp}"
     out_mp3 = OUT_DIR / f"행정법_{ch}_{mode}요약.mp3"
-    make_audio(src_file, nb_title, out_mp3)
+    make_audio(src_file, nb_title, out_mp3, length)
 
     if send:
         telegram_send(out_mp3, f"🎧 {chap.get('title', ch)} — {mode} OX 요약 오디오 (NotebookLM)")

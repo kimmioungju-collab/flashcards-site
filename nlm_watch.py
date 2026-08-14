@@ -93,6 +93,15 @@ def process(key: str, item: dict) -> None:
     dst = AUDIO_OUT / f"{key}.mp3"
     shutil.copy2(src, dst)
 
+    set_state(key, status="running", msg="스크립트(자막)를 만드는 중이에요")
+    try:  # 자막 실패해도 오디오 배포는 계속 진행
+        subprocess.run(
+            [sys.executable, str(BASE / "pod_script.py"), key],
+            capture_output=True, text=True, timeout=3600,
+        )
+    except Exception as e:
+        print("자막 생성 실패(무시):", e, flush=True)
+
     set_state(key, status="running", msg="업로드 중이에요")
     deploy()
     set_state(key, status="done", url=f"{SITE}/audio/nlm/{key}.mp3",

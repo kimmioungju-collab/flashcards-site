@@ -224,6 +224,13 @@ body.gripon .grip{display:flex}
 .podbarhead{display:flex;align-items:center;justify-content:space-between;color:#DDE5EC;
   font-size:12px;font-weight:800;padding:0 2px 5px}
 .podbarhead button{background:none;border:none;color:#9AA7B4;font-size:15px;font-weight:900;cursor:pointer;padding:0 4px}
+/* 팟캐스트 스크립트(자막) — 재생 위치의 문장을 하이라이트 */
+#podScriptBtn{font-size:12px;font-weight:800;padding:0 8px}
+#podScriptBtn.on{color:#FFD34D}
+.podscript{position:relative;max-height:36vh;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0 0 8px;
+  padding:8px 10px;background:rgba(255,255,255,.07);border-radius:10px}
+.podline{color:#8E9BA8;font-size:13.5px;font-weight:600;line-height:1.6;padding:3px 7px;border-radius:8px;cursor:pointer}
+.podline.on{color:#fff;background:rgba(46,117,182,.5);font-weight:800}
 body.podon{padding-bottom:86px}
 body.podon .sheet{padding-bottom:84px}
 .intropod{margin:10px 0 2px;background:#F2EFE7;border-radius:11px;padding:10px 12px;
@@ -472,7 +479,8 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
 <!-- 어느 화면에서도 계속 재생되는 고정 플레이어 (요약을 보면서 들을 수 있음) -->
 <div class="podbar" id="podBar" style="display:none">
   <div class="podbarhead"><span id="podBarTitle">🎧 AI 음성 요약</span>
-    <button id="podBarClose" title="닫기">✕</button></div>
+    <span><button id="podScriptBtn" style="display:none">📜 스크립트</button><button id="podBarClose" title="닫기">✕</button></span></div>
+  <div class="podscript" id="podScript" style="display:none"></div>
   <audio id="podAudio" controls preload="none"></audio>
 </div>
 
@@ -1832,12 +1840,54 @@ function podUrl(){ return POD_BASE + podKey() + ".json"; }
 function podPlay(url, t, label){
   const au = $("podAudio"), src = url + "?v=" + (t || 0);
   ttsStop();                                   // 읽어주기와 겹치지 않게
-  if(au.getAttribute("src") !== src){ au.setAttribute("src", src); au.load(); }
+  if(au.getAttribute("src") !== src){ au.setAttribute("src", src); au.load(); podScriptLoad(url); }
   $("podBarTitle").textContent = "🎧 " + (label || "AI 음성 요약");
   $("podBar").style.display = "";
   document.body.classList.add("podon");
   au.play().catch(()=>toast("재생 버튼을 한 번 더 눌러주세요"));
 }
+
+/* ── 📜 팟캐스트 스크립트(자막) — 재생 위치 문장 하이라이트 ── */
+let podSegs = [], podSegOn = false, podSegIdx = -1;
+function podScriptShow(on){
+  podSegOn = on;
+  $("podScript").style.display = on ? "" : "none";
+  $("podScriptBtn").classList.toggle("on", on);
+}
+function podScriptLoad(url){
+  podSegs = []; podSegIdx = -1;
+  $("podScript").innerHTML = "";
+  $("podScriptBtn").style.display = "none";
+  podScriptShow(false);
+  fetch(url.replace(/\.mp3$/, ".script.json"), {cache:"no-store"})
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if(!d || !d.length) return;              // 자막 없는 오디오는 그대로 재생만
+      podSegs = d;
+      $("podScript").innerHTML = d.map((s,i)=>`<div class="podline" data-i="${i}">${s.t}</div>`).join("");
+      $("podScriptBtn").style.display = "";
+      podScriptShow(true);                     // 자막이 있으면 기본으로 펼침
+    }).catch(()=>{});
+}
+$("podAudio").addEventListener("timeupdate", ()=>{
+  if(!podSegOn || !podSegs.length) return;
+  const t = $("podAudio").currentTime;
+  let i = -1;
+  for(let k=0; k<podSegs.length; k++){ if(t >= podSegs[k].s) i = k; else break; }
+  if(i === podSegIdx) return;
+  const box = $("podScript");
+  if(podSegIdx >= 0 && box.children[podSegIdx]) box.children[podSegIdx].classList.remove("on");
+  podSegIdx = i;
+  const el = i >= 0 ? box.children[i] : null;
+  if(el){ el.classList.add("on"); box.scrollTop = el.offsetTop - box.clientHeight/2 + el.clientHeight/2; }
+});
+$("podScript").addEventListener("click", e=>{
+  const el = e.target.closest(".podline"); if(!el) return;
+  const seg = podSegs[+el.dataset.i]; if(!seg) return;
+  $("podAudio").currentTime = seg.s;
+  $("podAudio").play().catch(()=>{});
+});
+$("podScriptBtn").addEventListener("click", ()=>podScriptShow(!podSegOn));
 function podHideBar(){
   try{ $("podAudio").pause(); }catch(e){}
   $("podBar").style.display = "none";

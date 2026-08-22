@@ -1505,11 +1505,17 @@ function finish(){
   // 과거 회차에 푼 문항으로 덱이 채워진 "진도 채우기" 세션이면 이번에 푼 문항만으로 집계한다
   const answered = answers.filter(Boolean).length;
   const partial = answered > 0 && answered < deck.length;
+  // 이번 세션에도, 과거에도 안 푼 문항 수 — 이게 남아 있으면 "완료"가 아니다
+  const unsolvedLeft = deck.filter((q,i)=>!answers[i] && !isSolved(q.no)).length;
   const total = partial ? answered : deck.length;
   $("finalScore").textContent=ok; $("finalTotal").textContent=total;
   const rate=total?Math.round(ok/total*100):0;
+  $("doneBox").querySelector("h2").textContent =
+    (partial && unsolvedLeft>0) ? "아직 안 끝났습니다 ✋" : "학습 완료 🚒";
   $("doneMsg").textContent = partial
-    ? `안 풀었던 ${answered}문항을 채워 이 챕터(${deck.length}문항)를 모두 완료했습니다.`
+    ? (unsolvedLeft>0
+        ? `이번에 ${answered}문항을 풀었지만 아직 안 푼 문항이 ${unsolvedLeft}개 남았습니다. 목차의 진도에는 실제 푼 문항만 집계됩니다. 처음부터 다시를 누르면 남은 문항을 이어서 풀 수 있습니다.`
+        : `안 풀었던 ${answered}문항을 채워 이 챕터(${deck.length}문항)를 모두 완료했습니다.`)
     : rate===100 ? "완벽합니다. 이 단원은 접어두세요." :
     rate>=80 ? `정답률 ${rate}% — 오답 ${no}개만 잡으면 끝납니다.` :
     `정답률 ${rate}% — 오답 위주로 한 번 더 돌리세요.`;

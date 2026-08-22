@@ -143,6 +143,16 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .markbtn.on{background:#FFF3C4;border-color:#EFDD8F;color:#7A6B00}
 .askbtn{margin-top:9px;border:none;background:#229ED9;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;color:#fff;cursor:pointer;width:100%}
 .askbtn:active{opacity:.8}
+.askwrap{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:30;align-items:center;justify-content:center;padding:18px}
+.askwrap.show{display:flex}
+.askmodal{background:var(--paper);width:100%;max-width:480px;border-radius:16px;padding:18px}
+.askmodal h3{font-size:15px;font-weight:900;margin:0 0 10px}
+.askmodal textarea{width:100%;box-sizing:border-box;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;font-size:15px;line-height:1.6;font-family:inherit;resize:none;background:#fff}
+.askmodal .askhint{font-size:12px;color:var(--muted);margin-top:6px}
+.askacts{display:flex;gap:8px;margin-top:10px}
+.askacts button{flex:1;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:800;cursor:pointer}
+#askCancel{background:#EEE9DC;color:var(--muted)}
+#askSend{background:#229ED9;color:#fff}
 .ansbox{margin-top:11px;padding:13px 14px;border:1.5px solid #B9DFF5;border-radius:12px;background:#F2FAFF}
 .ansbox .anshead{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:900;color:#1179AE;margin-bottom:9px}
 .ansbox .ansbody{font-size:14px;line-height:1.72;word-break:keep-all;color:var(--ink)}
@@ -231,6 +241,9 @@ body.gripon .grip{display:flex}
   padding:8px 10px;background:rgba(255,255,255,.07);border-radius:10px}
 .podline{color:#8E9BA8;font-size:13.5px;font-weight:600;line-height:1.6;padding:3px 7px;border-radius:8px;cursor:pointer}
 .podline.on{color:#fff;background:rgba(46,117,182,.5);font-weight:800}
+/* 핵심요약 라이브 모드 — 팟캐스트 재생 위치의 요약 섹션을 요약 시트 본문에서 직접 하이라이트 */
+.introbody .podlive{background:#EAF4FF;border-radius:6px;box-shadow:0 0 0 4px #EAF4FF;transition:background .3s}
+.introbody h4.podlive{background:#D9EBFF;box-shadow:0 0 0 4px #D9EBFF;color:#1D5FA0}
 body.podon{padding-bottom:86px}
 body.podon .sheet{padding-bottom:84px}
 .intropod{margin:10px 0 2px;background:#F2EFE7;border-radius:11px;padding:10px 12px;
@@ -360,6 +373,18 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
         <button class="markbtn" id="markBtn"></button>
         <button class="askbtn" id="askBtn">💬 이 문제 텔레그램으로 질문하기</button>
         <div class="ansbox" id="ansBox" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="askwrap" id="askWrap">
+    <div class="askmodal">
+      <h3>💬 이 문제 질문하기</h3>
+      <textarea id="askInput" rows="3" placeholder="무엇이 궁금하세요?"></textarea>
+      <div class="askhint">비워두고 보내면 "왜 이렇게 되는지 설명해줘"로 보냅니다</div>
+      <div class="askacts">
+        <button id="askCancel">취소</button>
+        <button id="askSend">보내기</button>
       </div>
     </div>
   </div>
@@ -851,6 +876,27 @@ function toast(msg){
   const t=document.createElement("div"); t.className="asktoast"; t.textContent=msg;
   document.body.appendChild(t); setTimeout(()=>t.remove(), 2600);
 }
+// 네이티브 prompt()는 한글 IME(한/영 전환)가 깨지는 문제가 있어 페이지 내 입력창으로 대체
+function askDialog(){
+  return new Promise(res=>{
+    const w=$("askWrap"), ta=$("askInput");
+    ta.value=""; w.classList.add("show");
+    setTimeout(()=>ta.focus(), 60);
+    const close=v=>{
+      w.classList.remove("show");
+      $("askSend").onclick=$("askCancel").onclick=w.onclick=ta.onkeydown=null;
+      res(v);
+    };
+    $("askSend").onclick=()=>close(ta.value);
+    $("askCancel").onclick=()=>close(null);
+    w.onclick=e=>{ if(e.target===w) close(null); };
+    ta.onkeydown=e=>{
+      if(e.isComposing) return;                       // 한글 조합 중 Enter 오발송 방지
+      if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); close(ta.value); }
+      if(e.key==="Escape"){ e.preventDefault(); close(null); }
+    };
+  });
+}
 const ANS_BASE = "https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com/flashcards/answer/";
 const ANS_POLL_MS = 3000, ANS_TIMEOUT_MS = 300000;   // 3초 간격 · 최대 5분 대기
 const PEND_KEEP_MS = 86400000;                       // 대기 기록은 하루 보관 (뒤늦게라도 답변 회수)
@@ -1047,7 +1093,7 @@ function renderAskBtn(q){
   }
 
   b.onclick=async()=>{
-    const myQ = prompt("무엇이 궁금하세요?\n(비워두면 '왜 이렇게 되는지 설명해줘'로 보냅니다)", "");
+    const myQ = await askDialog();
     if(myQ===null) return;
     const myq = myQ.trim() || "이 문제 왜 이렇게 되는지 쉽게 설명해줘";
     const id = "a" + Date.now() + Math.random().toString(36).slice(2,7);
@@ -1847,31 +1893,69 @@ function podPlay(url, t, label){
   au.play().catch(()=>toast("재생 버튼을 한 번 더 눌러주세요"));
 }
 
-/* ── 📜 팟캐스트 스크립트(자막) — 재생 위치 문장 하이라이트 ── */
+/* ── 📜 팟캐스트 스크립트 — 재생 위치 하이라이트 ──
+   1순위: .sections.json → 핵심요약 시트 본문에서 해당 섹션을 직접 하이라이트(라이브 모드)
+   2순위: .script.json(Whisper 자막 폴백 — 아래 패널) */
 let podSegs = [], podSegOn = false, podSegIdx = -1;
+let podTl = [], podSecOn = false, podSecOff = 0;   // 라이브 모드: 타임라인 [{s,e,i}]
 function podScriptShow(on){
   podSegOn = on;
   $("podScript").style.display = on ? "" : "none";
   $("podScriptBtn").classList.toggle("on", on);
 }
 function podScriptLoad(url){
-  podSegs = []; podSegIdx = -1;
+  podSegs = []; podSegIdx = -1; podTl = []; podSecOn = false;
   $("podScript").innerHTML = "";
   $("podScriptBtn").style.display = "none";
   podScriptShow(false);
-  fetch(url.replace(/\.mp3$/, ".script.json"), {cache:"no-store"})
+  fetch(url.replace(/\.mp3$/, ".sections.json"), {cache:"no-store"})
     .then(r => r.ok ? r.json() : null)
     .then(d => {
-      if(!d || !d.length) return;              // 자막 없는 오디오는 그대로 재생만
-      podSegs = d;
-      $("podScript").innerHTML = d.map((s,i)=>`<div class="podline" data-i="${i}">${s.t}</div>`).join("");
-      $("podScriptBtn").style.display = "";
-      podScriptShow(true);                     // 자막이 있으면 기본으로 펼침
+      if(d && d.sections && d.tl && d.tl.length){    // 핵심요약 라이브 모드
+        podSecOn = true; podTl = d.tl;
+        podSecOff = /^\s*<h4/.test(d.sections[0].h||"") ? 0 : 1;  // 첫 섹션에 h4 없으면 보정
+        $("podScriptBtn").textContent = "📖 요약";
+        $("podScriptBtn").style.display = "";
+        if(INTRO_MODE === "easy" && INTRO_HTML){ INTRO_MODE = "full"; renderIntroBody(); } // 상세 요약 기준 정렬
+        openIntro();                                 // 핵심요약에서 바로 진행
+        return;
+      }
+      return fetch(url.replace(/\.mp3$/, ".script.json"), {cache:"no-store"})
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if(!d || !d.length) return;          // 자막 없는 오디오는 그대로 재생만
+          podSegs = d;
+          $("podScript").innerHTML = d.map((s,i)=>`<div class="podline" data-i="${i}">${s.t}</div>`).join("");
+          $("podScriptBtn").textContent = "📜 스크립트";
+          $("podScriptBtn").style.display = "";
+          podScriptShow(true);
+        });
     }).catch(()=>{});
 }
+/* 요약 시트 본문(introBody)에서 섹션 i를 하이라이트 + 스크롤 */
+function podSecHl(i){
+  const body = $("introBody"); if(!body) return;
+  if(INTRO_MODE === "easy" && INTRO_HTML_EASY) return;   // 쉬운말 화면은 구조가 달라 표시 생략
+  body.querySelectorAll(".podlive").forEach(el => el.classList.remove("podlive"));
+  const h4s = [...body.querySelectorAll("h4")];
+  const k = i - podSecOff;                                // 섹션 → 본문 h4 인덱스
+  if(k < 0 || k >= h4s.length) return;
+  const stop = h4s[k + 1] || null;
+  for(let n = h4s[k]; n && n !== stop; n = n.nextElementSibling) n.classList.add("podlive");
+  h4s[k].scrollIntoView({behavior:"smooth", block:"center"});
+}
 $("podAudio").addEventListener("timeupdate", ()=>{
-  if(!podSegOn || !podSegs.length) return;
   const t = $("podAudio").currentTime;
+  if(podSecOn){                                // 라이브 모드: 요약 시트에서 진행
+    if(!podTl.length) return;
+    let i = -1;
+    for(let k=0; k<podTl.length; k++){ if(t >= podTl[k].s) i = podTl[k].i; else break; }
+    if(i === podSegIdx) return;
+    podSegIdx = i;
+    podSecHl(i);
+    return;
+  }
+  if(!podSegOn || !podSegs.length) return;
   let i = -1;
   for(let k=0; k<podSegs.length; k++){ if(t >= podSegs[k].s) i = k; else break; }
   if(i === podSegIdx) return;
@@ -1881,13 +1965,26 @@ $("podAudio").addEventListener("timeupdate", ()=>{
   const el = i >= 0 ? box.children[i] : null;
   if(el){ el.classList.add("on"); box.scrollTop = el.offsetTop - box.clientHeight/2 + el.clientHeight/2; }
 });
+/* 요약 본문에서 섹션 제목(h4) 탭 → 그 섹션 음성으로 점프 */
+$("introBody").addEventListener("click", e=>{
+  if(!podSecOn || !podTl.length) return;
+  if($("podBar").style.display === "none") return;       // 재생 바가 떠 있을 때만
+  const h4 = e.target.closest("h4"); if(!h4) return;
+  const h4s = [...$("introBody").querySelectorAll("h4")];
+  const hit = podTl.find(x => x.i === h4s.indexOf(h4) + podSecOff); if(!hit) return;
+  $("podAudio").currentTime = hit.s;
+  $("podAudio").play().catch(()=>{});
+});
 $("podScript").addEventListener("click", e=>{
   const el = e.target.closest(".podline"); if(!el) return;
   const seg = podSegs[+el.dataset.i]; if(!seg) return;
   $("podAudio").currentTime = seg.s;
   $("podAudio").play().catch(()=>{});
 });
-$("podScriptBtn").addEventListener("click", ()=>podScriptShow(!podSegOn));
+$("podScriptBtn").addEventListener("click", ()=>{
+  if(podSecOn){ openIntro(); return; }         // 라이브 모드: 요약 시트 열기
+  podScriptShow(!podSegOn);
+});
 function podHideBar(){
   try{ $("podAudio").pause(); }catch(e){}
   $("podBar").style.display = "none";
@@ -2099,6 +2196,11 @@ $("qText").addEventListener("click",e=>{
 });
 let wsScrollLast=0, wsScrollStreak=0;
 document.addEventListener("keydown",e=>{
+  // 입력창에 타이핑 중이거나 한글 조합 중이면 퀴즈 단축키(Q/W/E/S/O/X/1~5) 완전 무시
+  if(e.isComposing) return;
+  const tg=e.target;
+  if(tg && (tg.tagName==="INPUT"||tg.tagName==="TEXTAREA"||tg.isContentEditable)) return;
+  if($("askWrap").classList.contains("show")) return; // 질문 입력창 열림 중엔 단축키 정지
   const k=e.key;
   const kl=k.toLowerCase();
   // W/S 스크롤: 요약·AI정리본 등 시트가 열려 있으면 시트를, 완료 화면이면 완료 박스를 스크롤

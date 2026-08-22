@@ -636,14 +636,26 @@ function cloudUrl(p){ return `${DBURL}/flashcards/${encodeURIComponent(SYNC)}/${
 /* 빈(사실상 기록 없는) 레코드 판별 — 빈 기록이 실기록을 덮어쓰는 사고 방지용
    (2026-08-05 ch01·02 진도 소실 원인) */
 function emptyRec(x){ return !x || ((x.rounds||0)===0 && !(x.history||[]).length && Object.keys(x.qstat||{}).length<=1); }
+/* 푼표시(s)·오답(w)·체크(m)는 기기 간 합집합으로 보존한다.
+   푼 기록이 지워지는 건 목차의 '완전 초기화(새 회독)' 버튼(sreset 도장)뿐 */
+function mergeQstat(a,b){
+  const out={}; const ks=new Set([...Object.keys(a||{}),...Object.keys(b||{})]);
+  ks.forEach(k=>{
+    const x=(a||{})[k]||{}, y=(b||{})[k]||{};
+    const m={s:Math.max(x.s||0,y.s||0), w:Math.max(x.w||0,y.w||0)};
+    if(x.m||y.m) m.m=1;
+    out[k]=m;
+  });
+  return out;
+}
 let _pulledCloud=false;
 let _pushTimer=null;
 function pushCloud(){
   if(!SYNC || !CH) return;
   clearTimeout(_pushTimer);
   _pushTimer = setTimeout(()=>{
-    // 클라우드를 한 번도 확인하지 못한 상태에서 빈 로컬 기록을 통째로 올리지 않는다
-    if(emptyRec(S) && !_pulledCloud) return;
+    // 클라우드를 확인하기 전에는 밀어올리지 않는다 (기존 기록 덮어쓰기 방지) — 확인되면 재시도
+    if(!_pulledCloud){ pushCloud(); return; }
     fetch(cloudUrl("ch/"+CH), {method:"PUT", body:JSON.stringify(S)}).catch(()=>{});
   }, 1200);
 }
@@ -658,7 +670,10 @@ async function pullCloud(){
     const adopt = (newer && !(emptyRec(c) && !emptyRec(S)))   // 빈 클라우드는 실기록을 못 지움
                || (c && emptyRec(S) && !emptyRec(c));         // 빈 로컬은 시각 무관 실기록 수용
     if(adopt){
+      const prevQ=S.qstat||{}, prevReset=S.sreset||0;
       S = Object.assign({rounds:0,best:0,last:0,wrongNos:[],history:[],qstat:{},prog:null}, c);
+      // 완전 초기화(sreset)가 더 최신인 경우가 아니면, 이 기기의 푼표시·오답·체크를 합쳐 보존
+      if(!((c.sreset||0) > prevReset)) S.qstat = mergeQstat(S.qstat, prevQ);
       if(!S.qstat) S.qstat={};
       if(!S.history) S.history=[];
       try{ localStorage.setItem(LSKEY, JSON.stringify(S)); }catch(e){}

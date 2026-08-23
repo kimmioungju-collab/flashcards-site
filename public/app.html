@@ -96,6 +96,9 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .qtext mark{background:linear-gradient(transparent 42%,var(--hl) 42%);padding:0 2px;border-radius:2px}
 .qtext mark.kwr{background:linear-gradient(transparent 42%,#ffc9c9 42%);color:var(--wrong);font-weight:800}
 .src{margin-top:10px;font-size:12px;color:var(--muted);font-weight:700}
+.relhere{display:block;width:100%;margin:12px 0 2px;padding:11px 14px;border:1.5px dashed #7C8DB5;
+  background:#F3F6FD;color:#3B5BA5;border-radius:10px;font-size:14px;font-weight:800;text-align:center}
+.relhere:disabled{opacity:.55}
 /* 시험지 모드 — 선지(①~)가 포함된 기출 문항을 실제 시험지처럼 렌더링 */
 .exampaper{background:#fdfdf8;color:#151515;border:1px solid #b9b9ae;border-radius:8px;padding:18px 16px 14px;font-family:"Nanum Myeongjo","Batang","AppleMyungjo",serif;font-weight:400;line-height:1.66;font-size:15.5px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .exampaper .exstem{font-weight:700;margin-bottom:12px;white-space:pre-wrap;word-break:keep-all}
@@ -359,6 +362,7 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
       <div class="concept" id="conceptBox"><div class="clabel">💡 핵심 개념 — 읽고 외운 뒤 문제로 확인</div><div class="cbody" id="conceptBody"></div></div>
       <div class="qtext" id="qText"></div>
       <div class="src" id="srcLbl"></div>
+      <button class="relhere" id="relHereBtn" style="display:none">🔗 연관문제 먼저 풀기</button>
       <div class="result" id="result">
         <div class="verdict" id="verdict">
           <span class="mark" id="vMark"></span>
@@ -1243,31 +1247,39 @@ function startWeakDeck(){
    순서: [1번의 연관문제들 → 1번 기출] → [2번의 연관문제들 → 2번 기출] → …
    연관문제에는 _ch(출신 챕터)·_rel(딸린 기출 번호) 태그를 달아 통계 오염을 막는다. */
 const REL_CACHE = {};   // 출신 챕터 문제 캐시 { ch73: { "59": {…} } }
+/* 링크 목록에 필요한 출신 챕터 파일들을 받아 캐시에 채운다 */
+async function relFetch(links){
+  const need=new Set();
+  links.forEach(l=>{ if(l.ch && l.q && !REL_CACHE[l.ch]) need.add(l.ch); });
+  await Promise.all([...need].map(async id=>{
+    const r=await fetchCap(`chapters/${id}.json`, 9000);
+    if(!r||!r.ok) return;
+    try{
+      const d=await r.json();
+      REL_CACHE[id]=Object.fromEntries(((d&&d.questions)||[]).map(q=>[String(q.no),q]));
+    }catch(e){}
+  }));
+}
+/* 캐시에서 연관문제 사본을 만들어 _ch·_rel 태그를 단다 (없으면 null) */
+function relClone(l, mainNo){
+  const src=REL_CACHE[l.ch]&&REL_CACHE[l.ch][String(l.q)];
+  if(!src) return null;
+  return Object.assign({}, src, {_ch:l.ch, _rel:mainNo,
+    theme:`🔗 문항${mainNo} ${l.opt||"·"} 연관 · ${l.ch.replace(/^ch0?/,"")}장 ${src.no}번`});
+}
 async function startRelDeck(){
   const btn=$("relBtn");
   if(btn && btn.disabled) return;
   if(btn){ btn.disabled=true; btn.textContent="⏳연관"; }
   try{
-    const need=new Set();
-    QUESTIONS.forEach(q=>(Array.isArray(q.slinks)?q.slinks:[]).forEach(l=>{
-      if(l.ch && l.q && !REL_CACHE[l.ch]) need.add(l.ch);
-    }));
-    await Promise.all([...need].map(async id=>{
-      const r=await fetchCap(`chapters/${id}.json`, 9000);
-      if(!r||!r.ok) return;
-      try{
-        const d=await r.json();
-        REL_CACHE[id]=Object.fromEntries(((d&&d.questions)||[]).map(q=>[String(q.no),q]));
-      }catch(e){}
-    }));
+    const all=[];
+    QUESTIONS.forEach(q=>(Array.isArray(q.slinks)?q.slinks:[]).forEach(l=>all.push(l)));
+    await relFetch(all);
     const dk=[]; let nRel=0;
     QUESTIONS.forEach(q=>{
       (Array.isArray(q.slinks)?q.slinks:[]).forEach(l=>{
-        const src=REL_CACHE[l.ch]&&REL_CACHE[l.ch][String(l.q)];
-        if(!src) return;
-        dk.push(Object.assign({}, src, {_ch:l.ch, _rel:q.no,
-          theme:`🔗 문항${q.no} ${l.opt||"·"} 연관 · ${l.ch.replace(/^ch0?/,"")}장 ${src.no}번`}));
-        nRel++;
+        const c=relClone(l, q.no);
+        if(c){ dk.push(c); nRel++; }
       });
       dk.push(q);
     });
@@ -1281,6 +1293,27 @@ async function startRelDeck(){
     show();
   } finally {
     if(btn){ btn.disabled=false; btn.textContent="🔗연관"; }
+  }
+}
+/* 🔗 지금 보는 문항 하나의 연관문제만 현재 위치 "앞에" 끼워 넣기 —
+   연관문제를 순서대로 푼 뒤 자연스럽게 본 문항으로 돌아온다 */
+async function insertRelHere(){
+  const q=deck[idx];
+  if(!q || q._rel || !Array.isArray(q.slinks) || !q.slinks.length) return;
+  if(deck.some(x=>x && x._rel===q.no)) return;   // 이미 이 문항의 연관문제가 삽입돼 있음
+  const btn=$("relHereBtn");
+  if(btn && btn.disabled) return;
+  if(btn){ btn.disabled=true; btn.textContent="⏳ 연관문제 불러오는 중…"; }
+  try{
+    await relFetch(q.slinks);
+    const ins=q.slinks.map(l=>relClone(l, q.no)).filter(Boolean);
+    if(!ins.length){ alert("연관문제를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."); return; }
+    deck.splice(idx, 0, ...ins);
+    answers.splice(idx, 0, ...new Array(ins.length));
+    markRedo();     // _rel 감지 → 이어하기 저장 중단(다른 챕터 번호 충돌 방지)
+    show();
+  } finally {
+    if(btn) btn.disabled=false;
   }
 }
 /* 풀던 기록 처리 —
@@ -1366,7 +1399,8 @@ function resumeSession(p){
 // "과거에 푼 문항 인정" 규칙을 끈다 — 안 그러면 1문제만 풀어도 학습완료로 점프한다
 let REDO_SESSION=false;
 /* 연관문제 세션: 기출 문항마다 보기별 연관문제(_rel 태그, 다른 챕터 출신)를 앞에 끼워 넣은 덱.
-   다른 챕터 문항이 섞이므로 ① 이어하기 저장 안 함(번호 충돌) ② 이 챕터 진도·회독으로 집계 안 함 */
+   다른 챕터 문항이 섞이므로 ① 이어하기 저장 안 함(번호 충돌)
+   ② 점수·회독은 본 챕터 문항만으로 집계(_rel은 제외 — finish 참조) */
 let REL_SESSION=false;
 function markRedo(){
   REL_SESSION = deck.some(q=>q&&q._rel);
@@ -1458,6 +1492,17 @@ function show(){
     $("numRow").style.display=isMC?"flex":"none";
     $("studyBtn").style.display="none";
   }
+  // 🔗 보기별 연관문제(slinks)가 있는 본 챕터 문항이면 "먼저 풀기" 버튼 노출 (답하기 전에만)
+  {
+    const rb=$("relHereBtn");
+    if(rb){
+      const canRel = !q._rel && !answers[idx]
+        && Array.isArray(q.slinks) && q.slinks.length
+        && !deck.some(x=>x && x._rel===q.no);
+      rb.style.display = canRel ? "block" : "none";
+      if(canRel){ rb.disabled=false; rb.textContent=`🔗 이 문항의 연관문제 ${q.slinks.length}개 먼저 풀기`; }
+    }
+  }
   document.querySelector(".qscroll").scrollTop=0;
 }
 /* 링크 이동 URL — 돌아올 지점(back)을 함께 실어보낸다 */
@@ -1532,6 +1577,7 @@ function reveal(q, correct){
   }
   renderMarkBtn(q);
   renderAskBtn(q);
+  { const rb=$("relHereBtn"); if(rb) rb.style.display="none"; }   // 답한 뒤에는 숨김
   $("result").classList.add("show");
   $("oxRow").style.display="none"; $("numRow").style.display="none";
   // 전 문항이 채워졌으면 위치가 덱 중간이어도 결과 화면으로 갈 수 있게 한다
@@ -1577,32 +1623,37 @@ function finish(){
   $("nextBtn").style.display="none"; $("studyBtn").style.display="none";
   $("doneBox").style.display="block";
   // 과거 회차에 푼 문항으로 덱이 채워진 "진도 채우기" 세션이면 이번에 푼 문항만으로 집계한다
-  const answered = answers.filter(Boolean).length;
-  const partial = answered > 0 && answered < deck.length;
+  // 연관문제 세션(REL_SESSION)이면 다른 챕터 출신(_rel)은 빼고 본 챕터 문항만으로 점수·회독을 집계한다
+  const gq=[], ga=[];
+  deck.forEach((q,i)=>{ if(!REL_SESSION || !q._rel){ gq.push(q); ga.push(answers[i]); } });
+  const answered = ga.filter(Boolean).length;
+  const partial = answered > 0 && answered < gq.length;
   // 이번 세션에도, 과거에도 안 푼 문항 수 — 이게 남아 있으면 "완료"가 아니다
-  const unsolvedLeft = deck.filter((q,i)=>!answers[i] && !isSolved(q.no)).length;
-  const total = partial ? answered : deck.length;
-  $("finalScore").textContent=ok; $("finalTotal").textContent=total;
-  const rate=total?Math.round(ok/total*100):0;
+  const unsolvedLeft = gq.filter((q,i)=>!ga[i] && !isSolved(q.no)).length;
+  const gok = ga.filter(a=>a&&a.correct).length;
+  const gwrongs = gq.filter((q,i)=>ga[i]&&!ga[i].correct);
+  const total = partial ? answered : gq.length;
+  $("finalScore").textContent=gok; $("finalTotal").textContent=total;
+  const rate=total?Math.round(gok/total*100):0;
   $("doneBox").querySelector("h2").textContent =
     (partial && unsolvedLeft>0) ? "아직 안 끝났습니다 ✋" : "학습 완료 🚒";
   $("doneMsg").textContent = partial
     ? (unsolvedLeft>0
         ? `이번에 ${answered}문항을 풀었지만 아직 안 푼 문항이 ${unsolvedLeft}개 남았습니다. 목차의 진도에는 실제 푼 문항만 집계됩니다. 처음부터 다시를 누르면 남은 문항을 이어서 풀 수 있습니다.`
-        : `안 풀었던 ${answered}문항을 채워 이 챕터(${deck.length}문항)를 모두 완료했습니다.`)
+        : `안 풀었던 ${answered}문항을 채워 이 챕터(${gq.length}문항)를 모두 완료했습니다.`)
     : rate===100 ? "완벽합니다. 이 단원은 접어두세요." :
-    rate>=80 ? `정답률 ${rate}% — 오답 ${no}개만 잡으면 끝납니다.` :
+    rate>=80 ? `정답률 ${rate}% — 오답 ${gwrongs.length}개만 잡으면 끝납니다.` :
     `정답률 ${rate}% — 오답 위주로 한 번 더 돌리세요.`;
   $("retryWrongBtn").style.display = wrongs.length? "block":"none";
   const nb=$("nextChBtn");
   if(NEXTCH){ nb.textContent=`다음 챕터: ${NEXTCH.title} →`; nb.style.display="block"; }
   else nb.style.display="none";
-  if(CH && deck.length && !partial && !REL_SESSION){
+  if(CH && gq.length && !partial){
     S.rounds=(S.rounds||0)+1;
     S.best=Math.max(S.best||0, rate);
     S.last=rate; S.when=Date.now();
-    S.wrongNos=wrongs.map(w=>w.no);
-    S.history.push({n:S.rounds, when:Date.now(), total:deck.length, ok:ok, rate:rate, wrongNos:S.wrongNos});
+    S.wrongNos=gwrongs.map(w=>w.no);
+    S.history.push({n:S.rounds, when:Date.now(), total:gq.length, ok:gok, rate:rate, wrongNos:S.wrongNos});
     if(S.history.length>30) S.history=S.history.slice(-30);
     S.prog=null;
     save();
@@ -2243,6 +2294,7 @@ $("keyClose").addEventListener("click",()=>$("keyWrap").classList.remove("show")
 $("keyWrap").addEventListener("click",e=>{if(e.target===$("keyWrap"))$("keyWrap").classList.remove("show");});
 $("weakBtn").addEventListener("click",startWeakDeck);
 $("relBtn").addEventListener("click",startRelDeck);
+$("relHereBtn").addEventListener("click",insertRelHere);
 $("reviewBtn").addEventListener("click",openReview);
 $("reviewBtn2").addEventListener("click",openReview);
 $("reviewClose").addEventListener("click",()=>$("reviewWrap").classList.remove("show"));

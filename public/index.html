@@ -753,6 +753,15 @@ async function togglePlanGrade(g){
   if(gs.length) await ensureQGrades();
   renderPlan();
 }
+/* 현재 회독 수: '완전 초기화(새 회독)' 횟수 기반.
+   저장값 없으면(다른 기기 등) 챕터별 회독수 최솟값으로 추정 */
+function roundKey(){ return "fc:roundN:"+SUBJ; }
+function currentRound(){
+  const v=parseInt(localStorage.getItem(roundKey())||"0",10);
+  if(v>0) return v;
+  const rs=chapters.filter(c=>(c.count||0)>0).map(c=>(stat(c.id)||{}).rounds||0);
+  return Math.max(1, rs.length?Math.min(...rs):1);
+}
 function renderPlan(){
   const card=document.getElementById("planCard"); if(!card) return;
   if(SUBJ==="fire"){ card.style.display="none"; return; }   // 학습 플랜은 행정법 전용
@@ -787,7 +796,7 @@ function renderPlan(){
   const overdue = dayNum>days;
 
   let badges="";
-  if(seenQ>=totalQ) badges=`<span class="pb ok">🎉 1회독 완료!</span>`;
+  if(seenQ>=totalQ) badges=`<span class="pb ok">🎉 ${currentRound()}회독 완료!</span>`;
   else if(overdue) badges=`<span class="pb bad">기한 초과 · 남은 ${remainQ}문항</span>`;
   else if(behindQ>0) badges=`<span class="pb bad">⚠️ ${behindQ}문항 뒤처짐</span>`;
   else badges=`<span class="pb ok">✅ 순조${aheadQ>0?` (${aheadQ}문항 앞섬)`:""}</span>`;
@@ -814,7 +823,7 @@ function renderPlan(){
   if(tt){
     const win=`${fmtHM(tt.tstart)}~${fmtHM(tt.tend)}`, nowStr=fmtHM(tt.nowMin);
     if(tt.done){
-      timeHtml=`<div class="ptime ok">⏰ ${win} · 🎉 1회독을 이미 끝냈어요</div>`;
+      timeHtml=`<div class="ptime ok">⏰ ${win} · 🎉 ${currentRound()}회독을 이미 끝냈어요</div>`;
     } else if(tt.nowMin < tt.tstart){
       timeHtml=`<div class="ptime">⏰ ${win} · 아직 시작 전 · 오늘 목표까지 <b>${Math.max(0,tt.targetToday-tt.seenQ)}문항</b></div>`;
     } else {
@@ -890,6 +899,7 @@ async function resetProgress(){
       localStorage.removeItem("fc:"+c.id);
       if(code){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/ch/${c.id}.json`,{method:"PUT",body:"null"}); }catch(e){} }
     }
+    localStorage.removeItem(roundKey());   // 회독 카운터도 1회독부터 다시
     alert(`${SUBJ_NAME} 전체 진도를 초기화했습니다.`);
   } else {
     const num=s.replace(/[^0-9]/g,"");
@@ -913,6 +923,8 @@ async function startNewRound(){
   if(!confirm(`🧨 ${SUBJ_NAME} 완전 초기화 (새 회독)\n\n· 전체 챕터가 '안 푼 상태'로 리셋되어 진도가 0%부터 다시 집계됩니다\n· 오답 횟수·⭐체크·회독수·최고점수·기록은 그대로 유지됩니다\n· 이 버튼 외에는 어떤 경우에도 푼 기록이 지워지지 않습니다\n\n전체 회독을 새로 시작할 때만 누르세요. 진행할까요?`)) return;
   const code=syncCode();
   const resetAt=Date.now();
+  const newRound=currentRound()+1;   // 회독 카운터 증가 (표시용)
+  try{ localStorage.setItem(roundKey(), String(newRound)); }catch(e){}
   for(const c of chapters){
     const s=stat(c.id); if(!s) continue;
     if(s.qstat){ for(const k in s.qstat){ if(s.qstat[k]) s.qstat[k].s=0; } }

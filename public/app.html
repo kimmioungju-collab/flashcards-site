@@ -332,6 +332,7 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
       <button class="iconbtn" id="reviewBtn">📝풀이</button>
       <button class="iconbtn" id="aiSumBtn">🧠정리</button>
       <button class="iconbtn" id="weakBtn">⭐취약</button>
+      <button class="iconbtn" id="relBtn" style="display:none">🔗연관</button>
       <button class="iconbtn" id="podBtn">🎧듣기</button>
       <button class="iconbtn" id="filterBtn">필터</button>
     </div>
@@ -880,6 +881,8 @@ function renderWeakChip(q){
 }
 function renderMarkBtn(q){
   const mk=$("markBtn"), on=qmark(q.no);
+  // 연관문제는 다른 챕터 문항 — 이 챕터 기록에 ⭐가 잘못 남지 않게 체크 버튼을 숨긴다
+  mk.style.display = q._rel ? "none" : "";
   mk.classList.toggle("on", on);
   mk.textContent = on ? "⭐ 체크됨 — 취약 목록에 포함 (해제하려면 탭)" : "☆ 이 문제 체크하기 (헷갈렸어요)";
   mk.onclick=()=>{ toggleMark(q.no); renderMarkBtn(q); renderWeakChip(q); };
@@ -1190,6 +1193,8 @@ function renderExp(exp, kws){
 }
 
 function saveProg(){
+  // 연관문제 세션은 다른 챕터 문항이 섞여 번호가 겹칠 수 있어 이어하기를 저장하지 않는다(통계만 저장)
+  if(REL_SESSION){ save(); return; }
   S.prog = { mode, nos: deck.map(q=>q.no), idx,
              ans: answers.map((a,i)=>a?[deck[i].no,a.a,a.correct]:null).filter(Boolean),
              ok, no, redo: REDO_SESSION };
@@ -1232,6 +1237,51 @@ function startWeakDeck(){
   $("resumeBar").style.display="none";
   $("doneBox").style.display="none"; $("card").style.display="flex";
   show();
+}
+/* ── 🔗 연관문제 먼저 풀기 (기출 챕터용) ──
+   문항마다 보기별 연관문제(slinks)를 출신 챕터에서 가져와 본 문항 "앞에" 끼워 넣는다.
+   순서: [1번의 연관문제들 → 1번 기출] → [2번의 연관문제들 → 2번 기출] → …
+   연관문제에는 _ch(출신 챕터)·_rel(딸린 기출 번호) 태그를 달아 통계 오염을 막는다. */
+const REL_CACHE = {};   // 출신 챕터 문제 캐시 { ch73: { "59": {…} } }
+async function startRelDeck(){
+  const btn=$("relBtn");
+  if(btn && btn.disabled) return;
+  if(btn){ btn.disabled=true; btn.textContent="⏳연관"; }
+  try{
+    const need=new Set();
+    QUESTIONS.forEach(q=>(Array.isArray(q.slinks)?q.slinks:[]).forEach(l=>{
+      if(l.ch && l.q && !REL_CACHE[l.ch]) need.add(l.ch);
+    }));
+    await Promise.all([...need].map(async id=>{
+      const r=await fetchCap(`chapters/${id}.json`, 9000);
+      if(!r||!r.ok) return;
+      try{
+        const d=await r.json();
+        REL_CACHE[id]=Object.fromEntries(((d&&d.questions)||[]).map(q=>[String(q.no),q]));
+      }catch(e){}
+    }));
+    const dk=[]; let nRel=0;
+    QUESTIONS.forEach(q=>{
+      (Array.isArray(q.slinks)?q.slinks:[]).forEach(l=>{
+        const src=REL_CACHE[l.ch]&&REL_CACHE[l.ch][String(l.q)];
+        if(!src) return;
+        dk.push(Object.assign({}, src, {_ch:l.ch, _rel:q.no,
+          theme:`🔗 문항${q.no} ${l.opt||"·"} 연관 · ${l.ch.replace(/^ch0?/,"")}장 ${src.no}번`}));
+        nRel++;
+      });
+      dk.push(q);
+    });
+    if(!nRel){ alert("이 챕터에는 보기별 연관문제가 없습니다."); return; }
+    deck=dk; idx=0; ok=0; no=0; wrongs=[]; answers=[];
+    markRedo();          // _rel 감지 → REL_SESSION·REDO_SESSION 자동 설정
+    clearProg();
+    $("sheetWrap").classList.remove("show");
+    $("resumeBar").style.display="none";
+    $("doneBox").style.display="none"; $("card").style.display="flex";
+    show();
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent="🔗연관"; }
+  }
 }
 /* 풀던 기록 처리 —
    예전에는 "이어서 풀기" 버튼을 눌러야 넘어갔는데, 아이폰에서 그 버튼이 눌리지 않아
@@ -1315,7 +1365,13 @@ function resumeSession(p){
 // 재도전 세션: 덱 전체가 이미 푼 문항(오답 재도전·취약 풀기 등)이면
 // "과거에 푼 문항 인정" 규칙을 끈다 — 안 그러면 1문제만 풀어도 학습완료로 점프한다
 let REDO_SESSION=false;
-function markRedo(){ REDO_SESSION = deck.length>0 && deck.every(q=>isSolved(q.no)); }
+/* 연관문제 세션: 기출 문항마다 보기별 연관문제(_rel 태그, 다른 챕터 출신)를 앞에 끼워 넣은 덱.
+   다른 챕터 문항이 섞이므로 ① 이어하기 저장 안 함(번호 충돌) ② 이 챕터 진도·회독으로 집계 안 함 */
+let REL_SESSION=false;
+function markRedo(){
+  REL_SESSION = deck.some(q=>q&&q._rel);
+  REDO_SESSION = REL_SESSION || (deck.length>0 && deck.every(q=>isSolved(q.no)));
+}
 // 덱에 남은 미응답이 없는지 — 이번 세션 응답 + (진도 채우기 세션에 한해) 과거 회차에 이미 푼 문항 인정
 const allAnswered=()=>deck.length>0 && deck.every((q,i)=>answers[i]||(!REDO_SESSION&&isSolved(q.no)));
 
@@ -1489,9 +1545,12 @@ function answer(a){
   if(correct) ok++; else { no++; wrongs.push(q); }
   answers[idx]={a:a, correct:correct};
   // 문항별 누적 통계 즉시 저장 (중간에 꺼도 기록 유지)
-  const st = S.qstat[q.no] || (S.qstat[q.no]={s:0,w:0});
-  st.s++; if(!correct) st.w++;
-  if(!correct) bumpWrong(REVIEW ? q._ch : CH, q.no);   // 날짜별 오답 로그 (전날 오답 복습용)
+  // 단, 연관문제(_rel)는 다른 챕터 문항이라 이 챕터 qstat에 쓰면 진도가 오염된다 — 건너뜀
+  if(!q._rel){
+    const st = S.qstat[q.no] || (S.qstat[q.no]={s:0,w:0});
+    st.s++; if(!correct) st.w++;
+  }
+  if(!correct) bumpWrong(q._ch || CH, q.no);   // 날짜별 오답 로그 — 출신 챕터(_ch) 우선
   bumpDaily();
   saveProg();
   reveal(q, correct);
@@ -1538,7 +1597,7 @@ function finish(){
   const nb=$("nextChBtn");
   if(NEXTCH){ nb.textContent=`다음 챕터: ${NEXTCH.title} →`; nb.style.display="block"; }
   else nb.style.display="none";
-  if(CH && deck.length && !partial){
+  if(CH && deck.length && !partial && !REL_SESSION){
     S.rounds=(S.rounds||0)+1;
     S.best=Math.max(S.best||0, rate);
     S.last=rate; S.when=Date.now();
@@ -1679,7 +1738,9 @@ function openReview(){
   $("reviewWrap").querySelector(".sheet").scrollTop=0;
 }
 function jumpToNo(qno){
-  let i = deck.findIndex(q=>String(q.no)===String(qno));
+  // 연관문제 세션에선 다른 챕터 문항과 번호가 겹칠 수 있어, 본 챕터 문항(_rel 없음)을 우선 찾는다
+  let i = deck.findIndex(q=>String(q.no)===String(qno) && !q._rel);
+  if(i<0) i = deck.findIndex(q=>String(q.no)===String(qno));
   if(i<0){                       // 필터에 걸려 빠진 문항이면 전체 덱으로 재구성 후 이동
     deck=[...QUESTIONS]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
     markRedo();
@@ -2181,6 +2242,7 @@ $("keyBtn").addEventListener("click",openKey);
 $("keyClose").addEventListener("click",()=>$("keyWrap").classList.remove("show"));
 $("keyWrap").addEventListener("click",e=>{if(e.target===$("keyWrap"))$("keyWrap").classList.remove("show");});
 $("weakBtn").addEventListener("click",startWeakDeck);
+$("relBtn").addEventListener("click",startRelDeck);
 $("reviewBtn").addEventListener("click",openReview);
 $("reviewBtn2").addEventListener("click",openReview);
 $("reviewClose").addEventListener("click",()=>$("reviewWrap").classList.remove("show"));
@@ -2409,6 +2471,8 @@ setTimeout(()=>{
     $("keyTitle").textContent = "📋 답안 확인 — " + d.title;
     loadIntro(d.title);   // 챕터 핵심 요약 준비(초보자용) — 있으면 버튼 노출·1회 자동표시
     initChips(); applyToggleUI(); updateRoundPill(); renderHistory();
+    // 보기별 연관문제(slinks)가 있는 기출 챕터면 🔗연관 버튼 노출
+    if(QUESTIONS.some(q=>Array.isArray(q.slinks)&&q.slinks.length)) $("relBtn").style.display="";
     if(new URLSearchParams(location.search).get("play")){   // 목차의 🎧 칩에서 넘어온 경우 바로 재생
       fetch(podUrl(), {cache:"no-store"}).then(r=>r.json()).then(pd=>{
         if(pd && pd.status === "done" && pd.url) podPlay(pd.url, pd.t, d.title);

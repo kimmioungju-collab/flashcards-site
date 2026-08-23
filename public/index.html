@@ -522,6 +522,13 @@ async function pullAll(){
     if(rp.ok){ const cp=await rp.json(); const lp=loadPlan();
       if(cp && (cp._at||0) > ((lp&&lp._at)||0)) localStorage.setItem("fc:plan", JSON.stringify(cp)); }
   }catch(e){}
+  // 회독 카운터 내려받기 (큰 쪽 채택 — 다른 기기에서 새 회독 시작했을 수 있음)
+  try{
+    const rr=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/meta/roundN.json`,{cache:"no-store"});
+    if(rr.ok){ const rn=parseInt(await rr.json(),10)||0;
+      const lv=parseInt(localStorage.getItem("fc:roundN:admin")||"0",10);
+      if(rn>lv) localStorage.setItem("fc:roundN:admin", String(rn)); }
+  }catch(e){}
 }
 async function pushAll(){
   const c=syncCode(); if(!c) return;
@@ -561,6 +568,15 @@ async function pushAll(){
       try{ const rp=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/plan.json`,{cache:"no-store"}); if(rp.ok) cp=await rp.json(); }catch(e){}
       if(!cp || (p._at||0) > (cp._at||0))
         await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/plan.json`,{method:"PUT",body:JSON.stringify(p)});
+    }
+  }catch(e){}
+  // 회독 카운터 올리기 (로컬이 더 크면)
+  try{
+    const lv=parseInt(localStorage.getItem("fc:roundN:admin")||"0",10);
+    if(lv>0){
+      let cn=0;
+      try{ const rr=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/meta/roundN.json`,{cache:"no-store"}); if(rr.ok) cn=parseInt(await rr.json(),10)||0; }catch(e){}
+      if(lv>cn) await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/meta/roundN.json`,{method:"PUT",body:String(lv)});
     }
   }catch(e){}
 }
@@ -753,19 +769,23 @@ async function togglePlanGrade(g){
   if(gs.length) await ensureQGrades();
   renderPlan();
 }
-/* 현재 회독 수: '완전 초기화(새 회독)' 횟수 기반.
-   저장값 없으면(다른 기기 등) 챕터별 회독수 최솟값으로 추정 */
-function roundKey(){ return "fc:roundN:"+SUBJ; }
+/* 현재 회독 수: '완전 초기화(새 회독)' 횟수 기반 (클라우드 동기화).
+   저장값 없으면 행정법(ch*) 챕터만으로 추정 — fs 챕터가 섞이면 최솟값이 왜곡됨 */
+function roundKey(){ return "fc:roundN:"+(SUBJ==="fire"?"fire":"admin"); }
 function currentRound(){
   const v=parseInt(localStorage.getItem(roundKey())||"0",10);
   if(v>0) return v;
-  const rs=chapters.filter(c=>(c.count||0)>0).map(c=>(stat(c.id)||{}).rounds||0);
-  return Math.max(1, rs.length?Math.min(...rs):1);
+  const pool=(allChapters.length?allChapters:chapters).filter(c=>!isFireCh(c.id)&&(c.count||0)>0);
+  const rs=pool.map(c=>(stat(c.id)||{}).rounds||0);
+  let est=Math.max(1, rs.length?Math.min(...rs):1);
+  // 완전 초기화 도장(sreset)이 찍혀 있으면 최소 2회독째
+  if(est<2 && pool.some(c=>{const s=stat(c.id); return s&&s.sreset;})) est=2;
+  return est;
 }
 /* 회독 완료 일자: 완료 감지 시 1회 도장 찍어 보존 (이후 재도전해도 날짜 안 밀림).
    저장값 없으면 챕터별 마지막 완료 시각의 최댓값으로 추정 */
 function roundDoneDate(){
-  const key="fc:roundDone:"+SUBJ+":"+currentRound();
+  const key="fc:roundDone:"+(SUBJ==="fire"?"fire":"admin")+":"+currentRound();
   let v=parseInt(localStorage.getItem(key)||"0",10);
   if(!v){
     chapters.forEach(c=>{ if(/^fs/.test(c.id)) return; const s=stat(c.id); if(s&&s.when) v=Math.max(v,s.when); });
@@ -915,6 +935,7 @@ async function resetProgress(){
       if(code){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/ch/${c.id}.json`,{method:"PUT",body:"null"}); }catch(e){} }
     }
     localStorage.removeItem(roundKey());   // 회독 카운터도 1회독부터 다시
+    if(code && SUBJ!=="fire"){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/meta/roundN.json`,{method:"PUT",body:"null"}); }catch(e){} }
     alert(`${SUBJ_NAME} 전체 진도를 초기화했습니다.`);
   } else {
     const num=s.replace(/[^0-9]/g,"");
@@ -940,6 +961,7 @@ async function startNewRound(){
   const resetAt=Date.now();
   const newRound=currentRound()+1;   // 회독 카운터 증가 (표시용)
   try{ localStorage.setItem(roundKey(), String(newRound)); }catch(e){}
+  if(code && SUBJ!=="fire"){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/meta/roundN.json`,{method:"PUT",body:String(newRound)}); }catch(e){} }
   for(const c of chapters){
     const s=stat(c.id); if(!s) continue;
     if(s.qstat){ for(const k in s.qstat){ if(s.qstat[k]) s.qstat[k].s=0; } }

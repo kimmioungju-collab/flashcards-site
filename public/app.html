@@ -1196,11 +1196,18 @@ function renderExp(exp, kws){
   return hl(esc(exp), kws);
 }
 
+/* 덱 항목 고유 키 — 연관문제(_rel)는 다른 챕터 번호와 겹칠 수 있어
+   "REL|출신챕터|번호|딸린기출|보기" 형태로 구분한다. 일반 문항은 번호 그대로. */
+function qKey(q){ return q._rel ? ["REL", q._ch, q.no, q._rel, q._opt||""].join("|") : q.no; }
+function qKeyParse(n){
+  const s = String(n);
+  if(!s.startsWith("REL|")) return null;
+  const p = s.split("|");
+  return { ch:p[1], no:p[2], rel:p[3], opt:p[4]||"" };
+}
 function saveProg(){
-  // 연관문제 세션은 다른 챕터 문항이 섞여 번호가 겹칠 수 있어 이어하기를 저장하지 않는다(통계만 저장)
-  if(REL_SESSION){ save(); return; }
-  S.prog = { mode, nos: deck.map(q=>q.no), idx,
-             ans: answers.map((a,i)=>a?[deck[i].no,a.a,a.correct]:null).filter(Boolean),
+  S.prog = { mode, nos: deck.map(qKey), idx,
+             ans: answers.map((a,i)=>a?[qKey(deck[i]),a.a,a.correct]:null).filter(Boolean),
              ok, no, redo: REDO_SESSION };
   save();
 }
@@ -1264,7 +1271,7 @@ async function relFetch(links){
 function relClone(l, mainNo){
   const src=REL_CACHE[l.ch]&&REL_CACHE[l.ch][String(l.q)];
   if(!src) return null;
-  return Object.assign({}, src, {_ch:l.ch, _rel:mainNo,
+  return Object.assign({}, src, {_ch:l.ch, _rel:mainNo, _opt:l.opt||"",
     theme:`🔗 문항${mainNo} ${l.opt||"·"} 연관 · ${l.ch.replace(/^ch0?/,"")}장 ${src.no}번`});
 }
 async function startRelDeck(){
@@ -1286,7 +1293,7 @@ async function startRelDeck(){
     if(!nRel){ alert("이 챕터에는 보기별 연관문제가 없습니다."); return; }
     deck=dk; idx=0; ok=0; no=0; wrongs=[]; answers=[];
     markRedo();          // _rel 감지 → REL_SESSION·REDO_SESSION 자동 설정
-    clearProg();
+    saveProg();          // 연관 덱도 즉시 저장 → 중간에 꺼도 이어하기 가능
     $("sheetWrap").classList.remove("show");
     $("resumeBar").style.display="none";
     $("doneBox").style.display="none"; $("card").style.display="flex";
@@ -1310,7 +1317,8 @@ async function insertRelHere(){
     if(!ins.length){ alert("연관문제를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."); return; }
     deck.splice(idx, 0, ...ins);
     answers.splice(idx, 0, ...new Array(ins.length));
-    markRedo();     // _rel 감지 → 이어하기 저장 중단(다른 챕터 번호 충돌 방지)
+    markRedo();     // _rel 감지 → REL_SESSION 설정(점수·회독 집계에서 제외)
+    saveProg();     // 삽입된 연관문제 포함 상태로 즉시 저장 → 이어하기 유지
     show();
   } finally {
     if(btn) btn.disabled=false;
@@ -1371,17 +1379,25 @@ document.addEventListener("touchend", e => {
   if(near || $("resumeBar").style.display === "flex") tapLog("touchend", e, t);
 }, {passive:true});
 
-function resumeSession(p){
+async function resumeSession(p){
   mode = p.mode || "quiz";
   const byNo = Object.fromEntries(QUESTIONS.map(q=>[q.no,q]));
-  deck = p.nos.map(n=>byNo[n]).filter(Boolean);
+  // 연관문제 키(REL|…)가 섞여 있으면 출신 챕터 파일을 먼저 받아 복원한다
+  const relKeys = p.nos.map(qKeyParse).filter(Boolean);
+  if(relKeys.length) await relFetch(relKeys.map(k=>({ch:k.ch, q:k.no})));
+  deck = p.nos.map(n=>{
+    const k = qKeyParse(n);
+    return k ? relClone({ch:k.ch, q:k.no, opt:k.opt}, k.rel) : byNo[n];
+  }).filter(Boolean);
+  REL_SESSION = deck.some(q=>q&&q._rel);
   // 저장된 재도전 플래그 우선, 없던 옛 기록이면 덱 상태로 재계산
-  REDO_SESSION = ("redo" in p) ? !!p.redo : (deck.length>0 && deck.every(q=>isSolved(q.no)));
+  REDO_SESSION = ("redo" in p) ? !!p.redo
+               : REL_SESSION || (deck.length>0 && deck.every(q=>isSolved(q.no)));
   answers = new Array(deck.length);
   ok=0; no=0; wrongs=[];
   const ansByNo = Object.fromEntries((p.ans||[]).map(a=>[a[0],a]));
   deck.forEach((q,i)=>{
-    const a = ansByNo[q.no];
+    const a = ansByNo[qKey(q)];
     if(a){ answers[i]={a:a[1],correct:a[2]}; if(a[2]) ok++; else { no++; wrongs.push(q); } }
   });
   idx = Math.min(p.idx||0, deck.length);
@@ -1399,7 +1415,7 @@ function resumeSession(p){
 // "과거에 푼 문항 인정" 규칙을 끈다 — 안 그러면 1문제만 풀어도 학습완료로 점프한다
 let REDO_SESSION=false;
 /* 연관문제 세션: 기출 문항마다 보기별 연관문제(_rel 태그, 다른 챕터 출신)를 앞에 끼워 넣은 덱.
-   다른 챕터 문항이 섞이므로 ① 이어하기 저장 안 함(번호 충돌)
+   ① 이어하기 저장 시 REL|챕터|번호|기출|보기 고유 키를 써서 번호 충돌 없이 복원한다
    ② 점수·회독은 본 챕터 문항만으로 집계(_rel은 제외 — finish 참조) */
 let REL_SESSION=false;
 function markRedo(){
@@ -2550,7 +2566,7 @@ setTimeout(()=>{
     if(S.prog && S.prog.nos && S.prog.nos.length && !S.prog.redo){
       const ansNos=new Set((S.prog.ans||[]).map(a=>a[0]));
       if(S.prog.nos.every(n=>ansNos.has(n)||isSolved(n))){
-        resumeSession(S.prog);
+        await resumeSession(S.prog);
         idx = deck.length; show();
         return;
       }
@@ -2574,7 +2590,7 @@ setTimeout(()=>{
       const done=(S.prog.ans||[]).length, total=S.prog.nos.length;
       RESUME_PROG = S.prog;
       try{
-        resumeSession(S.prog);
+        await resumeSession(S.prog);
         showResumeBar(done, total);         // 되돌리고 싶을 때만 쓰는 안내 띠 (12초 후 사라짐)
       }catch(e){
         report("resumefail", {msg:String((e&&e.message)||e).slice(0,160)});

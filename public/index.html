@@ -762,6 +762,21 @@ function currentRound(){
   const rs=chapters.filter(c=>(c.count||0)>0).map(c=>(stat(c.id)||{}).rounds||0);
   return Math.max(1, rs.length?Math.min(...rs):1);
 }
+/* 회독 완료 일자: 완료 감지 시 1회 도장 찍어 보존 (이후 재도전해도 날짜 안 밀림).
+   저장값 없으면 챕터별 마지막 완료 시각의 최댓값으로 추정 */
+function roundDoneDate(){
+  const key="fc:roundDone:"+SUBJ+":"+currentRound();
+  let v=parseInt(localStorage.getItem(key)||"0",10);
+  if(!v){
+    chapters.forEach(c=>{ if(/^fs/.test(c.id)) return; const s=stat(c.id); if(s&&s.when) v=Math.max(v,s.when); });
+    if(!v) v=Date.now();
+    try{ localStorage.setItem(key,String(v)); }catch(e){}
+  }
+  const d=new Date(v), now=new Date();
+  return d.getFullYear()!==now.getFullYear()
+    ? `${String(d.getFullYear()).slice(2)}.${d.getMonth()+1}/${d.getDate()}`
+    : `${d.getMonth()+1}/${d.getDate()}`;
+}
 function renderPlan(){
   const card=document.getElementById("planCard"); if(!card) return;
   if(SUBJ==="fire"){ card.style.display="none"; return; }   // 학습 플랜은 행정법 전용
@@ -796,7 +811,7 @@ function renderPlan(){
   const overdue = dayNum>days;
 
   let badges="";
-  if(seenQ>=totalQ) badges=`<span class="pb ok">🎉 ${currentRound()}회독 완료!</span>`;
+  if(seenQ>=totalQ) badges=`<span class="pb ok">🎉 ${currentRound()}회독 완료! (${roundDoneDate()})</span>`;
   else if(overdue) badges=`<span class="pb bad">기한 초과 · 남은 ${remainQ}문항</span>`;
   else if(behindQ>0) badges=`<span class="pb bad">⚠️ ${behindQ}문항 뒤처짐</span>`;
   else badges=`<span class="pb ok">✅ 순조${aheadQ>0?` (${aheadQ}문항 앞섬)`:""}</span>`;

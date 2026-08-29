@@ -198,6 +198,10 @@ body.gripon .grip{display:flex}
 .studybtn:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.25)}
 .nextbtn{width:100%;border:none;border-radius:16px;padding:18px 0;font-size:17px;font-weight:900;cursor:pointer;background:var(--hl);color:#3B3400;box-shadow:0 6px 0 rgba(0,0,0,.25);display:none}
 .nextbtn:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.25)}
+.navrow{display:flex;gap:8px;align-items:stretch}
+.navrow .nextbtn{width:auto;flex:1}
+.prevbtn{flex:0 0 auto;border:none;border-radius:16px;padding:18px 16px;font-size:15px;font-weight:900;cursor:pointer;background:#4A5568;color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.25);display:none}
+.prevbtn:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.25)}
 .done{display:none;flex:1;background:var(--paper);border-radius:18px;padding:30px 24px;text-align:center;box-shadow:0 14px 34px rgba(0,0,0,.35);overflow-y:auto}
 .done h2{font-size:22px;font-weight:900;margin-bottom:8px}
 .done .score{font-size:46px;font-weight:900;margin:10px 0 4px}
@@ -422,7 +426,10 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
       <button data-a="①">①</button><button data-a="②">②</button><button data-a="③">③</button><button data-a="④">④</button><button data-a="⑤">⑤</button>
     </div>
     <button class="studybtn" id="studyBtn">개념 확인 완료 → 문제 풀기</button>
-    <button class="nextbtn" id="nextBtn">다음 문제 →</button>
+    <div class="navrow">
+      <button class="prevbtn" id="prevBtn">← 전 문제</button>
+      <button class="nextbtn" id="nextBtn">다음 문제 →</button>
+    </div>
   </div>
 </div>
 
@@ -1487,6 +1494,7 @@ function show(){
   $("srcLbl").textContent="출처: "+q.src;
   $("result").classList.remove("show");
   $("nextBtn").style.display="none";
+  $("prevBtn").style.display = idx>0 ? "block" : "none";   // 전 문제 버튼 — 첫 문항에선 숨김
   const isMC = !["O","X"].includes(q.ans);
   updateNumRow(q);
   const done = answers[idx];
@@ -1637,6 +1645,7 @@ function finish(){
   $("card").style.display="none";
   $("oxRow").style.display="none"; $("numRow").style.display="none";
   $("nextBtn").style.display="none"; $("studyBtn").style.display="none";
+  $("prevBtn").style.display="none";
   $("doneBox").style.display="block";
   // 과거 회차에 푼 문항으로 덱이 채워진 "진도 채우기" 세션이면 이번에 푼 문항만으로 집계한다
   // 연관문제 세션(REL_SESSION)이면 다른 챕터 출신(_rel)은 빼고 본 챕터 문항만으로 점수·회독을 집계한다
@@ -2234,6 +2243,7 @@ document.querySelectorAll(".podmode").forEach(b=>b.addEventListener("click", ()=
 document.querySelectorAll(".oxrow button,.numrow button").forEach(b=>b.addEventListener("click",()=>answer(b.dataset.a)));
 $("nextChBtn").addEventListener("click",()=>{ if(NEXTCH) location.href="app.html?ch="+NEXTCH.id; });
 $("nextBtn").addEventListener("click",next);
+$("prevBtn").addEventListener("click",prev);
 
 /* ── 답 버튼 위치 이동 — 그립을 끌어 원하는 곳에 고정, 두 번 탭으로 원위치 (기기별 저장) ── */
 (function(){

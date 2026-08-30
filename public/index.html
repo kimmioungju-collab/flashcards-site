@@ -186,13 +186,15 @@ a.ch.goal::before{background:#F5A623}
 <script>
 let chapters=[];
 let allChapters=[];   // 과목 필터 이전의 전체 목록 (동기화는 항상 전체 대상)
-/* ── 과목 분리: ?s=admin(행정법) | fire(소방공무원법), 없으면 과목 선택 화면 ── */
+/* ── 과목 분리: ?s=admin(행정법) | fire(소방공무원법) | tactic(소방전술), 없으면 과목 선택 화면 ── */
 const SUBJ=new URLSearchParams(location.search).get("s")||"";
 const isFireCh=id=>/^fs/.test(id||"");
-const inSubj=c=> SUBJ==="fire" ? isFireCh(c.id) : SUBJ==="admin" ? !isFireCh(c.id) : true;
-const SUBJ_NAME = SUBJ==="fire" ? "소방공무원법" : "행정법";
-const GC={"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F","-":"#9AA3AD"};
-const GORDER=["S","A","B","C","기","인","소","Z","-"];
+const isTacCh=id=>/^ts/.test(id||"");
+const subjOf=id=> isFireCh(id) ? "fire" : isTacCh(id) ? "tactic" : "admin";
+const inSubj=c=> SUBJ ? subjOf(c.id)===SUBJ : true;
+const SUBJ_NAME = SUBJ==="fire" ? "소방공무원법" : SUBJ==="tactic" ? "소방전술" : "행정법";
+const GC={"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F","-":"#9AA3AD","위":"#C00000","장":"#ED7D31","교":"#2E75B6"};
+const GORDER=["S","A","B","C","기","인","소","Z","위","장","교","-"];
 function gradesHtml(g){
   if(!g) return "";
   const keys=Object.keys(g).sort((a,b)=>GORDER.indexOf(a)-GORDER.indexOf(b));
@@ -225,8 +227,11 @@ const UNITS=[
   {name:"제9편 기출문제",            from:82, to:99},
   {name:"📕 소방공무원법 (OX)",      from:1001, to:1050},
   {name:"📝 소방공무원법 실전문제",   from:1051, to:1099},
+  {name:"🔥 화재진압·소방일반",       from:2001, to:2013},
+  {name:"🧗 구조",                   from:2014, to:2020},
+  {name:"🚑 구급",                   from:2021, to:2028},
 ];
-function chNum(c){ const n=parseInt((c.id||"").replace(/[^0-9]/g,""),10)||0; return /^fs/.test(c.id||"") ? 1000+n : n; }
+function chNum(c){ const n=parseInt((c.id||"").replace(/[^0-9]/g,""),10)||0; return /^fs/.test(c.id||"") ? 1000+n : /^ts/.test(c.id||"") ? 2000+n : n; }
 function unitOf(c){ const n=chNum(c); for(const u of UNITS){ if(n>=u.from&&n<=u.to) return u; } return {name:"기타", from:9990, to:9999}; }
 function foldKey(name){ return "fc:fold:"+name; }
 function isFolded(name){ return localStorage.getItem(foldKey(name))==="1"; }
@@ -236,7 +241,7 @@ function setFolded(name,v){ if(v) localStorage.setItem(foldKey(name),"1"); else 
 const PLAN_GRADES=["S","A","B","C","기","인","소","Z"];
 let qgrades={};   // chapterId -> { 문항no: 등급 }  (등급 필터 켤 때만 로드)
 function planGradeSet(){
-  if(SUBJ==="fire") return null;   // 플랜 등급 필터는 행정법 전용 — 공무원법 화면에 영향 금지
+  if(SUBJ==="fire"||SUBJ==="tactic") return null;   // 플랜 등급 필터는 행정법 전용 — 다른 과목 화면에 영향 금지
   const p=loadPlan();
   return (p&&Array.isArray(p.grades)&&p.grades.length)? new Set(p.grades) : null;  // null = 전체
 }
@@ -771,11 +776,11 @@ async function togglePlanGrade(g){
 }
 /* 현재 회독 수: '완전 초기화(새 회독)' 횟수 기반 (클라우드 동기화).
    저장값 없으면 행정법(ch*) 챕터만으로 추정 — fs 챕터가 섞이면 최솟값이 왜곡됨 */
-function roundKey(){ return "fc:roundN:"+(SUBJ==="fire"?"fire":"admin"); }
+function roundKey(){ return "fc:roundN:"+(SUBJ||"admin"); }
 function currentRound(){
   const v=parseInt(localStorage.getItem(roundKey())||"0",10);
   if(v>0) return v;
-  const pool=(allChapters.length?allChapters:chapters).filter(c=>!isFireCh(c.id)&&(c.count||0)>0);
+  const pool=(allChapters.length?allChapters:chapters).filter(c=>subjOf(c.id)==="admin"&&(c.count||0)>0);
   const rs=pool.map(c=>(stat(c.id)||{}).rounds||0);
   let est=Math.max(1, rs.length?Math.min(...rs):1);
   // 완전 초기화 도장(sreset)이 찍혀 있으면 최소 2회독째
@@ -785,7 +790,7 @@ function currentRound(){
 /* 회독 완료 일자: 완료 감지 시 1회 도장 찍어 보존 (이후 재도전해도 날짜 안 밀림).
    저장값 없으면 챕터별 마지막 완료 시각의 최댓값으로 추정 */
 function roundDoneDate(){
-  const key="fc:roundDone:"+(SUBJ==="fire"?"fire":"admin")+":"+currentRound();
+  const key="fc:roundDone:"+(SUBJ||"admin")+":"+currentRound();
   let v=parseInt(localStorage.getItem(key)||"0",10);
   if(!v){
     chapters.forEach(c=>{ if(/^fs/.test(c.id)) return; const s=stat(c.id); if(s&&s.when) v=Math.max(v,s.when); });
@@ -799,7 +804,7 @@ function roundDoneDate(){
 }
 function renderPlan(){
   const card=document.getElementById("planCard"); if(!card) return;
-  if(SUBJ==="fire"){ card.style.display="none"; return; }   // 학습 플랜은 행정법 전용
+  if(SUBJ==="fire"||SUBJ==="tactic"){ card.style.display="none"; return; }   // 학습 플랜은 행정법 전용
   card.style.display="block";
   const p=loadPlan();
   if(!p){
@@ -935,12 +940,12 @@ async function resetProgress(){
       if(code){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/ch/${c.id}.json`,{method:"PUT",body:"null"}); }catch(e){} }
     }
     localStorage.removeItem(roundKey());   // 회독 카운터도 1회독부터 다시
-    if(code && SUBJ!=="fire"){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/meta/roundN.json`,{method:"PUT",body:"null"}); }catch(e){} }
+    if(code && SUBJ!=="fire" && SUBJ!=="tactic"){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/meta/roundN.json`,{method:"PUT",body:"null"}); }catch(e){} }
     alert(`${SUBJ_NAME} 전체 진도를 초기화했습니다.`);
   } else {
     const num=s.replace(/[^0-9]/g,"");
     if(!num){ alert("챕터번호를 인식하지 못했습니다."); return; }
-    const id=(SUBJ==="fire"?"fs":"ch")+num.padStart(2,"0");
+    const id=(SUBJ==="fire"?"fs":SUBJ==="tactic"?"ts":"ch")+num.padStart(2,"0");
     const c=chapters.find(x=>x.id===id);
     if(!c){ alert("그런 챕터가 없습니다: "+id); return; }
     if(!confirm(`'${c.title}' 진도를 초기화할까요?`)) return;
@@ -961,7 +966,7 @@ async function startNewRound(){
   const resetAt=Date.now();
   const newRound=currentRound()+1;   // 회독 카운터 증가 (표시용)
   try{ localStorage.setItem(roundKey(), String(newRound)); }catch(e){}
-  if(code && SUBJ!=="fire"){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/meta/roundN.json`,{method:"PUT",body:String(newRound)}); }catch(e){} }
+  if(code && SUBJ!=="fire" && SUBJ!=="tactic"){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/meta/roundN.json`,{method:"PUT",body:String(newRound)}); }catch(e){} }
   for(const c of chapters){
     const s=stat(c.id); if(!s) continue;
     if(s.qstat){ for(const k in s.qstat){ if(s.qstat[k]) s.qstat[k].s=0; } }
@@ -1109,9 +1114,9 @@ function drawList(){
 }
 
 /* ── 과목 선택 화면 (과목별 진도 표시) ── */
-function subjProgress(fire){
-  const list=allChapters.filter(c=>isFireCh(c.id)===fire);
-  const gset=fire?null:planGradeSet();   // 행정법은 플랜의 등급 필터를 그대로 반영 (제외 등급은 문항수에서 뺌)
+function subjProgress(key){
+  const list=allChapters.filter(c=>subjOf(c.id)===key);
+  const gset=key==="admin"?planGradeSet():null;   // 행정법은 플랜의 등급 필터를 그대로 반영 (제외 등급은 문항수에서 뺌)
   let tq=0,sq=0,doneC=0,chN=0;
   for(const c of list){
     const cnt=chCountP(c,gset); if(cnt<=0) continue;
@@ -1123,9 +1128,9 @@ function subjProgress(fire){
 }
 function drawSubjectSelect(){
   document.getElementById("summary").textContent="공부할 과목을 선택하세요";
-  const mk=(key,label,fire)=>{
-    const p=subjProgress(fire);
-    return `<a class="ch subj${fire?" fire":""}${p.tq>0&&p.sq>=p.tq?" done":""}" href="index.html?s=${key}">
+  const mk=(key,label,cls)=>{
+    const p=subjProgress(key);
+    return `<a class="ch subj${cls?" "+cls:""}${p.tq>0&&p.sq>=p.tq?" done":""}" href="index.html?s=${key}">
       <div class="row1"><span class="ctitle">${label}</span></div>
       <div class="row2"><span class="stat">${p.ch}챕터 · ${p.tq}문항</span>
         <span class="stat best">진도 ${p.sq}/${p.tq} (${p.pct}%)</span>
@@ -1133,7 +1138,7 @@ function drawSubjectSelect(){
       <div class="spbar"><i style="width:${p.pct}%"></i></div></a>`;
   };
   document.getElementById("list").innerHTML =
-    mk("admin","⚖️ 행정법",false) + mk("fire","🚒 소방공무원법",true);
+    mk("admin","⚖️ 행정법","") + mk("fire","🚒 소방공무원법","fire") + mk("tactic","🧯 소방전술","fire");
 }
 
 fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
@@ -1151,7 +1156,7 @@ fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
     capWait(pushAll(), 15000);        // 이 기기 진도 올리기
     return;
   }
-  document.querySelector("h1").textContent = SUBJ==="fire" ? "🚒 소방공무원법 OX" : "⚖️ 행정법 OX";
+  document.querySelector("h1").textContent = SUBJ==="fire" ? "🚒 소방공무원법 OX" : SUBJ==="tactic" ? "🧯 소방전술 기출" : "⚖️ 행정법 OX";
   document.title = SUBJ_NAME+" OX 플래시카드";
   drawList();                        // 목록부터 먼저 그린다 — 통신을 기다리다 갇히지 않게
 

@@ -333,7 +333,7 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
     <span class="pill" id="roundPill" style="display:none"></span>
     <span class="pill" id="scorePill">⭕ <b id="okCnt">0</b> · ❌ <b id="noCnt">0</b></span>
     <div class="tbtns">
-      <button class="iconbtn" onclick="location.href='index.html'+(typeof CH==='string'&&CH?(/^fs/.test(CH)?'?s=fire':'?s=admin'):'')">목차</button>
+      <button class="iconbtn" onclick="location.href='index.html'+(typeof CH==='string'&&CH?(/^fs/.test(CH)?'?s=fire':/^ts/.test(CH)?'?s=tactic':'?s=admin'):'')">목차</button>
       <button class="iconbtn" id="introBtn" style="display:none">📖요약</button>
       <button class="iconbtn" id="keyBtn">📋답안</button>
       <button class="iconbtn" id="reviewBtn">📝풀이</button>
@@ -544,7 +544,7 @@ const LSKEY = "fc:" + CH;
 /* 📅 전날 오답 복습 모드 — ?review=prev (챕터 없이 어제 오답을 전 챕터에서 모아 푼다) */
 const REVIEW = new URLSearchParams(location.search).get("review") === "prev";
 if(REVIEW) document.body.classList.add("review");
-const GC = {"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F"};
+const GC = {"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F","위":"#C00000","장":"#ED7D31","교":"#2E75B6"};
 
 /* ── 화면이 안 뜨는 사고를 막는 최소 안전장치 ──
    어떤 오류가 나든 (1) 원인이 기록되고 (2) 화면은 반드시 무언가를 보여준다.
@@ -2024,8 +2024,8 @@ function webSpeak(txt, cb){
 /* 다음 챕터 (manifest 순서 기준) */
 let NEXTCH=null;
 fetch("data/manifest.json").then(r=>r.json()).then(d=>{
-  const fire=/^fs/.test(CH);
-  const list=(d.chapters||[]).filter(c=>/^fs/.test(c.id)===fire);   // 같은 과목 안에서만 이동
+  const pfx=(String(CH).match(/^[a-z]+/)||["ch"])[0];
+  const list=(d.chapters||[]).filter(c=>((c.id||"").match(/^[a-z]+/)||[""])[0]===pfx);   // 같은 과목 안에서만 이동
   const i=list.findIndex(c=>c.id===CH);
   if(i>=0 && i+1<list.length) NEXTCH=list[i+1];
 }).catch(()=>{});
@@ -2481,7 +2481,7 @@ async function reviewBoot(){
   if(cloudCh){ for(const id in cloudCh) addHist(id, cloudCh[id]); }
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
-    if(k && /^fc:(ch|fs)\d/.test(k)){ try{ addHist(k.slice(3), JSON.parse(localStorage.getItem(k)||"null")); }catch(e){} }
+    if(k && /^fc:(ch|fs|ts)\d/.test(k)){ try{ addHist(k.slice(3), JSON.parse(localStorage.getItem(k)||"null")); }catch(e){} }
   }
   // 3) 대상 날짜: 오늘 이전의 가장 최근 학습일 (그마저 없으면 오늘)
   const today=wlogDay(Date.now());
@@ -2497,7 +2497,7 @@ async function reviewBoot(){
     const want=byCh[id]||{};
     ((d&&d.questions)||[]).forEach(q=>{
       if(want[String(q.no)])
-        qs.push(Object.assign({}, q, {_ch:id, theme:((/^fs/.test(id)?"공무원법"+id.replace(/^fs0?/,""):id.replace(/^ch0?/,""))+"장"+(q.theme?" · "+q.theme:""))}));
+        qs.push(Object.assign({}, q, {_ch:id, theme:((/^fs/.test(id)?"공무원법"+id.replace(/^fs0?/,""):/^ts/.test(id)?"전술"+id.replace(/^ts0?/,""):id.replace(/^ch0?/,""))+"장"+(q.theme?" · "+q.theme:""))}));
     });
   }));
   if(!qs.length){ reviewEmpty("해당 날짜의 오답 문항을 찾지 못했습니다."); return; }

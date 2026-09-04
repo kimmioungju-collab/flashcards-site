@@ -659,6 +659,7 @@ function mergeQstat(a,b){
   ks.forEach(k=>{
     const x=(a||{})[k]||{}, y=(b||{})[k]||{};
     const m={s:Math.max(x.s||0,y.s||0), w:Math.max(x.w||0,y.w||0)};
+    const t=Math.max(x.t||0,y.t||0); if(t) m.t=t;   // ⏱ 시간초과 기록도 동기화 유지
     if(x.m||y.m) m.m=1;
     out[k]=m;
   });
@@ -880,18 +881,22 @@ let unsolvedOnlyOn = !!OPT.unsolvedOnly;
 const $=id=>document.getElementById(id);
 const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const qw=no=>(S.qstat[no]&&S.qstat[no].w)||0;
+const qt=no=>(S.qstat[no]&&S.qstat[no].t)||0;             // ⏱ 시간초과 횟수 (맞혔어도 기록)
 const qmark=no=>!!(S.qstat[no]&&S.qstat[no].m);           // 사용자가 직접 체크한 문제
-const isWeak=no=>qw(no)>0 || qmark(no);                   // 취약 = 틀렸거나 체크한 문제
+const isWeak=no=>qw(no)>0 || qmark(no) || qt(no)>0;       // 취약 = 틀렸거나 체크했거나 시간초과
 const isSolved=no=>!!(S.qstat[no]&&S.qstat[no].s>0);      // 한 번이라도 푼 문항
-const weakWeight=no=>qw(no)*10 + (qmark(no)?5:0);         // 취약 우선 정렬 가중치
+const weakWeight=no=>qw(no)*10 + qt(no)*7 + (qmark(no)?5:0); // 취약 우선 정렬 가중치
 function toggleMark(no){
   const st = S.qstat[no] || (S.qstat[no]={s:0,w:0});
   st.m = st.m?0:1; save();
 }
 function renderWeakChip(q){
-  const el=$("weakChip"), w=qw(q.no), m=qmark(q.no);
-  if(w>0){ el.style.display=""; el.textContent = m?`누적 오답 ${w}회 · ⭐체크`:`누적 오답 ${w}회`; }
-  else if(m){ el.style.display=""; el.textContent="⭐ 체크한 문제"; }
+  const el=$("weakChip"), w=qw(q.no), m=qmark(q.no), t=qt(q.no);
+  const parts=[];
+  if(w>0) parts.push(`누적 오답 ${w}회`);
+  if(t>0) parts.push(`⏱ 시간초과 ${t}회`);
+  if(m) parts.push("⭐체크");
+  if(parts.length){ el.style.display=""; el.textContent=parts.join(" · "); }
   else el.style.display="none";
 }
 function renderMarkBtn(q){
@@ -1483,7 +1488,7 @@ function updateNumRow(q){
 
 function show(){
   updateHud();
-  stopQTimer();
+  stopQTimer(); qOvertime=false;
   if(idx>=deck.length){ return finish(); }
   const q=deck[idx];
   const g=q.grade in GC ? q.grade : null;
@@ -1614,15 +1619,17 @@ function reveal(q, correct){
   $("nextBtn").textContent = allAnswered() ? "🏁 결과 보기" : "다음 문제 →";
   $("nextBtn").style.display="block";
 }
-/* ⏱ 문제당 15초 제한 — 시간이 다 되면 시간초과(오답)로 자동 처리 */
+/* ⏱ 문제당 15초 제한 — 초과해도 답은 할 수 있지만, 맞혀도 '시간초과'로 취약 기록에 남는다 */
 const Q_TIME_LIMIT = 15;
 let qTimerIv = null;
+let qOvertime = false;                            // 현재 문항이 제한시간을 넘겼는지
 function stopQTimer(){
   clearInterval(qTimerIv); qTimerIv = null;
   const el = $("qTimer"); if(el) el.style.display = "none";
 }
 function startQTimer(){
   stopQTimer();
+  qOvertime = false;
   let left = Q_TIME_LIMIT;
   const el = $("qTimer");
   el.textContent = "⏱ " + left;
@@ -1631,9 +1638,10 @@ function startQTimer(){
   qTimerIv = setInterval(() => {
     left--;
     if(left <= 0){
-      stopQTimer();
-      answer("⏰");                              // 시간초과 = 오답 기록
-      $("vMark").textContent = "⏰ 시간초과!";
+      clearInterval(qTimerIv); qTimerIv = null;
+      qOvertime = true;                           // 자동 오답 처리는 안 하고 '초과' 상태만 기록
+      el.textContent = "⏰ 초과";
+      el.classList.add("warn");
       return;
     }
     el.textContent = "⏱ " + left;
@@ -1643,20 +1651,23 @@ function startQTimer(){
 function answer(a){
   const q=deck[idx];
   if(answers[idx] || $("result").classList.contains("show")) return;
+  const overtime = qOvertime; qOvertime=false;
   stopQTimer();
   const correct = a===q.ans;
   if(correct) ok++; else { no++; wrongs.push(q); }
-  answers[idx]={a:a, correct:correct};
+  answers[idx]={a:a, correct:correct, ot:overtime?1:0};
   // 문항별 누적 통계 즉시 저장 (중간에 꺼도 기록 유지)
   // 단, 연관문제(_rel)는 다른 챕터 문항이라 이 챕터 qstat에 쓰면 진도가 오염된다 — 건너뜀
   if(!q._rel){
     const st = S.qstat[q.no] || (S.qstat[q.no]={s:0,w:0});
     st.s++; if(!correct) st.w++;
+    if(overtime) st.t=(st.t||0)+1;             // ⏱ 맞혀도 시간초과는 취약 기록으로 남긴다
   }
   if(!correct) bumpWrong(q._ch || CH, q.no);   // 날짜별 오답 로그 — 출신 챕터(_ch) 우선
   bumpDaily();
   saveProg();
   reveal(q, correct);
+  if(overtime) $("vMark").textContent = correct ? "정답! (⏰ 시간초과)" : "땡! (⏰ 시간초과)";
   updateHud();
   setTimeout(()=>{$("result").scrollIntoView({behavior:"smooth",block:"nearest"});},60);
 }

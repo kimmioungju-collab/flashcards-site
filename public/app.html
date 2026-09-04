@@ -63,6 +63,9 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .theme{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.5px}
 .weakchip{font-size:11px;font-weight:900;color:#fff;background:var(--wrong);border-radius:99px;padding:2.5px 9px}
 .qno{margin-left:auto;font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;user-select:none}
+.qtimer{font-size:12px;font-weight:900;color:#fff;background:#1F2937;border-radius:99px;padding:2.5px 10px;min-width:44px;text-align:center}
+.qtimer.warn{background:var(--wrong);animation:qtPulse .9s infinite}
+@keyframes qtPulse{0%,100%{opacity:1}50%{opacity:.45}}
 .qno .jarrow{color:var(--right)}
 .jumpgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:4px}
 .jumpgrid button{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:11px 0;font-size:13px;font-weight:800;color:#5B6672;cursor:pointer;position:relative}
@@ -226,7 +229,7 @@ body.gripon .grip{display:flex}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chips button{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:800;color:#5B6672;cursor:pointer}
 .chips button.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.chips button.g.on{background:var(--gc);border-color:var(--gc);color:#fff}
+.chips button.g.on{background:var(--gc,#7F8C99);border-color:var(--gc,#7F8C99);color:#fff}
 .sheet .apply{width:100%;margin-top:18px;border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:900;background:var(--hl);color:#3B3400;cursor:pointer}
 .sheet .apply:disabled{background:#D8D3C6;color:#8A8578;cursor:default}
 .podmodes{display:flex;gap:8px;margin:14px 0 12px}
@@ -360,6 +363,7 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
       <span class="badge" id="gradeBadge">-</span>
       <span class="theme" id="themeLbl"></span>
       <span class="weakchip" id="weakChip" style="display:none"></span>
+      <span class="qtimer" id="qTimer" style="display:none">⏱ 15</span>
       <span class="qno" id="qnoLbl"></span>
     </div>
     <div class="qscroll">
@@ -1479,6 +1483,7 @@ function updateNumRow(q){
 
 function show(){
   updateHud();
+  stopQTimer();
   if(idx>=deck.length){ return finish(); }
   const q=deck[idx];
   const g=q.grade in GC ? q.grade : null;
@@ -1515,6 +1520,7 @@ function show(){
     $("oxRow").style.display=isMC?"none":"flex";
     $("numRow").style.display=isMC?"flex":"none";
     $("studyBtn").style.display="none";
+    startQTimer();                               // ⏱ 실전 모드 — 문제 표시와 함께 15초 카운트다운
   }
   // 🔗 보기별 연관문제(slinks)가 있는 본 챕터 문항이면 "먼저 풀기" 버튼 노출 (답하기 전에만)
   {
@@ -1608,9 +1614,36 @@ function reveal(q, correct){
   $("nextBtn").textContent = allAnswered() ? "🏁 결과 보기" : "다음 문제 →";
   $("nextBtn").style.display="block";
 }
+/* ⏱ 문제당 15초 제한 — 시간이 다 되면 시간초과(오답)로 자동 처리 */
+const Q_TIME_LIMIT = 15;
+let qTimerIv = null;
+function stopQTimer(){
+  clearInterval(qTimerIv); qTimerIv = null;
+  const el = $("qTimer"); if(el) el.style.display = "none";
+}
+function startQTimer(){
+  stopQTimer();
+  let left = Q_TIME_LIMIT;
+  const el = $("qTimer");
+  el.textContent = "⏱ " + left;
+  el.className = "qtimer";
+  el.style.display = "inline-block";
+  qTimerIv = setInterval(() => {
+    left--;
+    if(left <= 0){
+      stopQTimer();
+      answer("⏰");                              // 시간초과 = 오답 기록
+      $("vMark").textContent = "⏰ 시간초과!";
+      return;
+    }
+    el.textContent = "⏱ " + left;
+    if(left <= 5) el.classList.add("warn");
+  }, 1000);
+}
 function answer(a){
   const q=deck[idx];
   if(answers[idx] || $("result").classList.contains("show")) return;
+  stopQTimer();
   const correct = a===q.ans;
   if(correct) ok++; else { no++; wrongs.push(q); }
   answers[idx]={a:a, correct:correct};
@@ -2347,6 +2380,7 @@ $("studyBtn").addEventListener("click",()=>{
   $("numRow").style.display=isMC?"flex":"none";
   updateNumRow(q);
   $("studyBtn").style.display="none";
+  startQTimer();                                 // ⏱ 학습 모드 — 문제가 열리는 순간부터 15초
 });
 /* 시험지 모드: 선지를 직접 클릭해서 답 선택 */
 $("qText").addEventListener("click",e=>{

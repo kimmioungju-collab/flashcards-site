@@ -660,6 +660,7 @@ function mergeQstat(a,b){
     const x=(a||{})[k]||{}, y=(b||{})[k]||{};
     const m={s:Math.max(x.s||0,y.s||0), w:Math.max(x.w||0,y.w||0)};
     const t=Math.max(x.t||0,y.t||0); if(t) m.t=t;   // ⏱ 시간초과 기록도 동기화 유지
+    const at=Math.max(x.at||0,y.at||0); if(at) m.at=at; // 평균 풀이시간 — 느린 기록 우선 보존
     if(x.m||y.m) m.m=1;
     out[k]=m;
   });
@@ -883,9 +884,11 @@ const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const qw=no=>(S.qstat[no]&&S.qstat[no].w)||0;
 const qt=no=>(S.qstat[no]&&S.qstat[no].t)||0;             // ⏱ 시간초과 횟수 (맞혔어도 기록)
 const qmark=no=>!!(S.qstat[no]&&S.qstat[no].m);           // 사용자가 직접 체크한 문제
+const qat=no=>(S.qstat[no]&&S.qstat[no].at)||0;           // 평균 풀이시간(초) — 오래 걸림 = 헷갈림
 const isWeak=no=>qw(no)>0 || qmark(no) || qt(no)>0;       // 취약 = 틀렸거나 체크했거나 시간초과
 const isSolved=no=>!!(S.qstat[no]&&S.qstat[no].s>0);      // 한 번이라도 푼 문항
-const weakWeight=no=>qw(no)*10 + qt(no)*7 + (qmark(no)?5:0); // 취약 우선 정렬 가중치
+// 취약 우선 정렬 가중치 — 오답 10/회 > 시간초과 7/회 > 체크 5 + 풀이시간(최대 10점, 30초=만점)
+const weakWeight=no=>qw(no)*10 + qt(no)*7 + (qmark(no)?5:0) + Math.min(qat(no),30)/3;
 function toggleMark(no){
   const st = S.qstat[no] || (S.qstat[no]={s:0,w:0});
   st.m = st.m?0:1; save();
@@ -1488,7 +1491,7 @@ function updateNumRow(q){
 
 function show(){
   updateHud();
-  stopQTimer(); qOvertime=false;
+  stopQTimer(); qOvertime=false; qStartAt=0;
   if(idx>=deck.length){ return finish(); }
   const q=deck[idx];
   const g=q.grade in GC ? q.grade : null;
@@ -1623,6 +1626,7 @@ function reveal(q, correct){
 const Q_TIME_LIMIT = 15;
 let qTimerIv = null;
 let qOvertime = false;                            // 현재 문항이 제한시간을 넘겼는지
+let qStartAt = 0;                                 // 현재 문항 풀이 시작 시각 (풀이 시간 기록용)
 function stopQTimer(){
   clearInterval(qTimerIv); qTimerIv = null;
   const el = $("qTimer"); if(el) el.style.display = "none";
@@ -1630,6 +1634,7 @@ function stopQTimer(){
 function startQTimer(){
   stopQTimer();
   qOvertime = false;
+  qStartAt = Date.now();
   let left = Q_TIME_LIMIT;
   const el = $("qTimer");
   el.textContent = "⏱ " + left;
@@ -1652,6 +1657,8 @@ function answer(a){
   const q=deck[idx];
   if(answers[idx] || $("result").classList.contains("show")) return;
   const overtime = qOvertime; qOvertime=false;
+  const sec = qStartAt ? Math.min(Math.round((Date.now()-qStartAt)/100)/10, 120) : 0;  // 풀이 시간(초, 최대 120)
+  qStartAt = 0;
   stopQTimer();
   const correct = a===q.ans;
   if(correct) ok++; else { no++; wrongs.push(q); }
@@ -1662,6 +1669,8 @@ function answer(a){
     const st = S.qstat[q.no] || (S.qstat[q.no]={s:0,w:0});
     st.s++; if(!correct) st.w++;
     if(overtime) st.t=(st.t||0)+1;             // ⏱ 맞혀도 시간초과는 취약 기록으로 남긴다
+    // 평균 풀이시간(at) — 최근 풀이에 40% 가중 EMA. 오래 걸린 문제 = 헷갈리는 문제로 기억
+    if(sec>0) st.at = st.at ? Math.round((st.at*0.6 + sec*0.4)*10)/10 : sec;
   }
   if(!correct) bumpWrong(q._ch || CH, q.no);   // 날짜별 오답 로그 — 출신 챕터(_ch) 우선
   bumpDaily();

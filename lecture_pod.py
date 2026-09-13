@@ -50,8 +50,8 @@ AIRY_URL = "https://api.airy.so/v1/studio/speech"
 AIRY_VOICE = os.environ.get("AIRY_VOICE", "a597bb7a98fc9ec1")    # Silvia(여성, #1). 목록: https://api.airy.so/v1/studio/voices?lang=ko
 AIRY_STYLE = "normal"                                             # normal | bright | calm | whisper
 AIRY_MAX_CHARS = 640
-AIRY_RPM_GAP = 4.2                                                # 분당 15회 → 요청 간 최소 간격(초)
-AIRY_PARALLEL = 2
+AIRY_RPM_GAP = float(os.environ.get("AIRY_RPM_GAP", "6.5"))   # 분당 15회 제한 → 여유 있게 9회/분 (2026-09-13 22시 차단 후 하향)
+AIRY_PARALLEL = 1
 AIRY_ANON_FILE = Path("/tmp/airy_anon_id")
 GEMINI_MODEL = "gemini-2.5-flash-preview-tts"
 GEMINI_VOICE = os.environ.get("LECTURE_VOICE", "Charon")       # 남성·차분. 여성은 Kore/Aoede 등

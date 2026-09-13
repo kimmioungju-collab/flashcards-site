@@ -101,6 +101,9 @@ SUBJECTS = {"fs": "소방공무원법", "ts": "소방전술(화재진압·구조
 
 def make_script(material: str, n_sec: int, mins: int, subject: str) -> list[str]:
     prompt = POD_PROMPT.format(last=n_sec - 1, chars=mins * CHARS_PER_MIN, mins=mins, subject=subject)
+    extra_file = os.environ.get("POD_EXTRA_PROMPT_FILE")          # 회차별 사용자 특별 지시(파일) — 대본 프롬프트 뒤에 덧붙임
+    if extra_file and Path(extra_file).exists():
+        prompt += "\n\n" + Path(extra_file).read_text(encoding="utf-8")
     for attempt in range(1, 3):
         log(f"팟캐스트 대본 작성 중 (목표 {mins}분, 섹션 {n_sec}개, claude {CLAUDE_MODEL}, {attempt}회차)")
         r = subprocess.run(["claude", "-p", prompt, "--model", CLAUDE_MODEL],

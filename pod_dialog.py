@@ -44,7 +44,7 @@ PARALLEL = 4
 LINE_RE = re.compile(r"^\s*\[?\s*(김강사|초보자|진행자)\s*\]?\s*[:：]\s*(.*)$")
 
 POD_PROMPT = """[역할 부여]
-당신은 소방승진 및 소방공무원법 전문 교육 크리에이터입니다. 제공된 요약본 텍스트를 바탕으로, 3명의 캐릭터가 대화하며 청취자가 자연스럽게 핵심을 암기할 수 있는 오디오 팟캐스트 대본을 작성해 주세요.
+당신은 소방승진 및 {subject} 전문 교육 크리에이터입니다. 제공된 요약본 텍스트를 바탕으로, 3명의 캐릭터가 대화하며 청취자가 자연스럽게 핵심을 암기할 수 있는 오디오 팟캐스트 대본을 작성해 주세요.
 
 [캐릭터 설정 (3명)]
 1. [김강사]: 메인 1타 강사. 출제 포인트와 핵심 두음법칙(암기법)을 명쾌하고 자신감 있게 던져주는 역할.
@@ -96,8 +96,11 @@ def parse_lines(section: str) -> list[tuple[str, str]]:
     return [(sp, clean_for_tts(t)) for sp, t in lines if clean_for_tts(t)]
 
 
-def make_script(material: str, n_sec: int, mins: int) -> list[str]:
-    prompt = POD_PROMPT.format(last=n_sec - 1, chars=mins * CHARS_PER_MIN, mins=mins)
+SUBJECTS = {"fs": "소방공무원법", "ts": "소방전술(화재진압·구조·구급)", "ch": "행정법"}
+
+
+def make_script(material: str, n_sec: int, mins: int, subject: str) -> list[str]:
+    prompt = POD_PROMPT.format(last=n_sec - 1, chars=mins * CHARS_PER_MIN, mins=mins, subject=subject)
     for attempt in range(1, 3):
         log(f"팟캐스트 대본 작성 중 (목표 {mins}분, 섹션 {n_sec}개, claude {CLAUDE_MODEL}, {attempt}회차)")
         r = subprocess.run(["claude", "-p", prompt, "--model", CLAUDE_MODEL],
@@ -183,7 +186,8 @@ def main() -> None:
     if raw_secs:
         log(f"저장된 대본 재사용: {saved}")
     else:
-        raw_secs = make_script(build_coach_material(secs), len(secs), target_minutes(len(chap["questions"]), len(secs)))
+        raw_secs = make_script(build_coach_material(secs), len(secs), target_minutes(len(chap["questions"]), len(secs)),
+                               SUBJECTS.get(ch[:2], "소방승진 시험"))
         saved.write_text("\n\n".join(f"[[SEC {i}]]\n{s}" for i, s in enumerate(raw_secs)), encoding="utf-8")
     lines = [parse_lines(s) for s in raw_secs]
     if dry:

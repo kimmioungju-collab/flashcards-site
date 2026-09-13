@@ -104,9 +104,11 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .relhere:disabled{opacity:.55}
 /* 시험지 모드 — 선지(①~)가 포함된 기출 문항을 실제 시험지처럼 렌더링 */
 .exampaper{background:#fdfdf8;color:#151515;border:1px solid #b9b9ae;border-radius:8px;padding:18px 16px 14px;font-family:"Nanum Myeongjo","Batang","AppleMyungjo",serif;font-weight:400;line-height:1.66;font-size:15.5px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-.exampaper .exstem{font-weight:700;margin-bottom:12px;white-space:pre-wrap;word-break:keep-all}
-.exampaper .exbogi{border:1.5px solid #444;padding:10px 12px;margin:10px 0 12px;font-weight:400;white-space:pre-wrap;word-break:keep-all;background:#fff;border-radius:2px;font-size:14.5px}
-.exampaper .exch{display:block;padding:7px 8px 7px 30px;margin:2px 0;cursor:pointer;border-radius:5px;white-space:pre-wrap;word-break:keep-all;text-indent:-22px;transition:background .12s}
+.exampaper .exstem{font-weight:700;margin-bottom:12px;white-space:pre-wrap;word-break:normal;text-align:justify}
+.exampaper .exbogi{border:1.5px solid #444;padding:10px 12px;margin:10px 0 12px;font-weight:400;white-space:pre-wrap;word-break:normal;text-align:justify;background:#fff;border-radius:2px;font-size:14.5px}
+.exampaper .exch{display:flex;align-items:flex-start;gap:6px;padding:7px 8px;margin:2px 0;cursor:pointer;border-radius:5px;transition:background .12s}
+.exampaper .exch .mk{flex:0 0 auto;width:22px;text-align:center}
+.exampaper .exch .tx{flex:1;min-width:0;white-space:pre-wrap;word-break:normal;overflow-wrap:anywhere;text-align:justify}
 .exampaper .exch:not(.done):hover{background:#eef2ff}
 .exampaper .exch:not(.done):active{background:#dde6ff}
 .exampaper .exch.done{cursor:default}
@@ -276,20 +278,41 @@ body.podon .sheet{padding-bottom:84px}
 .rbox .go{background:var(--hl);color:#3B3400}
 .rbox .fresh{background:var(--ink);color:#fff}
 /* 챕터 핵심 요약 오버레이 */
+/* ⛶ 문서 모드: 요약 시트를 인쇄 화면처럼 화면 가득 넓게 (아이패드·데스크톱용) */
+.sheetwrap.docmode{align-items:stretch;background:#F4F1EA}
+.sheetwrap.docmode .introsheet{max-width:920px;max-height:100dvh;height:100dvh;border-radius:0;padding:22px 44px 40px;box-shadow:0 0 30px rgba(0,0,0,.08)}
+.sheetwrap.docmode .introbody{font-size:17px;line-height:1.95}
+.sheetwrap.docmode .introbody h4{font-size:16.5px;margin:22px 0 9px;padding:5px 10px;background:#EEF2F6;border-left:4px solid #2E75B6;border-radius:3px}
+.sheetwrap.docmode .introbody li{margin-bottom:13px}
+.sheetwrap.docmode .introhead h3{font-size:19px}
+@media (max-width:600px){ .sheetwrap.docmode .introsheet{padding:16px 18px 30px} .sheetwrap.docmode .introbody{font-size:16px} }
 .introhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:8px;flex-wrap:wrap}
 .introhead h3{margin:0;flex:1 1 auto;min-width:0}
 .introx{border:none;background:rgba(0,0,0,.06);color:var(--muted);width:30px;height:30px;border-radius:50%;font-size:15px;font-weight:900;cursor:pointer}
-.introbody{font-size:14.5px;line-height:1.72;color:var(--ink)}
+.introbody{font-size:15px;line-height:1.85;color:var(--ink);word-break:keep-all;overflow-wrap:break-word}
 .introbody h4{font-size:14.5px;font-weight:900;margin:16px 0 7px;color:#2E75B6;display:flex;align-items:center;gap:6px}
 .introbody h4:first-child{margin-top:8px}
 .introbody p{margin:0 0 9px}
 .introbody ul{margin:0 0 10px;padding-left:4px;list-style:none}
-.introbody li{position:relative;padding-left:18px;margin-bottom:7px}
-.introbody li::before{content:"·";position:absolute;left:5px;top:-1px;color:#2E75B6;font-weight:900}
-.introbody b{color:#C0392B;font-weight:800}
+.introbody li{position:relative;padding-left:18px;margin-bottom:11px}
+.introbody li::before{content:"•";position:absolute;left:3px;top:0;color:#2E75B6;font-weight:900;font-size:15px}
+.introbody b{color:#1A2B45;font-weight:800;background:#FFF1A8;padding:1px 0;border-radius:3px;box-shadow:2px 0 0 #FFF1A8,-2px 0 0 #FFF1A8;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 .introbody .tip{background:#fff7e6;border-left:3px solid #D9A400;border-radius:8px;padding:9px 12px;margin:10px 0}
-.introbody .tip b{color:#9a7400}
+.introbody .tip b{color:#6b4f00;background:#FFE7A0;box-shadow:2px 0 0 #FFE7A0,-2px 0 0 #FFE7A0}
 .introhbtns{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+/* ✍️ 애플펜슬 필기 레이어 — 펜만 그리고 손가락은 스크롤 */
+.introbody{position:relative}
+.inkcv{position:absolute;left:0;top:0;pointer-events:none;touch-action:pan-y;z-index:2;mix-blend-mode:multiply}
+.introbody.inkon .inkcv{pointer-events:auto}
+.inkbar{display:none;flex-direction:column;gap:5px;margin:6px 0 6px}
+.inkbar.show{display:flex}
+.inkrow{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.inksep{width:1px;height:20px;background:#ddd;margin:0 2px}
+.inkbar button{border:1.5px solid #ddd;background:#fff;border-radius:10px;padding:6px 9px;font-size:13px;font-weight:800;cursor:pointer;color:var(--ink);min-width:36px}
+.introbody.inkon{touch-action:pan-y}
+.introbody.inkon.inklock{touch-action:none}
+.inkbar button.on{border-color:#2E75B6;background:#EAF4FF}
+.inkbar .inknote{font-size:11.5px;color:var(--muted);flex-basis:100%}
 .ttsbtn{border:none;background:#2E75B6;color:#fff;border-radius:99px;padding:7px 13px;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap}
 .ttsbtn.on{background:#C0392B}
 .introbody .ttsread{background:#ffe98a;border-radius:6px;box-shadow:0 0 0 5px #ffe98a;transition:background .15s ease}
@@ -336,7 +359,7 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
     <span class="pill" id="roundPill" style="display:none"></span>
     <span class="pill" id="scorePill">⭕ <b id="okCnt">0</b> · ❌ <b id="noCnt">0</b></span>
     <div class="tbtns">
-      <button class="iconbtn" onclick="location.href='index.html'+(typeof CH==='string'&&CH?(/^fs/.test(CH)?'?s=fire':/^ts/.test(CH)?'?s=tactic':'?s=admin'):'')">목차</button>
+      <button class="iconbtn" onclick="location.href='index.html'+(typeof CH==='string'&&CH?(/^fs/.test(CH)?'?s=fire':/^ts/.test(CH)?'?s=tactic':/^rv/.test(CH)?'?s=review':/^hz/.test(CH)?'?s=hazmat':'?s=admin'):'')">목차</button>
       <button class="iconbtn" id="introBtn" style="display:none">📖요약</button>
       <button class="iconbtn" id="keyBtn">📋답안</button>
       <button class="iconbtn" id="reviewBtn">📝풀이</button>
@@ -510,8 +533,25 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
 <div class="sheetwrap" id="introWrap">
   <div class="sheet introsheet">
     <div class="introhead"><h3 id="introTitle">📖 이 챕터 핵심 요약</h3>
-      <div class="introhbtns"><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="introPodBtn">🎧 AI음성</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
+      <div class="introhbtns"><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="docBtn" title="인쇄 화면처럼 넓게 보기">⛶ 크게</button><button class="ttsbtn" id="inkBtn">✍️ 펜</button><button class="ttsbtn" id="printBtn">🖨 인쇄</button><button class="ttsbtn" id="introPodBtn">🎧 AI음성</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
     <div class="intropod" id="introPodStat" style="display:none"></div>
+    <div class="inkbar" id="inkBar">
+      <div class="inkrow">
+        <button data-tool="hl" class="on" title="노랑 형광펜">🟡</button><button data-tool="hg" title="초록 형광펜">🟢</button><button data-tool="hp" title="분홍 형광펜">🩷</button>
+        <span class="inksep"></span>
+        <button data-tool="pr" title="빨강 펜">🔴</button><button data-tool="pb" title="파랑 펜">🔵</button><button data-tool="pk" title="검정 펜">⚫</button>
+        <span class="inksep"></span>
+        <button data-tool="er" title="지우개">⬜ 지우개</button>
+      </div>
+      <div class="inkrow">
+        <button data-size="s" title="가늘게">─</button><button data-size="m" class="on" title="보통">━</button><button data-size="l" title="굵게">▬</button>
+        <span class="inksep"></span>
+        <button id="inkUndo" title="되돌리기">↩</button><button id="inkRedo" title="다시 실행">↪</button><button id="inkClear" title="전체 지우기">🗑</button>
+        <span class="inksep"></span>
+        <button id="inkLock" title="켜면 손가락 한 개로는 스크롤되지 않고(손바닥 방지), 두 손가락으로만 스크롤됩니다">☝️ 손바닥 방지</button>
+      </div>
+      <span class="inknote">펜슬로 쓰고 손가락으로 스크롤. 형광펜은 거의 수평이면 자동으로 직선이 됩니다. 필기는 챕터별 자동 저장.</span>
+    </div>
     <div class="introbody" id="introBody"></div>
     <button class="apply" id="introStart">읽었어요 · 문제 풀기 →</button>
   </div>
@@ -536,7 +576,7 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
     <div class="podstat" id="podStat">상태 확인 중…</div>
     <button class="apply" id="podPlay" style="display:none;background:var(--right);color:#fff">▶️ 재생하기</button>
     <button class="apply" id="podMake">🎙 오디오 만들기</button>
-    <div class="podnote">AI 진행자 두 명이 대화로 설명해 줍니다. 생성에 5~15분 정도 걸리며,
+    <div class="podnote">핵심요약(상세)을 구글 AI 음성이 섹션 순서대로 한 줄도 빼지 않고 읽어 줍니다. 화면의 해당 섹션이 정확히 따라갑니다. 생성에 5~10분 정도 걸리며,
       만들어두면 다음부터는 바로 재생됩니다.</div>
   </div>
 </div>
@@ -789,17 +829,65 @@ function lsSet(k, v){
 }
 function save(){ if(CH){ S._at=Date.now(); S._st=S._at; lsSet(LSKEY, JSON.stringify(S)); pushCloud(); } }
 
-/* 오늘 푼 문항수(전 챕터 공통) — 날짜별 누적 카운트 */
-function bumpDaily(){
+/* 오늘 푼 문항수(전 챕터 공통) — 날짜별 "처음 푼 고유 문항" 수.
+   같은 문제를 오답 재도전 등으로 다시 풀어도 그날은 1번만 센다.
+   fc:dq = {"YYYY-MM-DD": {"chNN": {"문항no":1}}} (wlog와 같은 구조, 로컬·클라우드 합집합) */
+function dqCount(day){ let n=0; for(const c in (day||{})) n+=Object.keys(day[c]).length; return n; }
+/* 고유 카운트 전환일에는 기준값(dqbase)+고유문항수로 확정, 그 외 날짜는 기존 값과 큰 쪽 */
+function dqBase(){ try{ return JSON.parse(localStorage.getItem("fc:dqbase")||"{}"); }catch(e){ return {}; } }
+function dailyValue(key, prev, dqDay){
+  const base=dqBase()[key];
+  return (base!=null) ? base+dqCount(dqDay) : Math.max(prev||0, dqCount(dqDay));
+}
+function bumpDaily(q){
   try{
-    const k="fc:daily";
-    const d=JSON.parse(localStorage.getItem(k)||"{}");
-    const t=new Date();
-    const key=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
-    d[key]=(d[key]||0)+1;
+    const ch=(q&&(q._ch||CH))||CH, no=String(q&&q.no||""); if(!ch||!no) return;
+    const key=wlogDay(Date.now());
+    const dq=JSON.parse(localStorage.getItem("fc:dq")||"{}");
+    if(dq[key] && dq[key][ch] && dq[key][ch][no]) return;   // 오늘 이미 푼 문항 → 중복 카운트 안 함
+    if(!dq[key]) dq[key]={};
+    dq[key][ch]=Object.assign({}, dq[key][ch]||{}); dq[key][ch][no]=1;
+    const dks=Object.keys(dq).sort(); while(dks.length>60){ delete dq[dks.shift()]; }   // 두 달치 보관
+    localStorage.setItem("fc:dq", JSON.stringify(dq));
+    const d=JSON.parse(localStorage.getItem("fc:daily")||"{}");
+    d[key]=dailyValue(key, d[key], dq[key]);
     const keys=Object.keys(d).sort(); while(keys.length>1200){ delete d[keys.shift()]; } // 약 3년치 날짜 누적 보관
-    localStorage.setItem(k, JSON.stringify(d));
+    localStorage.setItem("fc:daily", JSON.stringify(d));
+    pushDq(dq);
     pushDaily(d);
+  }catch(e){}
+}
+/* 고유 문항 로그를 클라우드와 합집합 병합 (기기 간 같은 문제 이중 카운트 방지) */
+let _dqTimer=null;
+function pushDq(local){
+  if(!SYNC) return;
+  clearTimeout(_dqTimer);
+  _dqTimer=setTimeout(async ()=>{
+    try{
+      let cloud={};
+      const r=await fetch(cloudUrl("dq"),{cache:"no-store"});
+      if(r.ok){ cloud=(await r.json())||{}; }
+      let fresh=local; try{ fresh=JSON.parse(localStorage.getItem("fc:dq")||"{}"); }catch(e){}
+      const merged=mergeWlog(cloud, fresh);
+      try{ localStorage.setItem("fc:dq", JSON.stringify(merged)); }catch(e){}
+      await fetch(cloudUrl("dq"),{method:"PUT",body:JSON.stringify(merged)});
+    }catch(e){}
+  }, 1500);
+}
+async function pullDq(){
+  if(!SYNC) return;
+  try{
+    const r=await fetch(cloudUrl("dq"),{cache:"no-store"}); if(!r.ok) return;
+    const cloud=(await r.json())||{};
+    const local=JSON.parse(localStorage.getItem("fc:dq")||"{}");
+    const dq=mergeWlog(cloud, local);
+    localStorage.setItem("fc:dq", JSON.stringify(dq));
+    const rb=await fetch(cloudUrl("dqbase"),{cache:"no-store"});
+    const base=rb.ok ? ((await rb.json())||{}) : {};
+    localStorage.setItem("fc:dqbase", JSON.stringify(base));
+    const d=JSON.parse(localStorage.getItem("fc:daily")||"{}"); let chg=false;
+    for(const k in base){ const v=base[k]+dqCount(dq[k]); if(d[k]!==v){ d[k]=v; chg=true; } }
+    if(chg) localStorage.setItem("fc:daily", JSON.stringify(d));
   }catch(e){}
 }
 /* 학습 날짜 기록을 클라우드에 누적 병합 (기기 간 유지) */
@@ -812,8 +900,12 @@ function pushDaily(local){
       let cloud={};
       const r=await fetch(cloudUrl("daily"),{cache:"no-store"});
       if(r.ok){ cloud=(await r.json())||{}; }
+      // 타이머 대기·fetch 중에 답을 더 풀었을 수 있으므로 인자로 받은 스냅샷 대신 저장소를 다시 읽는다
+      // (스냅샷을 쓰면 그 사이 늘어난 카운트가 옛 값으로 되돌아가 숫자가 오락가락함)
+      let fresh=local; try{ fresh=JSON.parse(localStorage.getItem("fc:daily")||"{}"); }catch(e){}
       const merged=Object.assign({},cloud);
-      for(const key in local){ merged[key]=Math.max(cloud[key]||0, local[key]||0); }
+      const base=dqBase();
+      for(const key in fresh){ merged[key]=(base[key]!=null) ? fresh[key] : Math.max(cloud[key]||0, fresh[key]||0); }
       try{ localStorage.setItem("fc:daily", JSON.stringify(merged)); }catch(e){}
       await fetch(cloudUrl("daily"),{method:"PUT",body:JSON.stringify(merged)});
     }catch(e){}
@@ -1233,9 +1325,17 @@ function saveProg(){
 function clearProg(){ S.prog=null; save(); }
 
 function buildDeck(){
+  // 등급 필터는 다른 과목(행정법 S~Z ↔ 전술 위·장·교)에서 저장된 값이 새어 들어올 수 있다.
+  // 이 챕터에 실제 존재하는 등급과 교집합이 없으면 필터를 무시한다 (덱 0개 방지).
+  let gFilter = selGrades;
+  if(gFilter.size){
+    const present = new Set(QUESTIONS.map(q=>((q.grade||"").trim())||"-"));
+    const eff = new Set([...gFilter].filter(g=>present.has(g)));
+    if(eff.size===0) gFilter = new Set();
+  }
   deck = QUESTIONS.filter(q=>
     (selThemes.size===0 || selThemes.has(q.theme)) &&
-    (selGrades.size===0 || selGrades.has(q.grade)) &&
+    (gFilter.size===0 || gFilter.has(q.grade)) &&
     (!weakOnlyOn || isWeak(q.no)) &&
     (!unsolvedOnlyOn || !isSolved(q.no)));
   if(unsolvedOnlyOn && deck.length===0){
@@ -1479,7 +1579,7 @@ function renderExamQ(q, state){
       if(mk===state.ans) cls+=" ok";
       else if(state.pick && mk===state.pick) cls+=" no";
     }
-    return `<div class="${cls}" data-a="${mk}">${esc(c)}</div>`;
+    return `<div class="${cls}" data-a="${mk}"><span class="mk">${esc(mk)}</span><span class="tx">${esc(c.slice(1).trim())}</span></div>`;
   }).join("");
   return `<div class="exampaper">${stemHtml}${ch}</div>`;
 }
@@ -1622,8 +1722,9 @@ function reveal(q, correct){
   $("nextBtn").textContent = allAnswered() ? "🏁 결과 보기" : "다음 문제 →";
   $("nextBtn").style.display="block";
 }
-/* ⏱ 문제당 15초 제한 — 초과해도 답은 할 수 있지만, 맞혀도 '시간초과'로 취약 기록에 남는다 */
-const Q_TIME_LIMIT = 15;
+/* ⏱ 문제당 제한시간 — 초과해도 답은 할 수 있지만, 맞혀도 '시간초과'로 취약 기록에 남는다.
+   OX(행정법·공무원법)=15초, 소방전술(ts*)은 사지선다라 40초 */
+const Q_TIME_LIMIT = /^ts/.test(CH||"") ? 40 : 15;
 let qTimerIv = null;
 let qOvertime = false;                            // 현재 문항이 제한시간을 넘겼는지
 let qStartAt = 0;                                 // 현재 문항 풀이 시작 시각 (풀이 시간 기록용)
@@ -1673,7 +1774,7 @@ function answer(a){
     if(sec>0) st.at = st.at ? Math.round((st.at*0.6 + sec*0.4)*10)/10 : sec;
   }
   if(!correct) bumpWrong(q._ch || CH, q.no);   // 날짜별 오답 로그 — 출신 챕터(_ch) 우선
-  bumpDaily();
+  bumpDaily(q);
   saveProg();
   reveal(q, correct);
   if(overtime) $("vMark").textContent = correct ? "정답! (⏰ 시간초과)" : "땡! (⏰ 시간초과)";
@@ -1957,11 +2058,19 @@ function closeAiSum(){ $("aiSumWrap").classList.remove("show"); clearTimeout(aiS
 let INTRO_HTML="", INTRO_HTML_EASY="", INTRO_MODE="full";
 const introSeenKey="fc:introseen:"+CH;
 const introModeKey="fc:intromode";
+/* ①②③… 이 3개 이상 나열된 문단은 항목마다 줄바꿈해 목록처럼 보이게 */
+function splitCircled(html){
+  return (html||"").replace(/<p>([\s\S]*?)<\/p>/g,(m,inner)=>{
+    if((inner.match(/[①-⑳]/g)||[]).length<3) return m;
+    return "<p>"+inner.replace(/\s*(<b>)?([①-⑳])/g,"<br>$1$2")+"</p>";
+  });
+}
 function renderIntroBody(){
   ttsStop();
   const useEasy = (INTRO_MODE==="easy" && INTRO_HTML_EASY);
-  $("introBody").innerHTML = useEasy ? INTRO_HTML_EASY : INTRO_HTML;
+  $("introBody").innerHTML = splitCircled(useEasy ? INTRO_HTML_EASY : INTRO_HTML);
   $("introBody").scrollTop=0;
+  inkLoad(); inkRefresh();
   const b=$("lvlBtn");
   if(b) b.textContent = useEasy ? "📚 상세" : "🧒 쉬운말";
 }
@@ -1992,7 +2101,237 @@ async function loadIntro(title){
   }catch(e){}
 }
 function openIntro(){ if(!INTRO_HTML) return; $("introWrap").classList.add("show");
-  try{ podFetch(); }catch(e){} }
+  try{ podFetch(); }catch(e){}
+  try{ inkPull(); setTimeout(inkRefresh, 50); }catch(e){} }
+/* ── 🖨 A4 인쇄: 현재 보고 있는 요약(상세/쉬운말)을 인쇄용 창으로 띄운다 ── */
+function printIntro(){
+  const useEasy = (INTRO_MODE==="easy" && INTRO_HTML_EASY);
+  const body = useEasy ? INTRO_HTML_EASY : INTRO_HTML;
+  if(!body){ alert("인쇄할 요약이 없습니다."); return; }
+  const title = ($("introTitle").textContent||"").replace(/^📖\s*/,"");
+  const w = window.open("", "_blank");
+  if(!w){ alert("팝업이 차단되었습니다. 팝업 허용 후 다시 눌러주세요."); return; }
+  const bodyP = splitCircled(body);
+  w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<title>${title}</title>
+<style>
+@page { size: A4; margin: 10mm 12mm; }
+html,body{margin:0;padding:0}
+body{font-family:"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;
+  color:#1E242B;font-size:11pt;line-height:1.85;word-break:keep-all;overflow-wrap:break-word;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+/* 일부 프린터(폰 AirPrint 등)는 @page 여백을 무시하므로 본문 자체에 상하 여백을 준다 */
+.doc{max-width:174mm;margin:0 auto;padding:2mm 6mm}
+/* 페이지마다 반복되는 상·하단 여백: thead/tfoot은 인쇄 시 매 페이지에 반복된다 */
+.ptbl{width:100%;border-collapse:collapse}
+.ptbl td{border:none;padding:0}
+.pgspace{height:10mm}
+.hd{border-bottom:2.5px solid #2B3A4A;padding-bottom:6px;margin-bottom:14px}
+.hd h1{font-size:15pt;margin:0 0 2px}
+.hd .sub{font-size:8.5pt;color:#7A8694}
+h4{font-size:11.5pt;margin:16px 0 6px;padding:4px 8px;background:#EEF2F6;border-left:4px solid #2E75B6;
+  border-radius:3px;page-break-after:avoid}
+p{margin:8px 0}
+ul{margin:8px 0;padding-left:22px}
+li{margin:0 0 9px;padding-left:2px}
+li::marker{color:#2E75B6}
+b{color:#1A2B45;font-weight:700;background:#FFF1A8;padding:1px 0;border-radius:3px;box-shadow:2px 0 0 #FFF1A8,-2px 0 0 #FFF1A8;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.tip b{background:#FFE7A0;box-shadow:2px 0 0 #FFE7A0,-2px 0 0 #FFE7A0}
+.tip{background:#FFF8DC;border:1px solid #E8D98A;border-radius:6px;padding:8px 10px;margin:10px 0;
+  font-size:10pt;page-break-inside:avoid}
+h4,li,p{orphans:2;widows:2}
+@media print{ .noprint{display:none} }
+.noprint{position:fixed;top:10px;right:10px}
+.noprint button{padding:10px 18px;font-size:14px;border-radius:8px;border:1px solid #ccc;background:#2E75B6;color:#fff;cursor:pointer}
+</style></head><body>
+<div class="noprint"><button onclick="window.print()">🖨 인쇄</button></div>
+<table class="ptbl">
+<thead><tr><td><div class="pgspace"></div></td></tr></thead>
+<tbody><tr><td>
+<div class="doc">
+<div class="hd"><h1>${title}${useEasy?" (쉬운말)":""}</h1><div class="sub">OX 플래시카드 · ${new Date().toLocaleDateString("ko-KR")}</div></div>
+${bodyP}
+</div>
+</td></tr></tbody>
+<tfoot><tr><td><div class="pgspace"></div></td></tr></tfoot>
+</table>
+<script>window.onload=function(){ setTimeout(function(){ window.print(); }, 300); };<\/script>
+</body></html>`);
+  w.document.close();
+}
+
+/* ── ✍️ 애플펜슬 필기 (요약 시트) — 굿노트식 ──
+   · 펜슬(pointerType=pen)만 그림. 손가락(touch)은 스크롤. 마우스는 데스크톱 테스트용으로 허용
+   · 손바닥 방지: 펜 획이 진행 중이면 모든 손가락 터치 무시(스크롤 튐 방지). 잠금 켜면 한 손가락 스크롤 차단, 두 손가락만 스크롤
+   · 펜은 필압(pressure) 반영, 획은 곡선 보간. 형광펜은 거의 수평이면 직선으로 스냅
+   · 좌표는 캔버스 폭 기준 비율 → 같은 기기에선 정확히, 폭이 다른 기기에선 근사 복원
+   · 저장: localStorage fc:ink:<ch>:<easy|full> + 클라우드 ink/<ch>_<mode> (최신 _at 우선) */
+const INK_STYLE={hl:{c:"rgba(255,225,0,.55)",w:16,h:1},hg:{c:"rgba(120,230,120,.55)",w:16,h:1},hp:{c:"rgba(255,150,200,.55)",w:16,h:1},
+                 pr:{c:"#E53935",w:2.6},pb:{c:"#1E88E5",w:2.6},pk:{c:"#222",w:2.6}};
+const INK_SIZE={s:.6,m:1,l:1.7};
+let INK={on:false,lock:false,tool:"hl",size:"m",strokes:[],redo:[],cur:null,pid:null,_at:0}, _inkCv=null, _inkTimer=null, _inkRO=null;
+function inkMode(){ return (INTRO_MODE==="easy"&&INTRO_HTML_EASY)?"easy":"full"; }
+function inkKey(){ return "fc:ink:"+CH+":"+inkMode(); }
+function inkCloudPath(){ return "ink/"+CH+"_"+inkMode(); }
+function inkLoad(){
+  try{ const j=JSON.parse(localStorage.getItem(inkKey())||"null"); INK.strokes=(j&&j.s)||[]; INK._at=(j&&j._at)||0; }
+  catch(e){ INK.strokes=[]; INK._at=0; }
+  INK.redo=[];
+}
+function inkSave(){
+  INK._at=Date.now();
+  try{ localStorage.setItem(inkKey(), JSON.stringify({s:INK.strokes,_at:INK._at})); }catch(e){}
+  if(!SYNC) return;
+  clearTimeout(_inkTimer);
+  _inkTimer=setTimeout(()=>{ fetch(cloudUrl(inkCloudPath()),{method:"PUT",body:JSON.stringify({s:INK.strokes,_at:INK._at})}).catch(()=>{}); },1200);
+}
+async function inkPull(){
+  if(!SYNC) return;
+  try{
+    const r=await fetch(cloudUrl(inkCloudPath()),{cache:"no-store"}); if(!r.ok) return;
+    const c=await r.json(); if(!c || !(c._at>INK._at)) return;
+    INK.strokes=c.s||[]; INK._at=c._at; INK.redo=[];
+    try{ localStorage.setItem(inkKey(), JSON.stringify({s:INK.strokes,_at:INK._at})); }catch(e){}
+    inkRefresh();
+  }catch(e){}
+}
+function inkIsStylus(e){ return e.pointerType==="pen" || e.pointerType==="mouse"; }
+function inkTouchBlock(e){
+  // 펜 획 진행 중이면 손바닥 등 모든 손가락 터치 차단. 잠금이면 한 손가락 차단(두 손가락 스크롤은 허용)
+  if(!INK.on) return;
+  const ts=[...e.touches];
+  if(ts.some(t=>t.touchType==="stylus")){ e.preventDefault(); return; }
+  if(INK.cur || (INK.lock && ts.length===1)) e.preventDefault();
+}
+function inkCanvas(){
+  const body=$("introBody"); if(!body) return null;
+  if(!_inkCv || !_inkCv.isConnected){
+    _inkCv=document.createElement("canvas"); _inkCv.className="inkcv";
+    _inkCv.addEventListener("pointerdown",inkDown); _inkCv.addEventListener("pointermove",inkMove);
+    _inkCv.addEventListener("pointerup",inkUp); _inkCv.addEventListener("pointercancel",inkUp);
+    _inkCv.addEventListener("touchstart",inkTouchBlock,{passive:false});
+    _inkCv.addEventListener("touchmove",inkTouchBlock,{passive:false});
+    if(!_inkRO && window.ResizeObserver){ _inkRO=new ResizeObserver(()=>inkRefresh()); _inkRO.observe(body); }
+  }
+  if(_inkCv.parentNode!==body) body.appendChild(_inkCv);
+  return _inkCv;
+}
+function inkRefresh(){
+  const body=$("introBody"), cv=inkCanvas(); if(!cv) return;
+  const w=body.clientWidth, h=body.scrollHeight, dpr=window.devicePixelRatio||1;
+  if(!w||!h) return;
+  cv.style.width=w+"px"; cv.style.height=h+"px";
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); }
+  const ctx=cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+  INK.strokes.forEach(st=>inkDraw(ctx,st,w));
+}
+function inkWidth(st,w,pr){
+  const sty=INK_STYLE[st.t]||INK_STYLE.pr, k=INK_SIZE[st.z||"m"]||1;
+  const base=sty.w*k*(w/430);
+  return sty.h ? base : base*(0.55+0.9*(pr==null?0.5:pr));   // 펜만 필압 반영
+}
+function inkDraw(ctx,st,w){
+  const sty=INK_STYLE[st.t]||INK_STYLE.pr; ctx.strokeStyle=sty.c; ctx.lineCap="round"; ctx.lineJoin="round";
+  const P=st.p; if(!P.length) return;
+  if(P.length===1 || sty.h){                    // 점 하나 또는 형광펜: 단일 폭 폴리라인
+    ctx.lineWidth=inkWidth(st,w); ctx.beginPath(); ctx.moveTo(P[0][0]*w,P[0][1]*w);
+    if(P.length===1) ctx.lineTo(P[0][0]*w+0.1,P[0][1]*w); else for(let i=1;i<P.length;i++) ctx.lineTo(P[i][0]*w,P[i][1]*w);
+    ctx.stroke(); return;
+  }
+  for(let i=1;i<P.length;i++){                  // 펜: 구간별 필압 폭 + 중점 곡선 보간
+    const a=P[i-1], b=P[i], prev=P[i-2]||a;
+    ctx.lineWidth=inkWidth(st,w,(a[2]+b[2])/2||b[2]);
+    ctx.beginPath();
+    const m0=[(prev[0]+a[0])/2*w,(prev[1]+a[1])/2*w], m1=[(a[0]+b[0])/2*w,(a[1]+b[1])/2*w];
+    ctx.moveTo(m0[0],m0[1]); ctx.quadraticCurveTo(a[0]*w,a[1]*w,m1[0],m1[1]); ctx.stroke();
+  }
+}
+function inkPos(e){ const r=_inkCv.getBoundingClientRect(), w=r.width||1; return [(e.clientX-r.left)/w,(e.clientY-r.top)/w,(e.pressure||0.5)]; }
+function inkSegDist(p,a,b){ const dx=b[0]-a[0],dy=b[1]-a[1]; const l2=dx*dx+dy*dy; let t=l2?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l2:0; t=Math.max(0,Math.min(1,t)); return Math.hypot(p[0]-(a[0]+t*dx),p[1]-(a[1]+t*dy)); }
+function inkErase(pt){
+  const w=_inkCv.getBoundingClientRect().width||1, R=12/w;
+  const before=INK.strokes.length;
+  const hit=st=>{ const r=R+inkWidth(st,w)/2/w; if(st.p.length===1) return Math.hypot(st.p[0][0]-pt[0],st.p[0][1]-pt[1])<r;
+    for(let i=1;i<st.p.length;i++) if(inkSegDist(pt,st.p[i-1],st.p[i])<r) return true; return false; };
+  const gone=INK.strokes.filter(hit);
+  if(gone.length){ INK.strokes=INK.strokes.filter(st=>!gone.includes(st)); INK.redo.push(...gone.map(g=>({del:g}))); inkRefresh(); inkSave(); }
+}
+function inkStraighten(st){
+  // 형광펜: 획이 거의 수평(높이 < 길이의 12%)이면 평균 y의 직선으로 스냅 (굿노트 직선 형광펜)
+  const P=st.p; if(P.length<2) return st;
+  const xs=P.map(q=>q[0]), ys=P.map(q=>q[1]);
+  const len=Math.max(...xs)-Math.min(...xs), hgt=Math.max(...ys)-Math.min(...ys);
+  if(len<0.03 || hgt>len*0.12) return st;
+  const y=ys.reduce((a,b)=>a+b,0)/ys.length;
+  return {t:st.t,z:st.z,p:[[Math.min(...xs),y],[Math.max(...xs),y]]};
+}
+function inkDown(e){
+  if(!INK.on || !inkIsStylus(e) || INK.cur) return;   // 손가락은 스크롤 / 이미 획 진행 중이면 두 번째 포인터 무시
+  e.preventDefault();
+  try{ _inkCv.setPointerCapture(e.pointerId); }catch(x){}
+  INK.pid=e.pointerId;
+  const pt=inkPos(e);
+  if(INK.tool==="er"){ INK.cur={er:1}; inkErase(pt); return; }
+  INK.cur={t:INK.tool,z:INK.size,p:[pt]};
+}
+function inkMove(e){
+  if(!INK.cur || e.pointerId!==INK.pid) return;
+  e.preventDefault();
+  const pt=inkPos(e);
+  if(INK.cur.er){ inkErase(pt); return; }
+  const last=INK.cur.p[INK.cur.p.length-1];
+  if(Math.hypot(pt[0]-last[0],pt[1]-last[1])<0.0015) return;   // 미세 떨림 무시
+  INK.cur.p.push(pt);
+  const w=_inkCv.getBoundingClientRect().width, ctx=_inkCv.getContext("2d"), P=INK.cur.p, n=P.length;
+  const sty=INK_STYLE[INK.cur.t]; ctx.strokeStyle=sty.c; ctx.lineCap="round"; ctx.lineJoin="round";
+  ctx.lineWidth=inkWidth(INK.cur,w,pt[2]); ctx.beginPath(); ctx.moveTo(P[n-2][0]*w,P[n-2][1]*w); ctx.lineTo(P[n-1][0]*w,P[n-1][1]*w); ctx.stroke();
+}
+function inkUp(e){
+  if(!INK.cur || e.pointerId!==INK.pid) return;
+  const cur=INK.cur; INK.cur=null; INK.pid=null;
+  if(cur.er) return;
+  INK.strokes.push(INK_STYLE[cur.t].h ? inkStraighten(cur) : cur);
+  INK.redo=[]; inkRefresh(); inkSave();   // 다시 그려 형광펜 겹침 얼룩·미리보기 차이 제거
+}
+function inkUndo(){
+  if(!INK.strokes.length) return;
+  INK.redo.push({add:INK.strokes.pop()}); inkRefresh(); inkSave();
+}
+function inkRedo(){
+  const r=INK.redo.pop(); if(!r) return;
+  if(r.add) INK.strokes.push(r.add); else if(r.del) INK.strokes.push(r.del);
+  inkRefresh(); inkSave();
+}
+function inkToggle(){
+  INK.on=!INK.on;
+  $("introBody").classList.toggle("inkon",INK.on);
+  $("inkBar").classList.toggle("show",INK.on);
+  $("inkBtn").classList.toggle("on",INK.on);
+  $("inkBtn").textContent = INK.on ? "✍️ 펜 끄기" : "✍️ 펜";
+  if(INK.on) inkRefresh();
+}
+$("inkBtn").addEventListener("click",inkToggle);
+/* ⛶ 문서 모드 토글 — 선택은 기억 */
+const docModeKey="fc:introdoc";
+function docModeApply(on){
+  $("introWrap").classList.toggle("docmode",on);
+  $("docBtn").classList.toggle("on",on);
+  $("docBtn").textContent = on ? "⛶ 작게" : "⛶ 크게";
+  setTimeout(inkRefresh,50);   // 폭이 바뀌면 필기 캔버스도 다시 맞춤
+}
+$("docBtn").addEventListener("click",()=>{ const on=!$("introWrap").classList.contains("docmode"); try{localStorage.setItem(docModeKey,on?"1":"");}catch(e){} docModeApply(on); });
+try{ if(localStorage.getItem(docModeKey)==="1") docModeApply(true); }catch(e){}
+$("inkBar").querySelectorAll("button[data-tool]").forEach(b=>b.addEventListener("click",()=>{
+  INK.tool=b.dataset.tool;
+  $("inkBar").querySelectorAll("button[data-tool]").forEach(x=>x.classList.toggle("on",x===b));
+}));
+$("inkBar").querySelectorAll("button[data-size]").forEach(b=>b.addEventListener("click",()=>{
+  INK.size=b.dataset.size;
+  $("inkBar").querySelectorAll("button[data-size]").forEach(x=>x.classList.toggle("on",x===b));
+}));
+$("inkUndo").addEventListener("click",inkUndo);
+$("inkRedo").addEventListener("click",inkRedo);
+$("inkLock").addEventListener("click",()=>{ INK.lock=!INK.lock; $("inkLock").classList.toggle("on",INK.lock); $("introBody").classList.toggle("inklock",INK.lock); });
+$("inkClear").addEventListener("click",()=>{ if(!INK.strokes.length) return; if(!confirm("이 요약의 필기를 모두 지울까요?")) return; INK.redo.push(...INK.strokes.map(g=>({del:g}))); INK.strokes=[]; inkRefresh(); inkSave(); });
 function closeIntro(){ ttsStop(); $("introWrap").classList.remove("show"); try{localStorage.setItem(introSeenKey,"1");}catch(e){} }
 
 /* ── 요약 읽어주기(TTS) + 현재 읽는 부분 하이라이트 ── */
@@ -2242,7 +2581,7 @@ function introPodRender(d){
   }else if(s === "pending" || s === "running"){
     btn.textContent = "⏳ 생성 중"; btn.disabled = true;
     box.style.display = "";
-    box.textContent = (d.msg || "AI 음성을 만드는 중이에요") + " — 다 되면 여기서 바로 재생됩니다. (5~15분)";
+    box.textContent = (d.msg || "AI 음성을 만드는 중이에요") + " — 다 되면 여기서 바로 재생됩니다. (5~10분)";
   }else{
     btn.textContent = "🎧 AI음성 만들기"; btn.disabled = false;
     box.style.display = "none";
@@ -2367,6 +2706,7 @@ $("introClose").addEventListener("click",closeIntro);
 $("introStart").addEventListener("click",closeIntro);
 $("ttsBtn").addEventListener("click",()=>{ if(ttsOn) ttsStop(); else ttsStart(); });
 $("lvlBtn").addEventListener("click",toggleIntroLevel);
+$("printBtn").addEventListener("click",printIntro);
 $("introWrap").addEventListener("click",e=>{if(e.target===$("introWrap"))closeIntro();});
 $("keyBtn").addEventListener("click",openKey);
 $("keyClose").addEventListener("click",()=>$("keyWrap").classList.remove("show"));
@@ -2551,7 +2891,7 @@ async function reviewBoot(){
     const want=byCh[id]||{};
     ((d&&d.questions)||[]).forEach(q=>{
       if(want[String(q.no)])
-        qs.push(Object.assign({}, q, {_ch:id, theme:((/^fs/.test(id)?"공무원법"+id.replace(/^fs0?/,""):/^ts/.test(id)?"전술"+id.replace(/^ts0?/,""):id.replace(/^ch0?/,""))+"장"+(q.theme?" · "+q.theme:""))}));
+        qs.push(Object.assign({}, q, {_ch:id, theme:((/^fs/.test(id)?"공무원법"+id.replace(/^fs0?/,""):/^ts/.test(id)?"전술"+id.replace(/^ts0?/,""):/^rv/.test(id)?"복습"+id.replace(/^rv0?/,""):id.replace(/^ch0?/,""))+"장"+(q.theme?" · "+q.theme:""))}));
     });
   }));
   if(!qs.length){ reviewEmpty("해당 날짜의 오답 문항을 찾지 못했습니다."); return; }
@@ -2590,7 +2930,7 @@ setTimeout(()=>{
   try {
     if(REVIEW){ await reviewBoot(); return; }   // 📅 전날 오답 복습 모드 — 챕터 로딩 없이 별도 부팅
     // 통신이 응답 없이 매달리면 "불러오는 중…"에서 영영 멈춘다 → 모든 대기에 시간 제한을 둔다
-    await capWait(Promise.all([pullCloud(), pullOpts()]), 3500);  // 다른 기기의 진도·필터 반영(최대 3.5초)
+    await capWait(Promise.all([pullCloud(), pullOpts(), pullDq()]), 3500);  // 다른 기기의 진도·필터 반영(최대 3.5초)
     if(FRESH) delete S.prog;   // 초기화 요청 — 클라우드에서 되돌아온 중간 세션도 쓰지 않는다
     let r = await fetchCap(`chapters/${CH}.json`, 8000);
     if(!r || !r.ok) r = await fetchCap(`chapters/${CH}.json?v=${Date.now()}`, 8000); // 1회 자동 재시도(캐시 우회)

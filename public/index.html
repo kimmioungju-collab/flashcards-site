@@ -133,6 +133,8 @@ a.ch.subj .spbar{height:9px;border-radius:99px;background:#EAE6DC;overflow:hidde
 a.ch.subj .spbar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2E75B6,#5B9BD5)}
 a.ch.subj.fire::before{background:#D64550}
 a.ch.subj.fire .spbar>i{background:linear-gradient(90deg,#D64550,#F08080)}
+a.ch.subj.rev::before{background:#0E9F6E}
+a.ch.subj.rev .spbar>i{background:linear-gradient(90deg,#0E9F6E,#7EDCB5)}
 /* 단원(편) 그룹 */
 .unit{margin-bottom:4px}
 .uhead{display:flex;align-items:center;gap:9px;cursor:pointer;color:#DCE6F0;font-weight:900;font-size:13.5px;
@@ -186,15 +188,17 @@ a.ch.goal::before{background:#F5A623}
 <script>
 let chapters=[];
 let allChapters=[];   // 과목 필터 이전의 전체 목록 (동기화는 항상 전체 대상)
-/* ── 과목 분리: ?s=admin(행정법) | fire(소방공무원법) | tactic(소방전술), 없으면 과목 선택 화면 ── */
+/* ── 과목 분리: ?s=admin(행정법) | fire(소방공무원법) | tactic(소방전술) | review(복습 노트, rv), 없으면 과목 선택 화면 ── */
 const SUBJ=new URLSearchParams(location.search).get("s")||"";
 const isFireCh=id=>/^fs/.test(id||"");
 const isTacCh=id=>/^ts/.test(id||"");
-const subjOf=id=> isFireCh(id) ? "fire" : isTacCh(id) ? "tactic" : "admin";
+const isRevCh=id=>/^rv/.test(id||"");
+const isHazCh=id=>/^hz/.test(id||"");
+const subjOf=id=> isFireCh(id) ? "fire" : isTacCh(id) ? "tactic" : isRevCh(id) ? "review" : isHazCh(id) ? "hazmat" : "admin";
 const inSubj=c=> SUBJ ? subjOf(c.id)===SUBJ : true;
-const SUBJ_NAME = SUBJ==="fire" ? "소방공무원법" : SUBJ==="tactic" ? "소방전술" : "행정법";
-const GC={"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F","-":"#9AA3AD","위":"#C00000","장":"#ED7D31","교":"#2E75B6"};
-const GORDER=["S","A","B","C","기","인","소","Z","위","장","교","-"];
+const SUBJ_NAME = SUBJ==="fire" ? "소방공무원법" : SUBJ==="tactic" ? "소방전술" : SUBJ==="review" ? "복습 노트" : SUBJ==="hazmat" ? "위험물" : "행정법";
+const GC={"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F","-":"#9AA3AD","위":"#C00000","장":"#ED7D31","교":"#2E75B6","복":"#0E9F6E"};
+const GORDER=["S","A","B","C","기","인","소","Z","위","장","교","복","-"];
 function gradesHtml(g){
   if(!g) return "";
   const keys=Object.keys(g).sort((a,b)=>GORDER.indexOf(a)-GORDER.indexOf(b));
@@ -230,18 +234,21 @@ const UNITS=[
   {name:"🔥 화재진압·소방일반",       from:2001, to:2013},
   {name:"🧗 구조",                   from:2014, to:2020},
   {name:"🚑 구급",                   from:2021, to:2028},
+  {name:"📚 복습 노트 (날짜별)",       from:3001, to:3999},
 ];
-function chNum(c){ const n=parseInt((c.id||"").replace(/[^0-9]/g,""),10)||0; return /^fs/.test(c.id||"") ? 1000+n : /^ts/.test(c.id||"") ? 2000+n : n; }
+function chNum(c){ const n=parseInt((c.id||"").replace(/[^0-9]/g,""),10)||0; return /^fs/.test(c.id||"") ? 1000+n : /^ts/.test(c.id||"") ? 2000+n : /^rv/.test(c.id||"") ? 3000+n : n; }
 function unitOf(c){ const n=chNum(c); for(const u of UNITS){ if(n>=u.from&&n<=u.to) return u; } return {name:"기타", from:9990, to:9999}; }
 function foldKey(name){ return "fc:fold:"+name; }
 function isFolded(name){ return localStorage.getItem(foldKey(name))==="1"; }
 function setFolded(name,v){ if(v) localStorage.setItem(foldKey(name),"1"); else localStorage.removeItem(foldKey(name)); }
 
 /* ── 등급별 계산 (플랜용) ── */
-const PLAN_GRADES=["S","A","B","C","기","인","소","Z"];
+const PLAN_GRADES=["S","A","B","C","기","인","소","Z","위","장","교","-"];   // "-" = 등급없음(무), 위·장·교 = 전술 등급
+/* 학습 플랜은 과목별로 따로 저장 (행정법은 기존 키/경로 유지 — 과거 데이터 호환) */
+function planKey(){ return (!SUBJ||SUBJ==="admin") ? "fc:plan" : "fc:plan:"+SUBJ; }
+function planPath(){ return (!SUBJ||SUBJ==="admin") ? "plan" : "plan_"+SUBJ; }
 let qgrades={};   // chapterId -> { 문항no: 등급 }  (등급 필터 켤 때만 로드)
 function planGradeSet(){
-  if(SUBJ==="fire"||SUBJ==="tactic") return null;   // 플랜 등급 필터는 행정법 전용 — 다른 과목 화면에 영향 금지
   const p=loadPlan();
   return (p&&Array.isArray(p.grades)&&p.grades.length)? new Set(p.grades) : null;  // null = 전체
 }
@@ -279,17 +286,30 @@ function chDoneP(c,gset){ const t=chCountP(c,gset); return t>0 && chSeenP(c,gset
 /* ── 오늘의 목표선 계산 ──
    플랜(N일 1회독) 기준으로, 오늘까지 끝내야 할 누적 목표 문항(targetQ)을 구하고
    챕터를 순서대로 누적해 "여기까지 하면 오늘 분량 완료"인 경계 챕터를 찾는다. */
+/* 플랜 시작 시점에 이미 푼 문항(p.base)은 목표에서 제외하고, 남은 문항만 기간에 나눠 누적 목표를 잡는다.
+   (플랜을 오늘부터 잡으면 "풀고 남은 문항 ÷ 일수"가 하루 페이스가 되도록) */
+function planTargetAt(p, dn, totalQ){
+  const days=Math.max(1,p.days);
+  const base=Math.min(totalQ, Math.max(0, p.base||0));
+  const d=Math.min(Math.max(dn,0),days);
+  return Math.min(totalQ, base + Math.ceil(d/days*(totalQ-base)));
+}
+/* 플랜 저장 시 기준선 계산용: 현재 등급 조건에서 이미 푼 문항 수 (fs* 제외) */
+function seenQForGrades(grades){
+  const gset=(Array.isArray(grades)&&grades.length)? new Set(grades) : null;
+  return chapters.filter(c=>subjOf(c.id)===(SUBJ||"admin")).reduce((s,c)=>s+chSeenP(c,gset),0);
+}
 function computeDailyTarget(){
   const p=loadPlan(); if(!p) return null;
   const gset=planGradeSet();
-  const planChs=chapters.filter(c=>!/^fs/.test(c.id));   // 소방공무원법(fs*)은 행정법 플랜 계산에서 제외
+  const planChs=chapters.filter(c=>subjOf(c.id)===(SUBJ||"admin"));   // 현재 과목 챕터만 (과목 선택 화면은 행정법 기준)
   const totalQ=planChs.reduce((s,c)=>s+chCountP(c,gset),0);
   if(!totalQ) return null;
   const start=new Date(p.start+"T00:00:00");
   const today=new Date(); today.setHours(0,0,0,0);
   const dayNum=Math.floor((today-start)/86400000)+1;
   const days=Math.max(1,p.days);
-  const targetQ=Math.min(totalQ, Math.ceil(Math.min(Math.max(dayNum,1),days)/days*totalQ));
+  const targetQ=planTargetAt(p, Math.max(dayNum,1), totalQ);
   // 순서와 무관하게 이미 푼 문항은 건너뛰고, "앞으로 더 풀어야 할 몫"만큼만 목표선을 긋는다
   // (뒤쪽 챕터를 먼저 푼 경우 '앞섬'인데도 목표선이 계속 남던 모순 해결)
   const seenAll=planChs.reduce((s,c)=>s+chSeenP(c,gset),0);
@@ -523,9 +543,9 @@ async function pullAll(){
   }catch(e){}
   // 학습 플랜도 내려받기
   try{
-    const rp=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/plan.json`,{cache:"no-store"});
+    const rp=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/${planPath()}.json`,{cache:"no-store"});
     if(rp.ok){ const cp=await rp.json(); const lp=loadPlan();
-      if(cp && (cp._at||0) > ((lp&&lp._at)||0)) localStorage.setItem("fc:plan", JSON.stringify(cp)); }
+      if(cp && (cp._at||0) > ((lp&&lp._at)||0)) localStorage.setItem(planKey(), JSON.stringify(cp)); }
   }catch(e){}
   // 회독 카운터 내려받기 (큰 쪽 채택 — 다른 기기에서 새 회독 시작했을 수 있음)
   try{
@@ -568,11 +588,11 @@ async function pushAll(){
   try{
     const p=loadPlan();
     if(p){
-      if(p._at==null){ p._at=Date.now(); localStorage.setItem("fc:plan", JSON.stringify(p)); }
+      if(p._at==null){ p._at=Date.now(); localStorage.setItem(planKey(), JSON.stringify(p)); }
       let cp=null;
-      try{ const rp=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/plan.json`,{cache:"no-store"}); if(rp.ok) cp=await rp.json(); }catch(e){}
+      try{ const rp=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/${planPath()}.json`,{cache:"no-store"}); if(rp.ok) cp=await rp.json(); }catch(e){}
       if(!cp || (p._at||0) > (cp._at||0))
-        await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/plan.json`,{method:"PUT",body:JSON.stringify(p)});
+        await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/${planPath()}.json`,{method:"PUT",body:JSON.stringify(p)});
     }
   }catch(e){}
   // 회독 카운터 올리기 (로컬이 더 크면)
@@ -588,7 +608,7 @@ async function pushAll(){
 function pushPlan(){
   const c=syncCode(); if(!c) return;
   const p=loadPlan(); if(!p) return;
-  fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/plan.json`,{method:"PUT",body:JSON.stringify(p)}).catch(()=>{});
+  fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/${planPath()}.json`,{method:"PUT",body:JSON.stringify(p)}).catch(()=>{});
 }
 document.getElementById("syncBtn").onclick=async ()=>{
   const cur=syncCode();
@@ -609,8 +629,8 @@ document.getElementById("syncBtn").onclick=async ()=>{
 };
 
 /* ── 학습 플랜 (N일 1회독) ── */
-function loadPlan(){ try{ return JSON.parse(localStorage.getItem("fc:plan")||"null"); }catch(e){ return null; } }
-function savePlan(p){ p._at=Date.now(); localStorage.setItem("fc:plan", JSON.stringify(p)); pushPlan(); }
+function loadPlan(){ try{ return JSON.parse(localStorage.getItem(planKey())||"null"); }catch(e){ return null; } }
+function savePlan(p){ p._at=Date.now(); localStorage.setItem(planKey(), JSON.stringify(p)); pushPlan(); }
 function todayStr(){ const d=new Date(); d.setHours(0,0,0,0);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 
@@ -629,6 +649,14 @@ async function pullDaily(){
     const cloud=await r.json(); if(!cloud) return;
     const local=loadDaily(), merged=Object.assign({},local);
     for(const k in cloud){ merged[k]=Math.max(local[k]||0, cloud[k]||0); }
+    // 고유 문항 카운트 전환일: 기준값(dqbase) + 그날 처음 푼 문항수(dq)로 확정 (max 병합 안 함)
+    try{
+      const [rb,rq]=await Promise.all([
+        fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/dqbase.json`,{cache:"no-store"}),
+        fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/dq.json`,{cache:"no-store"})]);
+      const base=rb.ok ? ((await rb.json())||{}) : {}, dq=rq.ok ? ((await rq.json())||{}) : {};
+      for(const k in base){ let n=0; for(const ch in (dq[k]||{})) n+=Object.keys(dq[k][ch]).length; merged[k]=base[k]+n; }
+    }catch(e){}
     localStorage.setItem("fc:daily", JSON.stringify(merged));
   }catch(e){}
 }
@@ -719,7 +747,7 @@ function setupTimeWindow(){
 function computeTimeTarget(){
   const p=loadPlan(); if(!p||p.tstart==null||p.tend==null) return null;
   const gset=planGradeSet();
-  const planChs=chapters.filter(c=>!/^fs/.test(c.id));   // 소방공무원법(fs*)은 행정법 플랜 계산에서 제외
+  const planChs=chapters.filter(c=>subjOf(c.id)===(SUBJ||"admin"));   // 현재 과목 챕터만 (과목 선택 화면은 행정법 기준)
   const totalQ=planChs.reduce((s,c)=>s+chCountP(c,gset),0);
   if(!totalQ) return null;
   const start=new Date(p.start+"T00:00:00");
@@ -727,8 +755,8 @@ function computeTimeTarget(){
   const dayNum=Math.floor((today-start)/86400000)+1;
   const days=Math.max(1,p.days);
   const dn=Math.min(Math.max(dayNum,1),days);
-  const targetToday=Math.min(totalQ, Math.ceil(dn/days*totalQ));
-  const targetPrev=Math.min(totalQ, Math.ceil(Math.max(dn-1,0)/days*totalQ));
+  const targetToday=planTargetAt(p, dn, totalQ);
+  const targetPrev=planTargetAt(p, dn-1, totalQ);
   const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
   let frac = nowMin<=p.tstart ? 0 : nowMin>=p.tend ? 1 : (nowMin-p.tstart)/(p.tend-p.tstart);
   const intra=Math.min(totalQ, Math.round(targetPrev + frac*(targetToday-targetPrev)));
@@ -754,13 +782,14 @@ function setupPlan(){
   if(dv===null) return;
   const days=Math.max(1, parseInt(dv)||10);
   const start=(cur&&cur.start)?cur.start:todayStr();
-  savePlan({start, days, grades: cur?cur.grades:undefined});
+  const base=(cur&&cur.start)? (cur.base||0) : seenQForGrades(cur?cur.grades:undefined);
+  savePlan({start, days, grades: cur?cur.grades:undefined, base});
   renderPlan(); render(document.getElementById("q").value);
 }
 function resetPlanStart(){
   const cur=loadPlan(); if(!cur) return;
   if(!confirm("시작일을 오늘("+todayStr()+")로 다시 맞출까요?\n(진행 기록은 그대로 유지됩니다)")) return;
-  savePlan({start:todayStr(), days:cur.days, grades:cur.grades});
+  savePlan({start:todayStr(), days:cur.days, grades:cur.grades, base:seenQForGrades(cur.grades)});
   renderPlan(); render(document.getElementById("q").value);
 }
 /* 등급 선택 토글 → 플랜 재계산 */
@@ -770,8 +799,9 @@ async function togglePlanGrade(g){
   if(g==="ALL"){ gs=[]; }
   else if(gs.includes(g)){ gs=gs.filter(x=>x!==g); }
   else { gs.push(g); }
-  savePlan({start:p.start, days:p.days, grades: gs.length?gs:undefined});
   if(gs.length) await ensureQGrades();
+  // 등급 범위가 바뀌면 기준선(이미 푼 문항)도 새 범위 기준으로 다시 잡는다
+  savePlan({start:p.start, days:p.days, grades: gs.length?gs:undefined, base:seenQForGrades(gs)});
   renderPlan();
 }
 /* 현재 회독 수: '완전 초기화(새 회독)' 횟수 기반 (클라우드 동기화).
@@ -804,7 +834,6 @@ function roundDoneDate(){
 }
 function renderPlan(){
   const card=document.getElementById("planCard"); if(!card) return;
-  if(SUBJ==="fire"||SUBJ==="tactic"){ card.style.display="none"; return; }   // 학습 플랜은 행정법 전용
   card.style.display="block";
   const p=loadPlan();
   if(!p){
@@ -829,7 +858,7 @@ function renderPlan(){
   const daysLeft=Math.max(0, days-(dayNum-1));          // 오늘 포함 남은 일수
   const end=new Date(start.getTime()+(days-1)*86400000);
   const endStr=`${end.getMonth()+1}/${end.getDate()}`;
-  const targetQ=Math.min(totalQ, Math.ceil(Math.min(Math.max(dayNum,1),days)/days*totalQ));
+  const targetQ=planTargetAt(p, Math.max(dayNum,1), totalQ);
   const behindQ=Math.max(0, targetQ-seenQ);
   const aheadQ=Math.max(0, seenQ-targetQ);
   const perDayQ=daysLeft>0?Math.ceil(remainQ/daysLeft):remainQ;
@@ -854,8 +883,8 @@ function renderPlan(){
   chapters.forEach(c=>Object.keys(c.grades||{}).forEach(k=>{ if((c.grades[k]||0)>0) present.add(k); }));
   const chipGrades=PLAN_GRADES.filter(g=>present.has(g));
   const gchips=`<span class="pgc${allOn?" on":""}" data-g="ALL" style="--pgc:#3A4553">전체</span>`+
-    chipGrades.map(g=>`<span class="pgc${gsel.has(g)?" on":""}" data-g="${g}" style="--pgc:${GC[g]||'#7F7F7F'}">${g}</span>`).join("");
-  const scope = gset? `${[...gset].join("·")} 등급` : "전체 등급";
+    chipGrades.map(g=>`<span class="pgc${gsel.has(g)?" on":""}" data-g="${g}" style="--pgc:${GC[g]||'#7F7F7F'}">${g==="-"?"무":g}</span>`).join("");
+  const scope = gset? `${[...gset].map(g=>g==="-"?"무":g).join("·")} 등급` : "전체 등급";
 
   // 공부 시간대 기준 실시간 페이스
   const tt=computeTimeTarget();
@@ -940,12 +969,12 @@ async function resetProgress(){
       if(code){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/ch/${c.id}.json`,{method:"PUT",body:"null"}); }catch(e){} }
     }
     localStorage.removeItem(roundKey());   // 회독 카운터도 1회독부터 다시
-    if(code && SUBJ!=="fire" && SUBJ!=="tactic"){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/meta/roundN.json`,{method:"PUT",body:"null"}); }catch(e){} }
+    if(code && SUBJ!=="fire" && SUBJ!=="tactic" && SUBJ!=="review" && SUBJ!=="hazmat"){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/meta/roundN.json`,{method:"PUT",body:"null"}); }catch(e){} }
     alert(`${SUBJ_NAME} 전체 진도를 초기화했습니다.`);
   } else {
     const num=s.replace(/[^0-9]/g,"");
     if(!num){ alert("챕터번호를 인식하지 못했습니다."); return; }
-    const id=(SUBJ==="fire"?"fs":SUBJ==="tactic"?"ts":"ch")+num.padStart(2,"0");
+    const id=(SUBJ==="fire"?"fs":SUBJ==="tactic"?"ts":SUBJ==="review"?"rv":SUBJ==="hazmat"?"hz":"ch")+num.padStart(2,"0");
     const c=chapters.find(x=>x.id===id);
     if(!c){ alert("그런 챕터가 없습니다: "+id); return; }
     if(!confirm(`'${c.title}' 진도를 초기화할까요?`)) return;
@@ -966,7 +995,7 @@ async function startNewRound(){
   const resetAt=Date.now();
   const newRound=currentRound()+1;   // 회독 카운터 증가 (표시용)
   try{ localStorage.setItem(roundKey(), String(newRound)); }catch(e){}
-  if(code && SUBJ!=="fire" && SUBJ!=="tactic"){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/meta/roundN.json`,{method:"PUT",body:String(newRound)}); }catch(e){} }
+  if(code && SUBJ!=="fire" && SUBJ!=="tactic" && SUBJ!=="review" && SUBJ!=="hazmat"){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/meta/roundN.json`,{method:"PUT",body:String(newRound)}); }catch(e){} }
   for(const c of chapters){
     const s=stat(c.id); if(!s) continue;
     if(s.qstat){ for(const k in s.qstat){ if(s.qstat[k]) s.qstat[k].s=0; } }
@@ -1138,7 +1167,7 @@ function drawSubjectSelect(){
       <div class="spbar"><i style="width:${p.pct}%"></i></div></a>`;
   };
   document.getElementById("list").innerHTML =
-    mk("admin","⚖️ 행정법","") + mk("fire","🚒 소방공무원법","fire") + mk("tactic","🧯 소방전술","fire");
+    mk("admin","⚖️ 행정법","") + mk("fire","🚒 소방공무원법","fire") + mk("tactic","🧯 소방전술","fire") + mk("hazmat","☢️ 위험물","fire") + mk("review","📚 복습 노트","rev");
 }
 
 fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
@@ -1156,7 +1185,7 @@ fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
     capWait(pushAll(), 15000);        // 이 기기 진도 올리기
     return;
   }
-  document.querySelector("h1").textContent = SUBJ==="fire" ? "🚒 소방공무원법 OX" : SUBJ==="tactic" ? "🧯 소방전술 기출" : "⚖️ 행정법 OX";
+  document.querySelector("h1").textContent = SUBJ==="fire" ? "🚒 소방공무원법 OX" : SUBJ==="tactic" ? "🧯 소방전술 기출" : SUBJ==="review" ? "📚 복습 노트" : SUBJ==="hazmat" ? "☢️ 위험물 OX" : "⚖️ 행정법 OX";
   document.title = SUBJ_NAME+" OX 플래시카드";
   drawList();                        // 목록부터 먼저 그린다 — 통신을 기다리다 갇히지 않게
 

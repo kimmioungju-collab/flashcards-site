@@ -367,12 +367,12 @@ def airy_anon_id() -> str:
     return aid
 
 
-def airy_synth_sync(text: str, out: Path) -> None:
+def airy_synth_sync(text: str, out: Path, voice: str = AIRY_VOICE, style: str = AIRY_STYLE, speed: float = 1.0) -> None:
     """Airy TTS 1회 호출 → wav → mp3. 429는 Retry-After 만큼 쉬고 1회 재시도, 4xx(입력 오류)는 즉시 예외."""
     if len(text) > AIRY_MAX_CHARS:
         raise RuntimeError(f"Airy 640자 초과: {len(text)}자")
-    body = {"model": "airy-tts-v1", "input": text, "voice": AIRY_VOICE, "language": "ko",
-            "style": AIRY_STYLE, "response_format": "wav", "speed": 1}
+    body = {"model": "airy-tts-v1", "input": text, "voice": voice, "language": "ko",
+            "style": style, "response_format": "wav", "speed": speed}
     headers = {"Content-Type": "application/json", "X-Studio-Anonymous-Id": airy_anon_id(),
                "X-Studio-Activity-Source": "generate", "Origin": "https://airy.so", "Referer": "https://airy.so/studio",
                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"}   # Cloudflare 1010: python-urllib UA 차단
@@ -397,7 +397,7 @@ def airy_synth_sync(text: str, out: Path) -> None:
     raw.unlink(missing_ok=True)
 
 
-async def airy_synth(text: str, out: Path) -> None:
+async def airy_synth(text: str, out: Path, voice: str = AIRY_VOICE, style: str = AIRY_STYLE, speed: float = 1.0) -> None:
     """RPM 제한(요청 간격) + 동시 수 제한을 지키며 Airy 호출."""
     if AIRY["lock"] is None:
         AIRY["lock"] = asyncio.Lock(); AIRY["sem"] = asyncio.Semaphore(AIRY_PARALLEL)
@@ -407,7 +407,7 @@ async def airy_synth(text: str, out: Path) -> None:
             if wait > 0:
                 await asyncio.sleep(wait)
             AIRY["last"] = time.time()
-        await asyncio.to_thread(airy_synth_sync, text, out)
+        await asyncio.to_thread(airy_synth_sync, text, out, voice, style, speed)
 
 
 def gemini_synth_sync(text: str, out: Path, style: str = GEMINI_STYLE) -> None:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""--pod: 3인 대화형 팟캐스트 대본(김강사·초보자·진행자, 사용자 Gemini 프롬프트 2026-09-13) → 화자별 edge-tts 음성 → 앱용 오디오 세트.
+"""--pod: 3인 대화형 팟캐스트 대본(김강사·초보자·진행자, 사용자 Gemini 프롬프트 2026-09-13) → 화자별 Airy TTS 음성(POD_TTS=edge 로 edge-tts 폴백) → 앱용 오디오 세트.
 lecture_pod.py 의 --coach(1인 낭독)와 같은 출력 형식(<key>_full.{mp3,sections.json,script.json})을 만든다.
 
 사용법:
@@ -9,6 +9,7 @@ lecture_pod.py 의 --coach(1인 낭독)와 같은 출력 형식(<key>_full.{mp3,
 """
 import asyncio
 import json
+import os
 import re
 import subprocess
 import sys
@@ -16,12 +17,22 @@ from pathlib import Path
 
 import edge_tts
 
-from lecture_pod import (CLAUDE_MODEL, GAP_SEC, MIN_SEC_PER_CHAR, OUT_DIR, TMP_ROOT, TTS_RETRY, build_coach_material,
-                         clean_for_tts, concat, duration, load_sections, log, norm_chapter, target_minutes)
+from lecture_pod import (AIRY_MAX_CHARS, CLAUDE_MODEL, GAP_SEC, MIN_SEC_PER_CHAR, OUT_DIR, TMP_ROOT, TTS_RETRY,
+                         airy_synth, build_coach_material, clean_for_tts, concat, duration, load_sections, log,
+                         norm_chapter, target_minutes)
 from nlm_audio import load_chapter
 
 SPEAKERS = ("김강사", "초보자", "진행자")
-# 화자별 edge-tts 음성 (한국어 뉴럴 음성 3종 전부 사용)
+TTS_ENGINE = os.environ.get("POD_TTS", "airy")     # airy(기본, 사용자 지시 2026-09-13 "엣지 말고 그 전에 쓰던 것") | edge
+# 화자별 Airy 음성 id (목록: https://api.airy.so/v1/studio/voices?lang=ko)
+AIRY_STYLE = os.environ.get("POD_AIRY_STYLE", "bright")   # 사용자 지시 2026-09-13 "밝은 목소리로"
+AIRY_SPEED = float(os.environ.get("POD_AIRY_SPEED", "1.1"))   # 사용자 지시 "기본보다 살짝 빠르게"
+AIRY_VOICES = {
+    "김강사": os.environ.get("POD_V_KIM", "a6fe69257256aa70"),   # Eric — 남성 (사용자 선택 2026-09-13)
+    "초보자": os.environ.get("POD_V_NEW", "d04f9d34c04dce73"),   # Leo — 남성 (사용자 선택)
+    "진행자": os.environ.get("POD_V_MC", "608e2509506454b2"),    # Mary — 여성 (사용자 선택)
+}
+# 화자별 edge-tts 음성 (POD_TTS=edge 폴백용)
 VOICES = {
     "김강사": {"voice": "ko-KR-InJoonNeural", "rate": "+4%", "pitch": "-2Hz"},            # 남성, 자신감 있는 1타 강사
     "초보자": {"voice": "ko-KR-SunHiNeural", "rate": "+10%", "pitch": "+6Hz"},            # 여성, 열정적 수험생
@@ -99,13 +110,22 @@ def make_script(material: str, n_sec: int, mins: int) -> list[str]:
     sys.exit("ERROR: 대본 생성 2회 실패")
 
 
-async def tts_line(speaker: str, text: str, out: Path, sem: asyncio.Semaphore) -> float:
+async def synth_one(speaker: str, text: str, out: Path) -> None:
+    if TTS_ENGINE == "airy":
+        if len(text) > AIRY_MAX_CHARS:
+            raise RuntimeError(f"Airy {AIRY_MAX_CHARS}자 초과 대사: {len(text)}자")
+        await airy_synth(text, out, voice=AIRY_VOICES[speaker], style=AIRY_STYLE, speed=AIRY_SPEED)
+        return
     v = VOICES[speaker]
+    await edge_tts.Communicate(text, v["voice"], rate=v["rate"], pitch=v["pitch"]).save(str(out))
+
+
+async def tts_line(speaker: str, text: str, out: Path, sem: asyncio.Semaphore) -> float:
     async with sem:
         for attempt in range(1, TTS_RETRY + 1):
             try:
                 out.unlink(missing_ok=True)
-                await edge_tts.Communicate(text, v["voice"], rate=v["rate"], pitch=v["pitch"]).save(str(out))
+                await synth_one(speaker, text, out)
                 d = duration(out) if out.exists() else 0.0
                 if d >= len(text) * MIN_SEC_PER_CHAR:
                     return d

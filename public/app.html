@@ -151,6 +151,23 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .markbtn.on{background:#FFF3C4;border-color:#EFDD8F;color:#7A6B00}
 .askbtn{margin-top:9px;border:none;background:#229ED9;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;color:#fff;cursor:pointer;width:100%}
 .askbtn:active{opacity:.8}
+.sumbtn{margin-top:9px;border:1.5px solid #BFD4EA;background:#EEF5FC;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800;color:#1D5FA0;cursor:pointer;width:100%}
+.sumbtn:active{opacity:.8}
+/* 해설 아래 요약 근거 인용 박스 (탭하면 요약 해당 위치로 이동) */
+.sumquote{margin-top:9px;border:1.5px solid #E4D9A6;background:#FFFBEA;border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.62;color:#4A4630;cursor:pointer;word-break:keep-all}
+.sumquote .sqsec{display:block;font-size:12px;font-weight:900;color:#8A7A1E;margin-bottom:4px}
+.sumquote .sqweak{display:inline-block;margin-left:6px;font-size:11px;font-weight:900;color:#fff;background:var(--wrong);border-radius:99px;padding:1px 8px}
+/* 요약 내 취약(누적 오답) 문항 위치 표시 — sumhit(노랑, 아래 정의)이 우선 */
+.introbody .sumweak{background:#FFECEC;border-radius:6px;box-shadow:0 0 0 4px #FFECEC}
+.introbody h4.sumweak{background:#FFD9D9;box-shadow:0 0 0 4px #FFD9D9;color:#8A1F2B}
+.introbody .sumweak[data-weaknote]::after{content:attr(data-weaknote);display:inline-block;margin-left:6px;font-size:11px;font-weight:900;color:#fff;background:var(--wrong);border-radius:99px;padding:1px 8px;vertical-align:middle;white-space:nowrap}
+/* ⚠️ 취약만 보기: 취약 표시와 무관한 요약 내용 숨김 */
+.introbody .wkhide{display:none !important}
+.introbody .wknote-empty{padding:18px 6px;color:var(--muted);font-weight:700;text-align:center}
+/* 문제 → 요약 위치 보기: 근거 문장(sumhit) / 근거 섹션(sumsec) 하이라이트 */
+.introbody .sumhit{background:#FFF3C4;border-radius:6px;box-shadow:0 0 0 4px #FFF3C4}
+.introbody .sumsec{background:#FFFBEA;border-radius:6px;box-shadow:0 0 0 4px #FFFBEA}
+.introbody h4.sumhit,.introbody h4.sumsec{background:#FFE99A;box-shadow:0 0 0 4px #FFE99A;color:#6B5200}
 .askwrap{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:30;align-items:center;justify-content:center;padding:18px}
 .askwrap.show{display:flex}
 .askmodal{background:var(--paper);width:100%;max-width:480px;border-radius:16px;padding:18px}
@@ -401,6 +418,8 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
           <span class="anschip" id="ansChip"></span>
         </div>
         <div class="exp" id="expBox"></div>
+        <div class="sumquote" id="sumQuote" style="display:none"></div>
+        <button class="sumbtn" id="sumBtn" style="display:none">📖 요약에서 이 내용 보기</button>
         <div class="linkbox" id="linkBox" style="display:none">
           <div class="linklabel" id="linkLabel">🔗 연관 OX 문제 바로가기</div>
           <div class="slinkrow" id="slinkRow"></div>
@@ -533,7 +552,7 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
 <div class="sheetwrap" id="introWrap">
   <div class="sheet introsheet">
     <div class="introhead"><h3 id="introTitle">📖 이 챕터 핵심 요약</h3>
-      <div class="introhbtns"><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="docBtn" title="인쇄 화면처럼 넓게 보기">⛶ 크게</button><button class="ttsbtn" id="inkBtn">✍️ 펜</button><button class="ttsbtn" id="printBtn">🖨 인쇄</button><button class="ttsbtn" id="introPodBtn">🎧 AI음성</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
+      <div class="introhbtns"><button class="ttsbtn" id="weakOnlySumBtn" style="display:none">⚠️ 취약만</button><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="docBtn" title="인쇄 화면처럼 넓게 보기">⛶ 크게</button><button class="ttsbtn" id="inkBtn">✍️ 펜</button><button class="ttsbtn" id="printBtn">🖨 인쇄</button><button class="ttsbtn" id="introPodBtn">🎧 AI음성</button><button class="ttsbtn" id="ttsRateBtn" title="말하기 속도">⚡1×</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
     <div class="intropod" id="introPodStat" style="display:none"></div>
     <div class="inkbar" id="inkBar">
       <div class="inkrow">
@@ -560,7 +579,7 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
 <!-- 어느 화면에서도 계속 재생되는 고정 플레이어 (요약을 보면서 들을 수 있음) -->
 <div class="podbar" id="podBar" style="display:none">
   <div class="podbarhead"><span id="podBarTitle">🎧 AI 음성 요약</span>
-    <span><button id="podScriptBtn" style="display:none">📜 스크립트</button><button id="podBarClose" title="닫기">✕</button></span></div>
+    <span><button id="podRateBtn" title="재생 속도">⚡1×</button><button id="podScriptBtn" style="display:none">📜 스크립트</button><button id="podBarClose" title="닫기">✕</button></span></div>
   <div class="podscript" id="podScript" style="display:none"></div>
   <audio id="podAudio" controls preload="none"></audio>
 </div>
@@ -1715,6 +1734,7 @@ function reveal(q, correct){
   }
   renderMarkBtn(q);
   renderAskBtn(q);
+  renderSumBtn(q);
   { const rb=$("relHereBtn"); if(rb) rb.style.display="none"; }   // 답한 뒤에는 숨김
   $("result").classList.add("show");
   $("oxRow").style.display="none"; $("numRow").style.display="none";
@@ -2055,7 +2075,7 @@ function openAiSum(){
 function closeAiSum(){ $("aiSumWrap").classList.remove("show"); clearTimeout(aiSumTimer); }
 
 /* ── 챕터 핵심 요약(초보자용) ── */
-let INTRO_HTML="", INTRO_HTML_EASY="", INTRO_MODE="full";
+let INTRO_HTML="", INTRO_HTML_EASY="", INTRO_MODE="full", INTRO_MAP={};
 const introSeenKey="fc:introseen:"+CH;
 const introModeKey="fc:intromode";
 /* ①②③… 이 3개 이상 나열된 문단은 항목마다 줄바꿈해 목록처럼 보이게 */
@@ -2071,6 +2091,7 @@ function renderIntroBody(){
   $("introBody").innerHTML = splitCircled(useEasy ? INTRO_HTML_EASY : INTRO_HTML);
   $("introBody").scrollTop=0;
   inkLoad(); inkRefresh();
+  try{ markWeakInSummary(); }catch(e){}
   const b=$("lvlBtn");
   if(b) b.textContent = useEasy ? "📚 상세" : "🧒 쉬운말";
 }
@@ -2086,6 +2107,7 @@ async function loadIntro(title){
     const j=await r.json();
     INTRO_HTML=(j&&j.intro)||"";
     INTRO_HTML_EASY=(j&&j.introEasy)||"";
+    INTRO_MAP=(j&&j.map)||{};
     if(!INTRO_HTML && !INTRO_HTML_EASY) return;
     // 쉬운말 버전이 있으면 기본으로 쉬운말, 없으면 상세
     const saved = localStorage.getItem(introModeKey);
@@ -2102,7 +2124,120 @@ async function loadIntro(title){
 }
 function openIntro(){ if(!INTRO_HTML) return; $("introWrap").classList.add("show");
   try{ podFetch(); }catch(e){}
+  try{ markWeakInSummary(); }catch(e){}   // 최신 오답 기록 반영
   try{ inkPull(); setTimeout(inkRefresh, 50); }catch(e){} }
+/* ── 📖 문제 → 요약 위치 보기: intros/chNN.json 의 map[문항번호] = {s:섹션제목, q:근거문장, es/eq:쉬운말} ── */
+const normTxt = s => (s||"").replace(/\s+/g," ").trim();
+function renderSumBtn(q){
+  const b=$("sumBtn"); if(!b) return;
+  const m=INTRO_MAP[q.no];
+  b.style.display = (m && INTRO_HTML) ? "" : "none";
+  b.onclick = m ? ()=>showInSummary(m) : null;
+  // 해설과 함께 요약 근거 인용을 바로 보여준다 (탭하면 요약 해당 위치로)
+  const sq=$("sumQuote");
+  if(sq){
+    if(m && INTRO_HTML && (m.q || m.s)){
+      const w=qw(q.no);
+      sq.innerHTML =
+        `<span class="sqsec">📖 요약 근거${m.s?" — "+esc(m.s):""}`
+        + (w?`<span class="sqweak">누적 오답 ${w}회 · 요약에 ⚠️ 표시됨</span>`:"") + `</span>`
+        + (m.q ? "“"+esc(m.q)+"”" : "탭하면 요약의 근거 섹션으로 이동합니다.");
+      sq.style.display="";
+      sq.onclick=()=>showInSummary(m);
+    } else { sq.style.display="none"; sq.onclick=null; }
+  }
+}
+function sectionEls(h4){                     // h4 + 다음 h4 전까지의 형제 요소
+  const els=[h4]; let n=h4.nextElementSibling;
+  while(n && n.tagName!=="H4"){ els.push(n); n=n.nextElementSibling; }
+  return els;
+}
+function showInSummary(m){
+  if(WEAK_ONLY_SUM){ WEAK_ONLY_SUM=false; }   // 특정 위치로 점프할 땐 전체 보기로 (숨김에 가리지 않게)
+  const useEasy = (INTRO_MODE==="easy" && INTRO_HTML_EASY && m.es);
+  if(INTRO_MODE==="easy" && INTRO_HTML_EASY && !m.es){ INTRO_MODE="full"; renderIntroBody(); }
+  openIntro();
+  const body=$("introBody");
+  body.querySelectorAll(".sumhit,.sumsec").forEach(e=>e.classList.remove("sumhit","sumsec"));
+  const title=normTxt(useEasy ? m.es : m.s), quote=normTxt(useEasy ? m.eq : m.q);
+  const h4=[...body.querySelectorAll("h4")].find(h=>normTxt(h.textContent)===title);
+  if(!h4){ body.scrollTop=0; return; }
+  const els=sectionEls(h4);
+  let hit=null;
+  if(quote){
+    const cands=els.flatMap(e=>[e, ...e.querySelectorAll("li,p")]).filter(e=>/^(LI|P|DIV|H4)$/.test(e.tagName));
+    hit=cands.filter(e=>normTxt(e.textContent).includes(quote)).sort((a,b)=>a.textContent.length-b.textContent.length)[0]||null;
+  }
+  if(hit){ hit.classList.add("sumhit"); h4.classList.add("sumsec"); }
+  else els.forEach(e=>e.classList.add("sumsec"));
+  setTimeout(()=>{ (hit||h4).scrollIntoView({block:"center", behavior:"smooth"}); }, 60);
+}
+/* ── ⚠️ 취약(누적 오답 ≥1) 문항 위치를 요약에 표시 — map 기반, 배지는 ::after라 본문 텍스트는 안 건드림 ── */
+function markWeakInSummary(){
+  const body=$("introBody"); if(!body) return;
+  body.querySelectorAll(".sumweak").forEach(e=>{ e.classList.remove("sumweak"); e.removeAttribute("data-weaknote"); });
+  if(typeof QUESTIONS==="undefined" || !QUESTIONS.length){ applyWeakOnlySum(); return; }
+  const useEasy=(INTRO_MODE==="easy" && INTRO_HTML_EASY);
+  const h4s=[...body.querySelectorAll("h4")];
+  const groups=new Map();
+  for(const q of QUESTIONS){
+    const w=qw(q.no); if(!w) continue;
+    const m=INTRO_MAP[q.no]; if(!m) continue;
+    const title=normTxt(useEasy ? m.es : m.s), quote=normTxt(useEasy ? m.eq : m.q);
+    if(!title) continue;
+    const h4=h4s.find(h=>normTxt(h.textContent)===title);
+    if(!h4) continue;
+    let hit=null;
+    if(quote){
+      const els=sectionEls(h4);
+      const cands=els.flatMap(e=>[e, ...e.querySelectorAll("li,p")]).filter(e=>/^(LI|P|DIV|H4)$/.test(e.tagName));
+      hit=cands.filter(e=>normTxt(e.textContent).includes(quote)).sort((a,b)=>a.textContent.length-b.textContent.length)[0]||null;
+    }
+    const target=hit||h4;
+    if(!groups.has(target)) groups.set(target,[]);
+    groups.get(target).push(q.no+"번 ❌"+w);
+  }
+  for(const [el,list] of groups){
+    el.classList.add("sumweak");
+    el.setAttribute("data-weaknote","⚠️ "+list.join(" · "));
+  }
+  applyWeakOnlySum();
+}
+/* ── ⚠️ 요약 취약만 보기: 취약 표시(sumweak) 부분과 그 섹션 제목만 남기고 숨김 ── */
+let WEAK_ONLY_SUM=false, WEAK_SECS=new Set();   // WEAK_SECS: 취약 표시가 있는 h4 인덱스 (팟캐스트 취약 구간 스킵용)
+function calcWeakSecs(){
+  const body=$("introBody"), set=new Set();
+  if(!body) return set;
+  const h4s=[...body.querySelectorAll("h4")];
+  h4s.forEach((h4,k)=>{
+    const stop=h4s[k+1]||null;
+    for(let n=h4; n&&n!==stop; n=n.nextElementSibling){
+      if(n.classList.contains("sumweak")||n.querySelector(".sumweak")){ set.add(k); return; }
+    }
+  });
+  return set;
+}
+function applyWeakOnlySum(){
+  const body=$("introBody"), btn=$("weakOnlySumBtn");
+  if(!body) return;
+  body.querySelectorAll(".wkhide").forEach(e=>e.classList.remove("wkhide"));
+  const hasWeak=!!body.querySelector(".sumweak");
+  WEAK_SECS=calcWeakSecs();
+  if(btn){
+    btn.style.display=hasWeak?"":"none";
+    btn.classList.toggle("on",WEAK_ONLY_SUM&&hasWeak);
+    btn.textContent=(WEAK_ONLY_SUM&&hasWeak)?"⚠️ 전체 보기":"⚠️ 취약만";
+  }
+  if(!WEAK_ONLY_SUM || !hasWeak) return;
+  // 섹션(파트) 단위 필터: 취약 표시가 하나라도 있는 섹션은 통째로 보여주고, 없는 섹션만 숨김
+  // (팟캐스트·읽어주기가 섹션 단위로 읽으므로 화면도 똑같이 맞춘다)
+  for(const h4 of body.querySelectorAll("h4")){
+    if(h4.classList.contains("sumweak")) continue;
+    const els=sectionEls(h4).slice(1);
+    const secWeak=els.some(e=>e.classList.contains("sumweak")||e.querySelector(".sumweak"));
+    if(!secWeak){ h4.classList.add("wkhide"); els.forEach(e=>e.classList.add("wkhide")); }
+  }
+}
 /* ── 🖨 A4 인쇄: 현재 보고 있는 요약(상세/쉬운말)을 인쇄용 창으로 띄운다 ── */
 function printIntro(){
   const useEasy = (INTRO_MODE==="easy" && INTRO_HTML_EASY);
@@ -2339,6 +2474,20 @@ function closeIntro(){ ttsStop(); $("introWrap").classList.remove("show"); try{l
    음성파일 없으면 브라우저 내장 음성으로 폴백. */
 let ttsSegs=[], ttsOn=false, ttsVoice=null, ttsKeep=null, ttsAudio=null, AUDIO_MAN={};
 const TTS_RATE=1.05;                       // 재생 속도(자연스러움 조정)
+/* ── ⚡ 말하기/재생 속도 배율 — 팟캐스트·읽어주기 공용, 기기별 저장 ── */
+const POD_RATES=[1,1.25,1.5,1.75,2];
+let POD_RATE=(()=>{ const v=parseFloat(localStorage.getItem("fc:podrate")||"1"); return POD_RATES.includes(v)?v:1; })();
+function rateLabel(){ return "⚡"+String(POD_RATE).replace(/\.?0+$/,"")+"×"; }
+function updateRateBtns(){ ["podRateBtn","ttsRateBtn"].forEach(id=>{ const b=$(id); if(b) b.textContent=rateLabel(); }); }
+function applyRate(){
+  try{ $("podAudio").playbackRate=POD_RATE; }catch(e){}
+  if(ttsAudio){ try{ ttsAudio.playbackRate=POD_RATE*TTS_RATE; }catch(e){} }
+}
+function cycleRate(){
+  POD_RATE=POD_RATES[(POD_RATES.indexOf(POD_RATE)+1)%POD_RATES.length];
+  try{ localStorage.setItem("fc:podrate",String(POD_RATE)); }catch(e){}
+  applyRate(); updateRateBtns(); toast("말하기 속도 "+rateLabel().slice(1));
+}
 const TTS_OK = ('speechSynthesis' in window);
 fetch("audio/manifest.json",{cache:"no-store"}).then(r=>r.ok?r.json():{}).then(d=>{AUDIO_MAN=d||{};}).catch(()=>{});
 function pickKoVoice(){
@@ -2366,7 +2515,8 @@ function ttsStop(){
 function ttsStart(){
   if(!TTS_OK){ alert("이 브라우저는 음성 읽어주기를 지원하지 않습니다."); return; }
   ttsStop();
-  ttsSegs=[...$("introBody").querySelectorAll("h4,p,li,.tip")];
+  // ⚠️ 취약만 보기 중이면 숨겨진(안 틀린) 내용은 건너뛰고 화면에 보이는 부분만 읽는다
+  ttsSegs=[...$("introBody").querySelectorAll("h4,p,li,.tip")].filter(el=>el.offsetParent!==null);
   if(!ttsSegs.length) return;
   ttsOn=true;
   const b=$("ttsBtn"); b.textContent="⏹ 멈추기"; b.classList.add("on");
@@ -2391,7 +2541,7 @@ function speakSeg(i){
   const nextSeg=()=>{ if(ttsOn) speakSeg(i+1); };
   // 미리 만든 뉴럴 음성 MP3가 있으면 그것을 재생(같은 도메인 → iOS OK)
   if(i < audioCount()){
-    const a=getAudioEl(); a.playbackRate=TTS_RATE;
+    const a=getAudioEl(); a.playbackRate=POD_RATE*TTS_RATE;
     let handled=false;
     const ok  =()=>{ if(handled)return; handled=true; nextSeg(); };
     const fail=()=>{ if(handled)return; handled=true; webSpeak(txt, nextSeg); }; // 없으면 내장음성
@@ -2408,7 +2558,7 @@ function webSpeak(txt, cb){
   if(!TTS_OK){ cb(); return; }
   if(!ttsVoice) pickKoVoice();
   const u=new SpeechSynthesisUtterance(txt);
-  u.lang="ko-KR"; if(ttsVoice) u.voice=ttsVoice; u.rate=1.0; u.pitch=1.0;
+  u.lang="ko-KR"; if(ttsVoice) u.voice=ttsVoice; u.rate=POD_RATE; u.pitch=1.0;
   u.onend=cb; u.onerror=cb;
   try{ speechSynthesis.speak(u); }catch(e){ cb(); }
 }
@@ -2440,8 +2590,11 @@ function podPlay(url, t, label){
   $("podBarTitle").textContent = "🎧 " + (label || "AI 음성 요약");
   $("podBar").style.display = "";
   document.body.classList.add("podon");
+  au.playbackRate = POD_RATE;
   au.play().catch(()=>toast("재생 버튼을 한 번 더 눌러주세요"));
 }
+/* 소스 교체·재로드 시 브라우저가 배속을 1로 되돌리는 것 방지 */
+$("podAudio").addEventListener("loadedmetadata", ()=>{ try{ $("podAudio").playbackRate=POD_RATE; }catch(e){} });
 
 /* ── 📜 팟캐스트 스크립트 — 재생 위치 하이라이트 ──
    1순위: .sections.json → 핵심요약 시트 본문에서 해당 섹션을 직접 하이라이트(라이브 모드)
@@ -2500,6 +2653,14 @@ $("podAudio").addEventListener("timeupdate", ()=>{
     if(!podTl.length) return;
     let i = -1;
     for(let k=0; k<podTl.length; k++){ if(t >= podTl[k].s) i = podTl[k].i; else break; }
+    // ⚠️ 취약만 보기 중이면 취약 표시 없는 섹션은 자동으로 건너뛴다
+    if(WEAK_ONLY_SUM && WEAK_SECS.size && !WEAK_SECS.has(i - podSecOff)){
+      const nxt = podTl.find(x => x.s > t + 0.3 && WEAK_SECS.has(x.i - podSecOff));
+      const au = $("podAudio");
+      if(nxt){ au.currentTime = nxt.s; return; }
+      if(!au.paused){ au.pause(); toast("⚠️ 취약 구간 재생을 마쳤습니다"); }
+      return;
+    }
     if(i === podSegIdx) return;
     podSegIdx = i;
     podSecHl(i);
@@ -2705,7 +2866,11 @@ $("introBtn").addEventListener("click",openIntro);
 $("introClose").addEventListener("click",closeIntro);
 $("introStart").addEventListener("click",closeIntro);
 $("ttsBtn").addEventListener("click",()=>{ if(ttsOn) ttsStop(); else ttsStart(); });
+$("podRateBtn").addEventListener("click",cycleRate);
+$("ttsRateBtn").addEventListener("click",cycleRate);
+updateRateBtns();
 $("lvlBtn").addEventListener("click",toggleIntroLevel);
+$("weakOnlySumBtn").addEventListener("click",()=>{ WEAK_ONLY_SUM=!WEAK_ONLY_SUM; applyWeakOnlySum(); if(WEAK_ONLY_SUM) $("introBody").scrollTop=0; });
 $("printBtn").addEventListener("click",printIntro);
 $("introWrap").addEventListener("click",e=>{if(e.target===$("introWrap"))closeIntro();});
 $("keyBtn").addEventListener("click",openKey);

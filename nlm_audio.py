@@ -304,10 +304,11 @@ def concat_mp3(parts: list[Path], out_mp3: Path) -> None:
         return
     lst = TMP_DIR / "concat.txt"
     lst.write_text("\n".join(f"file '{p}'" for p in parts), encoding="utf-8")
+    # NotebookLM mp3는 커버아트 등 부가 스트림이 섞여 -c copy가 실패함 → 오디오만 재인코딩
     r = subprocess.run(
         ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
-         "-c", "copy", str(out_mp3)],
-        capture_output=True, text=True, timeout=300,
+         "-vn", "-c:a", "libmp3lame", "-q:a", "2", str(out_mp3)],
+        capture_output=True, text=True, timeout=600,
     )
     if r.returncode != 0 or not out_mp3.exists() or out_mp3.stat().st_size < 10_000:
         sys.exit(f"ERROR: mp3 병합 실패 — {r.stderr[-300:]}")

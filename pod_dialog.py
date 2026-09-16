@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""--pod: 3인 대화형 팟캐스트 대본(김강사·초보자·진행자, 사용자 Gemini 프롬프트 2026-09-13) → 화자별 Airy TTS 음성(POD_TTS=edge 로 edge-tts 폴백) → 앱용 오디오 세트.
+"""--pod: 4인 대화형 팟캐스트 대본(김강사·초보자·진행자·모범생, 사용자 Gemini 프롬프트 2026-09-13, 4인 확장 2026-09-15) → 화자별 Airy TTS 음성(POD_TTS=edge 로 edge-tts 폴백) → 앱용 오디오 세트.
 lecture_pod.py 의 --coach(1인 낭독)와 같은 출력 형식(<key>_full.{mp3,sections.json,script.json})을 만든다.
 
 사용법:
@@ -22,7 +22,7 @@ from lecture_pod import (AIRY_MAX_CHARS, CLAUDE_MODEL, GAP_SEC, MIN_SEC_PER_CHAR
                          norm_chapter, target_minutes)
 from nlm_audio import load_chapter
 
-SPEAKERS = ("김강사", "초보자", "진행자")
+SPEAKERS = ("김강사", "초보자", "진행자", "모범생")
 TTS_ENGINE = os.environ.get("POD_TTS", "airy")     # airy(기본, 사용자 지시 2026-09-13 "엣지 말고 그 전에 쓰던 것") | edge
 # 화자별 Airy 음성 id (목록: https://api.airy.so/v1/studio/voices?lang=ko)
 AIRY_STYLE = os.environ.get("POD_AIRY_STYLE", "bright")   # 사용자 지시 2026-09-13 "밝은 목소리로"
@@ -31,25 +31,28 @@ AIRY_VOICES = {
     "김강사": os.environ.get("POD_V_KIM", "a6fe69257256aa70"),   # Eric — 남성 (사용자 선택 2026-09-13)
     "초보자": os.environ.get("POD_V_NEW", "d04f9d34c04dce73"),   # Leo — 남성 (사용자 선택)
     "진행자": os.environ.get("POD_V_MC", "608e2509506454b2"),    # Mary — 여성 (사용자 선택)
+    "모범생": os.environ.get("POD_V_TOP", "ed722872eac4198e"),   # Sori — 여성 (4인 확장 2026-09-15)
 }
 # 화자별 edge-tts 음성 (POD_TTS=edge 폴백용)
 VOICES = {
     "김강사": {"voice": "ko-KR-InJoonNeural", "rate": "+4%", "pitch": "-2Hz"},            # 남성, 자신감 있는 1타 강사
     "초보자": {"voice": "ko-KR-SunHiNeural", "rate": "+10%", "pitch": "+6Hz"},            # 여성, 열정적 수험생
     "진행자": {"voice": "ko-KR-HyunsuMultilingualNeural", "rate": "+6%", "pitch": "+0Hz"},  # 남성, MC
+    "모범생": {"voice": "ko-KR-SunHiNeural", "rate": "+2%", "pitch": "-4Hz"},               # 여성, 차분한 상위권
 }
 LINE_GAP = 0.25                 # 대사 사이 무음(초)
 CHARS_PER_MIN = 300             # 대화체 낭독 속도
 PARALLEL = 4
-LINE_RE = re.compile(r"^\s*\[?\s*(김강사|초보자|진행자)\s*\]?\s*[:：]\s*(.*)$")
+LINE_RE = re.compile(r"^\s*\[?\s*(김강사|초보자|진행자|모범생)\s*\]?\s*[:：]\s*(.*)$")
 
 POD_PROMPT = """[역할 부여]
 당신은 소방승진 및 {subject} 전문 교육 크리에이터입니다. 제공된 요약본 텍스트를 바탕으로, 3명의 캐릭터가 대화하며 청취자가 자연스럽게 핵심을 암기할 수 있는 오디오 팟캐스트 대본을 작성해 주세요.
 
-[캐릭터 설정 (3명)]
+[캐릭터 설정 (4명)]
 1. [김강사]: 메인 1타 강사. 출제 포인트와 핵심 두음법칙(암기법)을 명쾌하고 자신감 있게 던져주는 역할.
 2. [초보자]: 열정적이지만 자주 헷갈려 하는 수험생. 시청자를 대신해 질문하고, 강사의 두음법칙을 중얼거리며 따라 외우는 역할.
 3. [진행자]: 전체 흐름을 잡는 MC 겸 퀴즈 마스터. 섹션을 넘기거나 마지막에 리마인드 퀴즈를 출제하는 역할.
+4. [모범생]: 차분한 고득점 선배 수험생. 초보자가 헷갈릴 때 자신의 암기 요령과 함정 포인트를 정리해 주고, 마무리 퀴즈에서 초보자와 대결하며 판례 결론을 정확한 문장으로 복기하는 역할.
 
 [대본 작성 규칙]
 - 출력 형식: 파이썬 정규식으로 쉽게 분리할 수 있도록 반드시 `[캐릭터이름]: 대사` 형태로 한 줄에 한 대사씩 작성하세요. (예: `[김강사]: 이번 출제 포인트는...`)

@@ -42,6 +42,15 @@
             "value": "max-age=60"
           }
         ]
+      },
+      {
+        "source": "/audio/nlm/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=300"
+          }
+        ]
       }
     ]
   }

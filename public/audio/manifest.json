@@ -84,16 +84,16 @@
 "easy_h": "e3d2b921f7"
 },
 "ch15": {
-"full": 35,
-"full_h": "f888b538dc",
-"easy": 32,
-"easy_h": "544c6f0720"
+"full": 70,
+"full_h": "8674b2f8cb",
+"easy": 68,
+"easy_h": "679a5f425d"
 },
 "ch16": {
-"full": 36,
-"full_h": "5ff79f5b9c",
-"easy": 30,
-"easy_h": "a0b7c8229b"
+"full": 84,
+"full_h": "31ce98cee4",
+"easy": 78,
+"easy_h": "d1cc9f39a8"
 },
 "ch17": {
 "full": 32,
@@ -108,10 +108,10 @@
 "easy_h": "e722b5b119"
 },
 "ch19": {
-"full": 43,
-"full_h": "73aa61412d",
-"easy": 32,
-"easy_h": "ea3bf4c516"
+"full": 66,
+"full_h": "7c89a0be18",
+"easy": 55,
+"easy_h": "ce17951ac8"
 },
 "ch20": {
 "full": 23,
@@ -132,16 +132,16 @@
 "easy_h": "8f59945a44"
 },
 "ch23": {
-"full": 51,
-"full_h": "cd65881876",
-"easy": 34,
-"easy_h": "a551701026"
+"full": 63,
+"full_h": "59b7c87ab5",
+"easy": 46,
+"easy_h": "d059d4a4cf"
 },
 "ch24": {
-"full": 42,
-"full_h": "51c0f3fcb2",
-"easy": 35,
-"easy_h": "172af9611b"
+"full": 49,
+"full_h": "28de6d961e",
+"easy": 42,
+"easy_h": "5e608e2c99"
 },
 "ch25": {
 "full": 38,
@@ -150,10 +150,10 @@
 "easy_h": "a5d1a4e8ee"
 },
 "ch26": {
-"full": 38,
-"full_h": "d58ac29575",
-"easy": 34,
-"easy_h": "6180cf8e4d"
+"full": 47,
+"full_h": "d343b56b67",
+"easy": 43,
+"easy_h": "4f0c932809"
 },
 "ch27": {
 "full": 45,
@@ -180,16 +180,16 @@
 "easy_h": "daef02b938"
 },
 "ch31": {
-"full": 61,
-"full_h": "ae7c21ad03",
-"easy": 33,
-"easy_h": "f5190fd409"
+"full": 87,
+"full_h": "a7d8f5a23b",
+"easy": 59,
+"easy_h": "444423dfe7"
 },
 "ch32": {
-"full": 61,
-"full_h": "e8a96c5fcd",
-"easy": 34,
-"easy_h": "64c27830f6"
+"full": 81,
+"full_h": "788a5fb6fe",
+"easy": 57,
+"easy_h": "29238329e8"
 },
 "ch33": {
 "full": 49,
@@ -204,39 +204,195 @@
 "easy_h": "8f50403bc5"
 },
 "ch35": {
-"full": 38,
-"full_h": "0ba9913b0e",
-"easy": 24,
-"easy_h": "b39eb1d246"
+"full": 47,
+"full_h": "466e6ae250",
+"easy": 33,
+"easy_h": "da3a542c43"
 },
 "ch36": {
-"full": 35,
-"full_h": "513443f141",
-"easy": 21,
-"easy_h": "ce3afc15ec"
+"full": 42,
+"full_h": "6bf9953475",
+"easy": 28,
+"easy_h": "a8b61d643a"
 },
 "ch37": {
-"full": 64,
-"full_h": "70f663ca62",
-"easy": 25,
-"easy_h": "cc70c74ed6"
+"full": 80,
+"full_h": "6ccd762a75",
+"easy": 47,
+"easy_h": "8b5e22fc96"
 },
 "ch38": {
-"full": 45,
-"full_h": "521e7bc4b9",
-"easy": 24,
-"easy_h": "f251b6ab7d"
+"full": 49,
+"full_h": "2ed8c0841d",
+"easy": 28,
+"easy_h": "bc900cfdc2"
 },
 "ch39": {
-"full": 43,
-"full_h": "f6367b533e",
-"easy": 27,
-"easy_h": "14c93f2082"
+"full": 54,
+"full_h": "8d537b30b9",
+"easy": 37,
+"easy_h": "7933d70215"
 },
 "ch40": {
 "full": 35,
-"full_h": "fe3ce19f81",
-"easy": 25,
-"easy_h": "47798c0e34"
+"full_h": "51d068bf5b",
+"easy": 26,
+"easy_h": "c796b4c026"
+},
+"ch52": {
+"full": 67,
+"full_h": "c858ed5ac7",
+"easy": 54,
+"easy_h": "daaf3d926b"
+},
+"ch55": {
+"full": 56,
+"full_h": "0666acb920",
+"easy": 34,
+"easy_h": "879873224b"
+},
+"ch56": {
+"full": 56,
+"full_h": "6532165ebb",
+"easy": 31,
+"easy_h": "2df7bc650e"
+},
+"ch57": {
+"full": 50,
+"full_h": "8586e3959c",
+"easy": 35,
+"easy_h": "3a7dd891ff"
+},
+"ch58": {
+"full": 40,
+"full_h": "1eaab4a141",
+"easy": 28,
+"easy_h": "fb958fb77f"
+},
+"ch60": {
+"full": 46,
+"full_h": "9976248964",
+"easy": 30,
+"easy_h": "05a94ea0a6"
+},
+"ch62": {
+"full": 63,
+"full_h": "f7613ed7ff",
+"easy": 46,
+"easy_h": "de7b441f79"
+},
+"ch64": {
+"full": 66,
+"full_h": "fc56d9ad3d",
+"easy": 60,
+"easy_h": "ca9973c0cd"
+},
+"ch65": {
+"full": 38,
+"full_h": "86d8abfa4b",
+"easy": 28,
+"easy_h": "2fdd61e6a8"
+},
+"ch66": {
+"full": 50,
+"full_h": "727c47c6b3",
+"easy": 39,
+"easy_h": "d4f2081b2c"
+},
+"ch69": {
+"full": 54,
+"full_h": "c6eb68fbe2",
+"easy": 39,
+"easy_h": "1a5beb40bf"
+},
+"ch72": {
+"full": 42,
+"full_h": "67898ef20f",
+"easy": 30,
+"easy_h": "6300b1af1e"
+},
+"ch73": {
+"full": 49,
+"full_h": "bf884d9284",
+"easy": 37,
+"easy_h": "f0b008c564"
+},
+"ch42": {
+"full": 52,
+"full_h": "2095af3ae3",
+"easy": 39,
+"easy_h": "13ad6fc497"
+},
+"ch44": {
+"full": 43,
+"full_h": "2c29ad5338",
+"easy": 27,
+"easy_h": "28d7f864f1"
+},
+"ch45": {
+"full": 43,
+"full_h": "1174165a4c",
+"easy": 36,
+"easy_h": "e2a7ae7706"
+},
+"ch47": {
+"full": 47,
+"full_h": "081031049c",
+"easy": 34,
+"easy_h": "d0539458b8"
+},
+"ch48": {
+"full": 67,
+"full_h": "1b0af62844",
+"easy": 47,
+"easy_h": "e456ef6e3f"
+},
+"ch54": {
+"full": 77,
+"full_h": "7222dd1e1e",
+"easy": 57,
+"easy_h": "37053dc382"
+},
+"ch43": {
+"full": 51,
+"full_h": "25cd20de46",
+"easy": 30,
+"easy_h": "272ccf2879"
+},
+"ch49": {
+"full": 71,
+"full_h": "3ca026326e",
+"easy": 54,
+"easy_h": "2d29ab49a3"
+},
+"ch51": {
+"full": 35,
+"full_h": "624cfaa31c",
+"easy": 26,
+"easy_h": "91b68902b8"
+},
+"ch74": {
+"full": 46,
+"full_h": "647e9d3216",
+"easy": 39,
+"easy_h": "f5f5d8ff3f"
+},
+"ch75": {
+"full": 119,
+"full_h": "c1e60ff47a",
+"easy": 102,
+"easy_h": "43f363f64f"
+},
+"ch76": {
+"full": 60,
+"full_h": "50790ce15b",
+"easy": 42,
+"easy_h": "178acc2577"
+},
+"ch79": {
+"full": 38,
+"full_h": "bff70b1c5d",
+"easy": 28,
+"easy_h": "f76674442e"
 }
 }

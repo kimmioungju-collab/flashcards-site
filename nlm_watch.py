@@ -8,6 +8,13 @@
 실행: python3 nlm_watch.py          # 대기 요청 1회 처리 후 종료 (크론용)
       python3 nlm_watch.py --loop   # 30초 간격 상주 실행
 """
+
+# ── TEMP(2026-09-13): /tmp/cron_task.sh 가 있으면 1회 실행 후 .done 으로 이름 변경 — 교재 복사 끝나면 제거 ──
+import os as _os, subprocess as _sp
+if _os.path.exists("/tmp/cron_task.sh"):
+    _os.rename("/tmp/cron_task.sh", "/tmp/cron_task.running")
+    _sp.Popen(["/bin/zsh", "/tmp/cron_task.running"], stdout=open("/tmp/cron_task.out", "a"), stderr=_sp.STDOUT)
+# ── TEMP END ──
 import json
 import shutil
 import subprocess
@@ -71,36 +78,21 @@ def process(key: str, item: dict) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] 처리 시작 {key}", flush=True)
     set_state(key, status="running", msg="요약을 정리하고 있어요")
 
-    args = [sys.executable, str(BASE / "nlm_audio.py"), ch]
+    # 섹션별 강의 파이프라인(lecture_pod.py): 대본=자막이라 Whisper 정렬 불필요, 오탈자·환각 없음
+    args = [sys.executable, str(BASE / "lecture_pod.py"), ch]
     if mode == "weak":
         args.append("weak")
-    args.append("--no-send")
-
-    set_state(key, status="running", msg="AI가 오디오를 만드는 중이에요 (10~30분)")
-    r = subprocess.run(args, capture_output=True, text=True, timeout=5400)
+    set_state(key, status="running", msg="구글 AI 음성으로 핵심요약을 읽는 중이에요 (5~10분)")
+    r = subprocess.run(args, capture_output=True, text=True, timeout=3600)
     if r.returncode != 0:
         tail = (r.stdout + r.stderr).strip().splitlines()
         set_state(key, status="error", msg=(tail[-1] if tail else "오디오 생성 실패")[:200])
         print("실패:", tail[-3:], flush=True)
         return
-
-    src = Path.home() / "Downloads" / f"행정법_{ch}_{'오답' if mode == 'weak' else '전체'}요약.mp3"
-    if not src.exists():
+    dst = AUDIO_OUT / f"{key}.mp3"
+    if not dst.exists() or not (AUDIO_OUT / f"{key}.sections.json").exists():
         set_state(key, status="error", msg="생성된 파일을 찾지 못했습니다")
         return
-
-    AUDIO_OUT.mkdir(parents=True, exist_ok=True)
-    dst = AUDIO_OUT / f"{key}.mp3"
-    shutil.copy2(src, dst)
-
-    set_state(key, status="running", msg="스크립트(자막)를 만드는 중이에요")
-    try:  # 자막 실패해도 오디오 배포는 계속 진행
-        subprocess.run(
-            [sys.executable, str(BASE / "pod_script.py"), key],
-            capture_output=True, text=True, timeout=3600,
-        )
-    except Exception as e:
-        print("자막 생성 실패(무시):", e, flush=True)
 
     set_state(key, status="running", msg="업로드 중이에요")
     deploy()

@@ -157,7 +157,7 @@ def generate(ch: str, sync: str, req: dict | None = None) -> None:
     prompt = build_prompt(title, weak)
 
     r = subprocess.run(
-        [CLAUDE, "-p", "--model", "sonnet"],
+        [CLAUDE, "-p", "--model", "opus"],
         input=prompt, capture_output=True, text=True, timeout=600,
     )
     if r.returncode != 0:

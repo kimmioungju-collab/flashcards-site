@@ -79,7 +79,7 @@ CHUNK_CHARS = int(os.environ.get("LECTURE_CHUNK", 260))   # TTS 1회 합성 길�
 GAP_SEC = 0.7                      # 섹션 사이 무음
 MIN_SEC_PER_CHAR = 0.09            # 합성 결과 검증: 이보다 짧으면 누락으로 보고 재합성 (한국어 낭독 ≈ 0.13~0.17s/자)
 TTS_RETRY = 3
-CLAUDE_MODEL = os.environ.get("LECTURE_CLAUDE", "sonnet")
+CLAUDE_MODEL = os.environ.get("LECTURE_CLAUDE", "claude-opus-5")
 
 SCRIPT_PROMPT = """아래는 시험 대비 자료입니다. [섹션 목록]은 앱 화면에 표시되는 핵심 요약이고, [기출 지문]은 실제 출제된 OX 지문입니다.
 강사 한 명이 혼자 낭독하는 한국어 강의 대본을 **섹션별로** 작성하세요. 학생은 화면에서 해당 섹션을 보며 듣습니다.

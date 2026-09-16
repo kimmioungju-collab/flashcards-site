@@ -35,81 +35,104 @@ body{font-family:"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothi
   display:flex;justify-content:center;padding:18px 14px 40px;color:var(--ink);overflow-x:hidden}
 html{overflow-x:hidden}
 .wrap{width:100%;max-width:560px}
-h1{color:#fff;font-size:20px;font-weight:900;letter-spacing:-.3px;margin-bottom:4px}
-.sub{color:#9DB0C0;font-size:12.5px;font-weight:600;margin-bottom:14px}
-.search{width:100%;border:none;border-radius:14px;padding:13px 16px;font-size:15px;font-weight:600;
-  background:rgba(255,255,255,.14);color:#fff;margin-bottom:14px;outline:none}
-.search::placeholder{color:#8FA0B0}
+h1{color:#fff;font-size:21px;font-weight:800;letter-spacing:-.02em;margin-bottom:5px}
+.sub{color:#8497A8;font-size:12.5px;font-weight:500;margin-bottom:16px}
+.search{width:100%;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 15px;font-size:14.5px;font-weight:500;
+  background:rgba(255,255,255,.07);color:#fff;margin-bottom:14px;outline:none}
+.search::placeholder{color:#6F8296}
 .list{display:flex;flex-direction:column;gap:10px}
-a.ch{display:block;background:var(--paper);border-radius:14px;padding:14px 16px;text-decoration:none;color:var(--ink);
-  box-shadow:0 6px 18px rgba(0,0,0,.28);position:relative;overflow:hidden}
-a.ch::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--hl)}
-a.ch.done::before{background:var(--right)}
-.row1{display:flex;align-items:baseline;gap:8px}
-.cid{font-size:11.5px;font-weight:900;color:var(--muted);letter-spacing:.5px}
-.ctitle{font-size:15.5px;font-weight:800;flex:1;word-break:keep-all}
-.podchip{flex:0 0 auto;align-self:center;border:none;border-radius:99px;padding:4px 10px;font-size:11.5px;font-weight:800;
-  background:#EFECE3;color:#6B6558;cursor:pointer;line-height:1.3;white-space:nowrap}
-.podchip.sum{background:#E4EDF6;color:#2E75B6}
-.podchip.done{background:#E2F0D9;color:#2E7D32}
-.podchip.wait{background:#FFF3C4;color:#8A7B1E}
-.podchip.err{background:#FDEBEC;color:#C62828}
+a.ch{display:block;background:var(--paper);border-radius:14px;padding:14px 16px 13px;text-decoration:none;color:var(--ink);
+  box-shadow:0 8px 20px rgba(0,0,0,.22);position:relative;overflow:hidden}
+a.ch::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#E0DBCE}
+a.ch.done::before{background:var(--ink)}
+.row1{display:flex;align-items:baseline;gap:9px}
+.cid{font-size:10.5px;font-weight:800;color:#B5BAC2;letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.ctitle{font-size:15px;font-weight:700;letter-spacing:-.01em;flex:1;word-break:keep-all}
+.podchip{flex:0 0 auto;align-self:center;border:1px solid var(--line);border-radius:7px;padding:3px 8px;
+  font-size:11px;font-weight:700;background:transparent;color:#A2A7AF;cursor:pointer;line-height:1.35;white-space:nowrap}
+.podchip.sum{color:#8A9099}
+.podchip.done{border-color:#D3DAE1;color:#5A7285}
+.podchip.wait{border-color:#E0D9BE;color:#9A8B3E}
+.podchip.err{border-color:#E8D2D2;color:#B0564F}
 .podtoast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:90;max-width:86vw;
   background:rgba(20,26,34,.94);color:#fff;font-size:13px;font-weight:700;padding:10px 16px;border-radius:99px;
   box-shadow:0 6px 20px rgba(0,0,0,.4);text-align:center}
-.row2{display:flex;gap:8px;margin-top:7px;font-size:12px;font-weight:700;color:var(--muted);flex-wrap:wrap}
-.stat{background:#EFECE3;border-radius:99px;padding:2.5px 10px}
-.stat.best{background:#E2F0D9;color:#2E7D32}
-.stat.new{background:#FFF3C4;color:#8A7B1E}
-.stat.wrong{background:#FDEBEC;color:#C62828}
-.stat.last{background:#E9E6F7;color:#5B4FA0}
-.grades{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
-.gc{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:#fff;
-  border-radius:99px;padding:2px 8px;background:var(--gc,#7F7F7F)}
-.gc b{font-weight:900}
+.row2{display:flex;margin-top:7px;font-size:12px;font-weight:600;color:#A2A7AF;flex-wrap:wrap;align-items:center;
+  font-variant-numeric:tabular-nums}
+.stat{background:none;border-radius:0;padding:0}
+.stat+.stat::before{content:"·";margin:0 6px;color:#D2D6DB}
+.stat.best{color:#5A616B;font-weight:700}
+.stat.new{color:#6B7280;font-weight:700}
+.stat.wrong{color:#B0564F;font-weight:700}
+.stat.last{color:#B5BAC2}
+.grades{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.gc{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#A2A7AF;
+  background:none;border-radius:0;padding:0;font-variant-numeric:tabular-nums}
+.gc::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--gc,#7F7F7F);opacity:.8}
+.gc b{font-weight:800;color:#6B7280}
 .empty{color:#9DB0C0;text-align:center;padding:40px 0;font-weight:700}
-.syncbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;font-weight:700;color:#9DB0C0}
+.syncbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11.5px;font-weight:600;color:#7C8FA1}
 .syncbar #syncState{flex:1}
-.syncbar #syncState.on{color:#8FE388}
-.syncbar button{border:none;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:800;
-  background:rgba(255,255,255,.16);color:#fff;cursor:pointer}
-.plan{background:var(--paper);border-radius:14px;padding:14px 16px;margin-bottom:14px;box-shadow:0 6px 18px rgba(0,0,0,.28)}
-.plan .ph{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:900;margin-bottom:8px}
-.plan .ph .pedit{margin-left:auto;display:flex;gap:6px}
-.plan .ph button{border:none;border-radius:99px;padding:4px 10px;font-size:11.5px;font-weight:800;
-  background:#EFECE3;color:#3A4553;cursor:pointer}
-.plan .pmsg{font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:10px;line-height:1.5}
-.plan .pbig{font-size:13px;font-weight:800;color:var(--ink);display:flex;flex-wrap:wrap;gap:6px 12px;margin-bottom:8px}
-.plan .pbig b{font-weight:900}
-.plan .pbar{height:9px;border-radius:99px;background:#EAE6DC;overflow:hidden;margin:8px 0 6px}
-.plan .pbar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2E75B6,#5B9BD5)}
-.plan .pbadges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:12px;font-weight:800}
-.plan .pb{border-radius:99px;padding:3px 11px}
-.plan .pb.ok{background:#E2F0D9;color:#2E7D32}
-.plan .pb.bad{background:#FDEBEC;color:#C62828}
-.plan .pb.info{background:#EFECE3;color:#3A4553}
-.plan .pb.warn{background:#FFF3C4;color:#8A7B1E}
-.plan .ptime{margin-top:10px;font-size:12.5px;font-weight:800;line-height:1.55;border-radius:10px;padding:9px 12px;background:#EFECE3;color:#3A4553}
-.plan .ptime.ok{background:#E2F0D9;color:#2E7D32}
-.plan .ptime.bad{background:#FDEBEC;color:#C62828}
-.plan .ptime b{font-weight:900}
-.plan .ptime .sub{display:block;margin-top:3px;font-weight:600;opacity:.85;font-size:11.5px}
-.plan .pbtn{border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:800;background:#2E75B6;color:#fff;cursor:pointer}
-.plan .pgwrap{margin:2px 0 10px}
-.plan .pglab{font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:5px}
-.plan .pgchips{display:flex;flex-wrap:wrap;gap:5px}
-.plan .pgc{border:1.5px solid #D8D2C6;background:#fff;color:#6B7280;border-radius:99px;
-  padding:3px 10px;font-size:11.5px;font-weight:800;cursor:pointer;user-select:none}
-.plan .pgc.on{border-color:var(--pgc);background:var(--pgc);color:#fff}
+.syncbar #syncState.on{color:#8FA9BC}
+.syncbar button{border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:4px 10px;font-size:11.5px;font-weight:700;
+  background:transparent;color:#8FA9BC;cursor:pointer}
+/* ── 학습 플랜 카드 ── */
+.plan{background:var(--paper);border-radius:16px;padding:17px 18px 11px;margin-bottom:14px;
+  box-shadow:0 10px 28px rgba(0,0,0,.24)}
+.plan .ph{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.plan .ph .lab{font-size:11px;font-weight:800;letter-spacing:.17em;color:#A2A7AF}
+.plan .ph .day{margin-left:auto;font-size:12px;font-weight:600;color:#8A9099;font-variant-numeric:tabular-nums}
+.plan .ph .day b{font-weight:800;color:var(--ink)}
+.plan .hero{display:flex;align-items:flex-end;gap:11px}
+.plan .hero .big{font-size:40px;font-weight:800;letter-spacing:-.035em;line-height:.92;color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.plan .hero .big i{font-style:normal;font-size:19px;font-weight:700;color:#A2A7AF;margin-left:1px}
+.plan .hero .hsub{padding-bottom:3px;font-size:12.5px;font-weight:600;color:#8A9099;font-variant-numeric:tabular-nums}
+.plan .track{position:relative;height:5px;border-radius:99px;background:#E7E3D9;margin-top:15px}
+.plan .track>i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--ink)}
+.plan .track>u{position:absolute;top:-4px;width:2px;height:13px;border-radius:2px;background:#B9B3A6;text-decoration:none}
+.plan .tlab{display:flex;justify-content:space-between;gap:10px;margin-top:7px;
+  font-size:11px;font-weight:600;color:#A2A7AF;font-variant-numeric:tabular-nums}
+.plan .state{display:flex;align-items:flex-start;gap:8px;margin-top:14px;font-size:13px;font-weight:700;
+  color:#4A515B;line-height:1.5;word-break:keep-all}
+.plan .state .dot{width:7px;height:7px;border-radius:99px;background:#A2A7AF;flex:none;margin-top:5px}
+.plan .state.ok{color:#2F7048}   .plan .state.ok .dot{background:#3E9B5F}
+.plan .state.bad{color:#A93B36}  .plan .state.bad .dot{background:#C4544E}
+.plan .state .thin{font-weight:600;color:#8A9099}
+.plan .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:15px;
+  background:var(--line);border-radius:11px;overflow:hidden}
+.plan .grid>div{background:var(--paper);padding:10px 3px 9px;text-align:center}
+.plan .grid .k{font-size:10.5px;font-weight:600;color:#A2A7AF;margin-bottom:3px;white-space:nowrap}
+.plan .grid .v{font-size:15px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.plan .grid .v s{text-decoration:none;font-size:11.5px;font-weight:600;color:#A2A7AF}
+.plan .ptime{margin-top:13px;border-top:1px solid var(--line);padding-top:11px;
+  font-size:12.5px;font-weight:700;color:#5A616B;line-height:1.55;word-break:keep-all}
+.plan .ptime b{font-weight:800;color:var(--ink)}
+.plan .ptime.bad b{color:#A93B36}
+.plan .ptime .sub{display:block;margin-top:3px;font-weight:600;color:#A2A7AF;font-size:11.5px}
+.plan .foot{margin-top:12px;border-top:1px solid var(--line);padding-top:10px;
+  display:flex;flex-direction:column;gap:9px}
+.plan .gr{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.plan .gr .gl{font-size:11px;font-weight:600;color:#A2A7AF;margin-right:3px}
+.plan .acts{display:flex;justify-content:flex-end;gap:2px;margin:-2px -8px -3px 0}
+.plan .acts button{border:none;background:none;border-radius:8px;padding:5px 9px;
+  font-size:11.5px;font-weight:700;color:#8A9099;cursor:pointer}
+.plan .acts button:active{background:#EFECE3}
+.plan .pgc{border:1px solid var(--line);background:transparent;color:#A2A7AF;border-radius:7px;
+  padding:3px 8px;font-size:11px;font-weight:800;cursor:pointer;user-select:none}
+.plan .pgc.on{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.plan .pmsg{font-size:13px;font-weight:600;color:#8A9099;margin-bottom:14px;line-height:1.65;word-break:keep-all}
+.plan .pbtn{border:none;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:800;
+  background:var(--ink);color:var(--paper);cursor:pointer}
 .toolbar{display:flex;gap:8px;margin-bottom:14px}
 .toolbar .search{margin-bottom:0;flex:1}
-.toolbar .leftbtn{border:none;border-radius:14px;padding:0 14px;font-size:12.5px;font-weight:800;
-  background:rgba(255,255,255,.14);color:#9DB0C0;cursor:pointer;white-space:nowrap}
-.toolbar .leftbtn.on{background:#2E75B6;color:#fff}
-.tools2{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.tools2 button{border:none;border-radius:12px;padding:9px 13px;font-size:12.5px;font-weight:800;
-  background:rgba(255,255,255,.14);color:#9DB0C0;cursor:pointer;white-space:nowrap}
-.tools2 button.on{background:#2E75B6;color:#fff}
+.toolbar .leftbtn{border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:0 14px;font-size:12.5px;font-weight:700;
+  background:rgba(255,255,255,.07);color:#8FA9BC;cursor:pointer;white-space:nowrap}
+.toolbar .leftbtn.on{background:var(--paper);border-color:var(--paper);color:var(--ink)}
+.tools2{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tools2 button{border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;
+  background:transparent;color:#8497A8;cursor:pointer;white-space:nowrap}
+.tools2 button.on{background:var(--paper);border-color:var(--paper);color:var(--ink);font-weight:700}
 /* PDF 챕터 선택 모달 */
 .pdfov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
 .pdfbox{background:#fff;color:#1a1a1a;border-radius:16px;width:100%;max-width:420px;max-height:82vh;display:flex;flex-direction:column;padding:16px}
@@ -127,47 +150,54 @@ a.ch.done::before{background:var(--right)}
 .pdfbtns button.pri{background:#2E75B6;color:#fff}
 /* 과목 선택 화면 */
 body.choose .plan,body.choose .toolbar,body.choose .tools2{display:none}
-a.ch.subj{padding:18px 18px}
-a.ch.subj .ctitle{font-size:19px}
-a.ch.subj .spbar{height:9px;border-radius:99px;background:#EAE6DC;overflow:hidden;margin-top:11px}
-a.ch.subj .spbar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#2E75B6,#5B9BD5)}
-a.ch.subj.fire::before{background:#D64550}
-a.ch.subj.fire .spbar>i{background:linear-gradient(90deg,#D64550,#F08080)}
-a.ch.subj.rev::before{background:#0E9F6E}
-a.ch.subj.rev .spbar>i{background:linear-gradient(90deg,#0E9F6E,#7EDCB5)}
+a.ch.subj{padding:17px 18px 15px}
+a.ch.subj .ctitle{font-size:18px;font-weight:800;letter-spacing:-.02em}
+a.ch.subj .spbar{height:4px;border-radius:99px;background:#E7E3D9;overflow:hidden;margin-top:12px}
+a.ch.subj .spbar>i{display:block;height:100%;border-radius:99px;background:var(--ink)}
+a.ch.subj.fire::before{background:#B4544E}
+a.ch.subj.fire .spbar>i{background:#B4544E}
+a.ch.subj.rev::before{background:#2F7F63}
+a.ch.subj.rev .spbar>i{background:#2F7F63}
 /* 단원(편) 그룹 */
 .unit{margin-bottom:4px}
-.uhead{display:flex;align-items:center;gap:9px;cursor:pointer;color:#DCE6F0;font-weight:900;font-size:13.5px;
-  padding:9px 4px 7px;user-select:none}
-.uhead .uarrow{transition:transform .15s;font-size:11px;color:#9DB0C0;width:12px}
+.uhead{display:flex;align-items:center;gap:9px;cursor:pointer;color:#C6D5E2;font-weight:700;font-size:12.5px;
+  letter-spacing:.01em;padding:14px 4px 8px;user-select:none}
+.uhead .uarrow{transition:transform .15s;font-size:9px;color:#6F8296;width:10px}
 .uhead.collapsed .uarrow{transform:rotate(-90deg)}
 .uhead .uname{flex:1;word-break:keep-all}
-.uhead .ucount{font-size:11.5px;font-weight:800;color:#9DB0C0;background:rgba(255,255,255,.1);border-radius:99px;padding:2px 9px;white-space:nowrap}
-.uhead .ubar{width:50px;height:6px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden;flex:none}
-.uhead .ubar>i{display:block;height:100%;background:#5B9BD5}
+.uhead .ucount{font-size:11px;font-weight:600;color:#7C8FA1;background:none;padding:0;white-space:nowrap;font-variant-numeric:tabular-nums}
+.uhead .ubar{width:44px;height:3px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;flex:none}
+.uhead .ubar>i{display:block;height:100%;background:#A8BCCE}
 .ubody{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
 .ubody.hide{display:none}
-.stat.due{background:#FDEBEC;color:#C62828}
-.stat.goal{background:#FFE9C7;color:#B26A00}
-a.ch.goal::before{background:#F5A623}
+.stat.due{color:#B0564F;font-weight:800}
+.stat.goal{color:#9A6A1E;font-weight:800}
+a.ch.goal::before{background:#C98A2B}
 /* 학습 날짜 기록 카드 */
-.slog .sstats{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;font-weight:800;margin-bottom:10px}
-.slog .sstats b{font-weight:900;color:var(--right)}
-.slog .heat{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px}
+.slog .ph{margin-bottom:0;cursor:pointer;user-select:none}
+.slog .ph .day i{font-style:normal;margin-left:5px;font-size:10px;color:#B5BAC2}
+.slog .sstats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:15px;
+  background:var(--line);border-radius:11px;overflow:hidden}
+.slog .sstats>div{background:var(--paper);padding:10px 3px 9px;text-align:center}
+.slog .sstats .k{font-size:10.5px;font-weight:600;color:#A2A7AF;margin-bottom:3px;white-space:nowrap}
+.slog .sstats .v{font-size:15px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.slog .heat{display:flex;gap:3px;overflow-x:auto;padding:15px 0 3px}
 .slog .hcol{display:flex;flex-direction:column;gap:3px}
-.slog .hc{width:13px;height:13px;border-radius:3px;background:#EAE6DC}
-.slog .hc.l1{background:#C6E0B4}.slog .hc.l2{background:#8FC46B}
-.slog .hc.l3{background:#5B9E3A}.slog .hc.l4{background:#2E7D32}
-.slog .hleg{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--muted);margin-top:8px;justify-content:flex-end}
-.slog .hleg .hc{width:11px;height:11px}
-.slog .srecent{font-size:12px;font-weight:700;color:var(--muted);margin-top:8px;line-height:1.6;word-break:keep-all}
+.slog .hc{width:13px;height:13px;border-radius:3px;background:#EDE9DF;flex:none}
+.slog .hc.l1{background:#CBD3DB}.slog .hc.l2{background:#9DAAB8}
+.slog .hc.l3{background:#63778B}.slog .hc.l4{background:#2B3A4A}
+.slog .hleg{display:flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:#A2A7AF;
+  margin-top:9px;justify-content:flex-end}
+.slog .hleg .hc{width:10px;height:10px}
+.slog .srecent{font-size:11.5px;font-weight:600;color:#A2A7AF;margin-top:10px;line-height:1.7;word-break:keep-all;
+  border-top:1px solid var(--line);padding-top:10px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>📚 OX 플래시카드</h1>
   <div class="sub" id="summary">불러오는 중…</div>
-  <div class="syncbar"><span id="syncState">☁️ 동기화 꺼짐</span><button id="syncBtn">코드 설정</button></div>
+  <div class="syncbar"><span id="syncState">동기화 꺼짐</span><button id="syncBtn">코드 설정</button></div>
   <div class="plan" id="planCard" style="display:none"></div>
   <div class="plan slog" id="studyCard" style="display:none"></div>
   <div class="toolbar">
@@ -175,12 +205,12 @@ a.ch.goal::before{background:#F5A623}
     <button class="leftbtn" id="leftBtn">남은 챕터만</button>
   </div>
   <div class="tools2">
-    <button id="subjBtn" onclick="location.href='index.html'">↩ 과목 선택</button>
-    <button id="ydayBtn" onclick="location.href='app.html?review=prev'">📅 어제 오답 복습</button>
-    <button id="goalBtn">🎯 오늘 목표만</button>
-    <button id="pdfBtn">📄 취약·체크 PDF</button>
-    <button id="roundBtn">🧨 완전 초기화 (새 회독)</button>
-    <button id="resetBtn">🗑 진도 초기화</button>
+    <button id="subjBtn" onclick="location.href='index.html'">과목 선택</button>
+    <button id="ydayBtn" onclick="location.href='app.html?review=prev'">어제 오답 복습</button>
+    <button id="goalBtn">오늘 목표만</button>
+    <button id="pdfBtn">취약·체크 PDF</button>
+    <button id="roundBtn">새 회독 시작</button>
+    <button id="resetBtn">진도 초기화</button>
     <button id="foldBtn">단원 접기/펴기</button>
   </div>
   <div class="list" id="list"></div>
@@ -340,9 +370,9 @@ function makeCard(c,gset){
   a.className="ch"+(done?" done":"")+(isGoal&&!done?" goal":"");
   a.href=`app.html?ch=${c.id}`;
   let stats="";
-  if(isGoal && !done) stats += `<span class="stat goal">🎯 오늘 목표선 ~${dailyT.boundaryQno}번</span>`;
+  if(isGoal && !done) stats += `<span class="stat goal">오늘 목표선 ~${dailyT.boundaryQno}번</span>`;
   else if(isDue && !done) stats += `<span class="stat due">오늘까지</span>`;
-  if(done) stats += `<span class="stat best">✅ 완료 ${cnt}/${cnt}</span>`;
+  if(done) stats += `<span class="stat best">완료 ${cnt}/${cnt}</span>`;
   else if(seen>0) stats += `<span class="stat new">진도 ${seen}/${cnt}</span>`;
   if(s){
     if(s.rounds) stats += `<span class="stat">${s.rounds}회독</span><span class="stat best">최고 ${s.best}%</span>`;
@@ -351,7 +381,7 @@ function makeCard(c,gset){
     if(s.prog && s.prog.nos && (s.prog.ans||[]).length < s.prog.nos.length){
       // 이미 완료한 챕터를 다시 도는 중이면 '풀던 중'이 진도 후퇴처럼 보이므로 회독 표기로 구분
       const lbl = done ? `${(s.rounds||1)+1}회독 중` : "풀던 중";
-      stats += `<span class="stat new">🔄 ${lbl} ${(s.prog.ans||[]).length}/${s.prog.nos.length}</span>`;
+      stats += `<span class="stat new">${lbl} ${(s.prog.ans||[]).length}/${s.prog.nos.length}</span>`;
     }
   }
   if(!stats) stats = `<span class="stat new">미학습</span>`;
@@ -361,7 +391,7 @@ function makeCard(c,gset){
     const ymd = d.getFullYear()!==now.getFullYear()
       ? `${String(d.getFullYear()).slice(2)}.${d.getMonth()+1}/${d.getDate()}`
       : `${d.getMonth()+1}/${d.getDate()}`;
-    stats += `<span class="stat last">🕐 ${ymd}</span>`;
+    stats += `<span class="stat last">${ymd}</span>`;
   }
   a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span>${sumChip(c.id)}${podChip(c.id)}</div>
     <div class="row2"><span class="stat">${c.count}문항</span>${stats}</div>
@@ -381,7 +411,7 @@ async function sumLoad(){
 }
 function sumChip(id){
   if(!INTRO_SET.has(id)) return "";
-  return `<button class="podchip sum" data-sum="${id}" title="핵심요약 보기">📖 요약</button>`;
+  return `<button class="podchip sum" data-sum="${id}" title="핵심요약 보기">요약</button>`;
 }
 
 /* ── 🎧 AI 음성(노트북LM) 상태 표시 · 목록에서 바로 생성 ── */
@@ -390,10 +420,10 @@ let podPollTimer = null;
 
 function podChip(id){
   const d = POD[id], s = (d && d.status) || "none";
-  if(s === "done")    return `<button class="podchip done" data-pod="${id}" title="AI 음성 듣기">🎧 ${d.mins?d.mins+"분":"듣기"}</button>`;
-  if(s === "running" || s === "pending") return `<button class="podchip wait" data-pod="${id}">⏳ 생성중</button>`;
-  if(s === "error")   return `<button class="podchip err" data-pod="${id}" title="다시 만들기">⚠️ 재시도</button>`;
-  return `<button class="podchip" data-pod="${id}" title="AI 음성 만들기">🎧 +</button>`;
+  if(s === "done")    return `<button class="podchip done" data-pod="${id}" title="AI 음성 듣기">음성 ${d.mins?d.mins+"분":""}</button>`;
+  if(s === "running" || s === "pending") return `<button class="podchip wait" data-pod="${id}">생성중</button>`;
+  if(s === "error")   return `<button class="podchip err" data-pod="${id}" title="다시 만들기">재시도</button>`;
+  return `<button class="podchip" data-pod="${id}" title="AI 음성 만들기">음성 +</button>`;
 }
 
 async function podLoad(){
@@ -504,8 +534,8 @@ function syncCode(){
 }
 function updateSyncUI(){
   const c=syncCode(), el=document.getElementById("syncState"), btn=document.getElementById("syncBtn");
-  if(c){ el.textContent="☁️ 동기화 켜짐 · 코드 "+c; el.classList.add("on"); btn.textContent="변경/끄기"; }
-  else { el.textContent="☁️ 동기화 꺼짐"; el.classList.remove("on"); btn.textContent="코드 설정"; }
+  if(c){ el.textContent="동기화 "+c; el.classList.add("on"); btn.textContent="변경/끄기"; }
+  else { el.textContent="동기화 꺼짐"; el.classList.remove("on"); btn.textContent="코드 설정"; }
 }
 /* 빈(사실상 기록 없는) 레코드 판별 — 빈 기록이 실기록을 덮어쓰는 사고 방지용
    (2026-08-05 ch01·02 진도 소실 원인: 캐시 오래된 기기의 빈 로컬에 _at 도장 후 클라우드 덮어씀) */
@@ -619,7 +649,7 @@ document.getElementById("syncBtn").onclick=async ()=>{
   else { localStorage.removeItem("fc:synccode"); localStorage.setItem("fc:syncoff","1"); }
   updateSyncUI();
   if(code){
-    document.getElementById("syncState").textContent="☁️ 동기화 중…";
+    document.getElementById("syncState").textContent="동기화 중…";
     await pullAll();      // 다른 기기 진도 받기
     await pushAll();      // 이 기기 기존 진도 올리기
     updateSyncUI();
@@ -699,23 +729,24 @@ function renderStudyLog(){
     }
     cols.push(`<div class="hcol">${col}</div>`);
   }
-  const recent=dates.slice(-5).reverse().map(k=>`${k.slice(5).replace("-","/")}(${d[k]})`).join(" · ");
+  const recent=dates.slice(-5).reverse().map(k=>`${k.slice(5).replace("-","/")} ${d[k]}문항`).join("  ·  ");
   // 기본은 접힘 — 제목 줄을 누르면 펼쳐지고, 선택은 이 기기에 기억된다
   const open = localStorage.getItem("fc:slogOpen") === "1";
   card.innerHTML=`
-    <div class="ph" id="slogHead" style="cursor:pointer;user-select:none">🔥 학습 날짜 기록
-      <span style="font-weight:700;color:var(--muted);font-size:12px"> — 연속 ${cur}일 · 총 ${totalDays}일</span>
-      <span id="slogArrow" style="float:right">${open?"▾":"▸"}</span></div>
+    <div class="ph" id="slogHead">
+      <span class="lab">학습 기록</span>
+      <span class="day">연속 <b>${cur}</b>일 · 총 <b>${totalDays}</b>일<i id="slogArrow">${open?"▾":"▸"}</i></span>
+    </div>
     <div id="slogBody" style="${open?"":"display:none"}">
-      <div class="sstats" style="margin-top:8px">
-        <span>총 공부한 날 <b>${totalDays}</b>일</span>
-        <span>현재 연속 <b>${cur}</b>일</span>
-        <span>최장 연속 <b>${best}</b>일</span>
-        <span>누적 <b>${totalQ.toLocaleString()}</b>문항</span>
+      <div class="sstats">
+        <div><div class="k">공부한 날</div><div class="v">${totalDays}</div></div>
+        <div><div class="k">현재 연속</div><div class="v">${cur}</div></div>
+        <div><div class="k">최장 연속</div><div class="v">${best}</div></div>
+        <div><div class="k">누적 문항</div><div class="v">${totalQ.toLocaleString()}</div></div>
       </div>
       <div class="heat">${cols.join("")}</div>
       <div class="hleg">적음 <span class="hc l1"></span><span class="hc l2"></span><span class="hc l3"></span><span class="hc l4"></span> 많음</div>
-      <div class="srecent">최근: ${recent}</div>
+      <div class="srecent">최근 ${recent}</div>
     </div>`;
   document.getElementById("slogHead").onclick=()=>{
     const body=document.getElementById("slogBody"), arrow=document.getElementById("slogArrow");
@@ -837,8 +868,8 @@ function renderPlan(){
   card.style.display="block";
   const p=loadPlan();
   if(!p){
-    card.innerHTML=`<div class="ph">🎯 학습 플랜</div>
-      <div class="pmsg">며칠 안에 1회독을 끝낼지 목표를 정하면, 진행률·남은 챕터·하루 권장량을 자동으로 관리해드려요.</div>
+    card.innerHTML=`<div class="ph"><span class="lab">학습 플랜</span></div>
+      <div class="pmsg">며칠 안에 1회독을 끝낼지 정해두면 진행률·남은 챕터·하루 권장량을 자동으로 관리합니다.</div>
       <button class="pbtn" id="planSet">플랜 시작</button>`;
     document.getElementById("planSet").onclick=setupPlan; return;
   }
@@ -864,27 +895,28 @@ function renderPlan(){
   const perDayQ=daysLeft>0?Math.ceil(remainQ/daysLeft):remainQ;
   const overdue = dayNum>days;
 
-  let badges="";
-  if(seenQ>=totalQ) badges=`<span class="pb ok">🎉 ${currentRound()}회독 완료! (${roundDoneDate()})</span>`;
-  else if(overdue) badges=`<span class="pb bad">기한 초과 · 남은 ${remainQ}문항</span>`;
-  else if(behindQ>0) badges=`<span class="pb bad">⚠️ ${behindQ}문항 뒤처짐</span>`;
-  else badges=`<span class="pb ok">✅ 순조${aheadQ>0?` (${aheadQ}문항 앞섬)`:""}</span>`;
-  if(seenQ<totalQ && !overdue) badges+=`<span class="pb info">오늘까지 목표 ${targetQ}문항</span>`;
-  if(seenQ<totalQ) badges+=`<span class="pb ${daysLeft<=1&&remainQ>0?"warn":"info"}">하루 ${perDayQ}문항 권장</span>`;
-  // 오늘 목표선(경계 챕터) 안내
+  const N=n=>Number(n||0).toLocaleString();
+  const done=seenQ>=totalQ;
+
+  // 오늘 목표선(경계 챕터)
   const dt=computeDailyTarget();
-  if(dt && dt.boundaryId && seenQ<totalQ){
-    badges+=`<span class="pb warn">📍 오늘은 ${dt.boundaryId.toUpperCase()}의 ${dt.boundaryQno}번까지</span>`;
-  }
+  const boundary = (dt && dt.boundaryId && !done)
+    ? `${dt.boundaryId.toUpperCase()} ${dt.boundaryQno}번까지` : "";
+
+  // 한 줄 상태 (배지 나열 대신)
+  let stTone="", stMain="", stSub="";
+  if(done){ stTone="ok"; stMain=`${currentRound()}회독 완료`; stSub=`${roundDoneDate()} 마무리`; }
+  else if(overdue){ stTone="bad"; stMain="기한 초과"; stSub=`남은 ${N(remainQ)}문항`; }
+  else if(behindQ>0){ stTone="bad"; stMain=`${N(behindQ)}문항 뒤처짐`; stSub=boundary?`오늘 ${boundary}`:""; }
+  else { stTone="ok"; stMain=aheadQ>0?`순조 · ${N(aheadQ)}문항 앞섬`:"순조"; stSub=boundary?`오늘 ${boundary}`:""; }
 
   const gsel=gset||new Set();
   const allOn=!gset;
   const present=new Set();
   chapters.forEach(c=>Object.keys(c.grades||{}).forEach(k=>{ if((c.grades[k]||0)>0) present.add(k); }));
   const chipGrades=PLAN_GRADES.filter(g=>present.has(g));
-  const gchips=`<span class="pgc${allOn?" on":""}" data-g="ALL" style="--pgc:#3A4553">전체</span>`+
-    chipGrades.map(g=>`<span class="pgc${gsel.has(g)?" on":""}" data-g="${g}" style="--pgc:${GC[g]||'#7F7F7F'}">${g==="-"?"무":g}</span>`).join("");
-  const scope = gset? `${[...gset].map(g=>g==="-"?"무":g).join("·")} 등급` : "전체 등급";
+  const gchips=`<span class="pgc${allOn?" on":""}" data-g="ALL">전체</span>`+
+    chipGrades.map(g=>`<span class="pgc${gsel.has(g)?" on":""}" data-g="${g}">${g==="-"?"무":g}</span>`).join("");
 
   // 공부 시간대 기준 실시간 페이스
   const tt=computeTimeTarget();
@@ -892,47 +924,61 @@ function renderPlan(){
   if(tt){
     const win=`${fmtHM(tt.tstart)}~${fmtHM(tt.tend)}`, nowStr=fmtHM(tt.nowMin);
     if(tt.done){
-      timeHtml=`<div class="ptime ok">⏰ ${win} · 🎉 ${currentRound()}회독을 이미 끝냈어요</div>`;
+      timeHtml=`<div class="ptime">${win} · ${currentRound()}회독을 이미 끝냈습니다
+        <span class="sub">더 풀 몫이 없습니다</span></div>`;
     } else if(tt.nowMin < tt.tstart){
-      timeHtml=`<div class="ptime">⏰ ${win} · 아직 시작 전 · 오늘 목표까지 <b>${Math.max(0,tt.targetToday-tt.seenQ)}문항</b></div>`;
+      timeHtml=`<div class="ptime">${win} 시작 전 · 오늘 몫 <b>${N(Math.max(0,tt.targetToday-tt.seenQ))}문항</b>
+        <span class="sub">시작 시각까지 여유가 있습니다</span></div>`;
     } else {
       const behind=tt.diff<0?-tt.diff:0, ahead=tt.diff>0?tt.diff:0;
       const okNow=tt.seenQ>=tt.intra;
-      const status=okNow?`✅ 페이스 유지${ahead?` (+${ahead}문항 앞섬)`:""}`:`⚠️ ${behind}문항 뒤처짐`;
       const head=okNow
-        ? `지금 몫까지 완료 🎉`
-        : `더 풀어야: <b>${tt.boundaryId?`${tt.boundaryId.toUpperCase()}의 ${tt.boundaryQno}번까지`:`${behind}문항`}</b>`;
-      timeHtml=`<div class="ptime ${okNow?'ok':'bad'}">⏰ <b>${nowStr}</b> 기준 — ${head}
-        <span class="sub">누적 목표 ${tt.intra}문항 · 현재 ${tt.seenQ}문항 · ${status} (${win})</span></div>`;
+        ? `${nowStr} 기준 — <b>지금 몫까지 완료</b>${ahead?` (+${N(ahead)}문항)`:""}`
+        : `${nowStr} 기준 — 더 풀어야 <b>${tt.boundaryId?`${tt.boundaryId.toUpperCase()} ${tt.boundaryQno}번까지`:`${N(behind)}문항`}</b>`;
+      timeHtml=`<div class="ptime ${okNow?'':'bad'}">${head}
+        <span class="sub">${win} 기준 누적 목표 ${N(tt.intra)} · 현재 ${N(tt.seenQ)}문항</span></div>`;
     }
   }
 
+  const tpct = totalQ? Math.min(100, Math.round(targetQ/totalQ*100)) : 0;
+
   card.innerHTML=`
-    <div class="ph">🎯 학습 플랜
-      <span class="pedit">
-        <button id="planTime">⏰ 시간대</button>
+    <div class="ph">
+      <span class="lab">학습 플랜</span>
+      <span class="day">${overdue?`기한 초과 · 목표 ${days}일`
+        :`<b>${dayShown}</b>일차 / ${days}일 · D-${daysLeft}`}</span>
+    </div>
+    <div class="hero">
+      <span class="big">${pct}<i>%</i></span>
+      <span class="hsub">${N(seenQ)} / ${N(totalQ)}문항</span>
+    </div>
+    <div class="track"><i style="width:${pct}%"></i>${
+      (!done && !overdue)?`<u style="left:${tpct}%"></u>`:""}</div>
+    <div class="tlab">
+      <span>${(!done&&!overdue)?`오늘까지 목표 ${N(targetQ)}`:`시작 ${p.start.slice(5).replace("-","/")}`}</span>
+      <span>남은 ${N(remainQ)}문항</span>
+    </div>
+    <div class="state ${stTone}"><span class="dot"></span><span>${stMain}${
+      stSub?` <span class="thin">· ${stSub}</span>`:""}</span></div>
+    <div class="grid">
+      <div><div class="k">오늘 푼</div><div class="v">${N(solvedToday())}</div></div>
+      <div><div class="k">하루 권장</div><div class="v">${done?"—":N(perDayQ)}</div></div>
+      <div><div class="k">완료 챕터</div><div class="v">${D}<s>/${T}</s></div></div>
+      <div><div class="k">종료 예정</div><div class="v">${endStr}</div></div>
+    </div>
+    ${timeHtml}
+    <div class="foot">
+      <div class="gr"><span class="gl">등급</span>${gchips}</div>
+      <div class="acts">
+        <button id="planTime">시간대</button>
         <button id="planEdit">설정</button>
         <button id="planReset">오늘부터</button>
-      </span>
-    </div>
-    <div class="pgwrap">
-      <div class="pglab">계산 대상 등급 (선택 안 하면 전체) · 현재: ${scope}</div>
-      <div class="pgchips" id="pgChips">${gchips}</div>
-    </div>
-    <div class="pbig">
-      <span>진도 <b>${seenQ}/${totalQ}</b>문항 · <b>${pct}%</b></span>
-      <span style="color:var(--muted)">완료 ${D}/${T}챕터</span>
-      <span>오늘 푼 <b style="color:#4FC3F7">${solvedToday()}</b>문항</span>
-      <span>${overdue?`<b style="color:#C62828">기한 초과</b>`:`<b>${dayShown}</b>일차 / 목표 ${days}일 (D-${daysLeft})`}</span>
-      <span style="color:var(--muted)">종료 예정 ${endStr}</span>
-    </div>
-    <div class="pbar"><i style="width:${pct}%"></i></div>
-    <div class="pbadges">${badges}</div>
-    ${timeHtml}`;
+      </div>
+    </div>`;
   document.getElementById("planTime").onclick=setupTimeWindow;
   document.getElementById("planEdit").onclick=setupPlan;
   document.getElementById("planReset").onclick=resetPlanStart;
-  card.querySelectorAll("#pgChips .pgc").forEach(el=>{
+  card.querySelectorAll(".gr .pgc").forEach(el=>{
     el.onclick=()=>togglePlanGrade(el.dataset.g);
   });
 }

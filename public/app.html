@@ -386,13 +386,13 @@ body.review #markBtn,body.review #askBtn,body.review #histBox,body.review #wrong
     <span class="pill" id="scorePill">⭕ <b id="okCnt">0</b> · ❌ <b id="noCnt">0</b></span>
     <div class="tbtns">
       <button class="iconbtn" onclick="location.href='index.html'+(typeof CH==='string'&&CH?(/^fs/.test(CH)?'?s=fire':/^ts/.test(CH)?'?s=tactic':/^rv/.test(CH)?'?s=review':/^hz/.test(CH)?'?s=hazmat':'?s=admin'):'')">목차</button>
-      <button class="iconbtn" id="rvDateBtn" style="display:none" onclick="location.href='app.html?review=pick'">📅날짜</button>
+      <button class="iconbtn" id="rvDateBtn" style="display:none" onclick="location.href='app.html?review=pick'+(typeof RVCH==='string'&&RVCH?('&rch='+RVCH):'')">📅날짜</button>
       <button class="iconbtn" id="introBtn" style="display:none">📖요약</button>
       <button class="iconbtn" id="keyBtn">📋답안</button>
       <button class="iconbtn" id="reviewBtn">📝풀이</button>
       <button class="iconbtn" id="aiSumBtn">🧠정리</button>
       <button class="iconbtn" id="weakBtn">⭐취약</button>
-      <button class="iconbtn" id="wrongDayBtn" onclick="location.href='app.html?review=pick'">❌오답</button>
+      <button class="iconbtn" id="wrongDayBtn" onclick="location.href='app.html?review=pick'+(typeof CH==='string'&&CH?('&rch='+CH):'')">❌오답</button>
       <button class="iconbtn" id="relBtn" style="display:none">🔗연관</button>
       <button class="iconbtn" id="podBtn">🎧듣기</button>
       <button class="iconbtn" id="filterBtn">필터</button>
@@ -621,6 +621,7 @@ const LSKEY = "fc:" + CH;
    ?review=prev        가장 최근 학습일 오답 (기존 '어제 오답 복습' 링크 호환) */
 const RVPARAM = new URLSearchParams(location.search).get("review") || "";
 const RVDATE = /^\d{4}-\d{2}-\d{2}$/.test(RVPARAM) ? RVPARAM : "";
+const RVCH = new URLSearchParams(location.search).get("rch") || "";   // 지정 시 그 챕터 오답만
 const REVIEW = RVPARAM === "prev" || RVPARAM === "pick" || !!RVDATE;
 if(REVIEW) document.body.classList.add("review");
 const GC = {"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F","위":"#C00000","장":"#ED7D31","교":"#2E75B6"};
@@ -3063,12 +3064,27 @@ function wlogCount(byCh){
   let n=0; for(const id in (byCh||{})) n += Object.keys(byCh[id]||{}).length;
   return n;
 }
+/* 챕터 표시 이름: ch05→5장, fs03→공무원법3장, ts02→전술2장 */
+function chLabel(id){
+  return (/^fs/.test(id)?"공무원법"+id.replace(/^fs0?/,"")
+        : /^ts/.test(id)?"전술"+id.replace(/^ts0?/,"")
+        : /^rv/.test(id)?"복습"+id.replace(/^rv0?/,"")
+        : /^hz/.test(id)?"위험물"+id.replace(/^hz0?/,"")
+        : id.replace(/^ch0?/,"")) + "장";
+}
+/* 한 챕터만 남긴 오답 로그 (rch 지정 시) */
+function onlyCh(wlog, ch){
+  const m={};
+  for(const d in wlog){ if(wlog[d] && wlog[d][ch]) m[d]={[ch]:wlog[d][ch]}; }
+  return m;
+}
 /* 날짜 표기: 2026-09-18 → 9/18 (수) */
 const WD=["일","월","화","수","목","금","토"];
 function rvMD(d){ const [y,m,dd]=d.split("-").map(Number); return m+"/"+dd; }
 function rvWd(d){ const [y,m,dd]=d.split("-").map(Number); return WD[new Date(y,m-1,dd).getDay()]; }
 
 /* 📅 오답 날짜 고르기 화면 — 기록이 있는 날짜를 최신순으로 보여준다 */
+const rvQS = d => "app.html?review=" + d + (RVCH ? "&rch="+RVCH : "");
 function reviewPick(wlog){
   const today=wlogDay(Date.now()), yday=wlogDay(Date.now()-86400000);
   const days=Object.keys(wlog).filter(d=>wlogCount(wlog[d])>0).sort().reverse();
@@ -3076,14 +3092,19 @@ function reviewPick(wlog){
   const rows=days.map(d=>{
     const cls = d===today ? "today" : d===yday ? "yday" : "";
     const lbl = d===today ? "오늘" : d===yday ? "어제" : rvWd(d)+"요일";
-    return `<button class="rvday ${cls}" onclick="location.href='app.html?review=${d}'">`
+    return `<button class="rvday ${cls}" onclick="location.href='${rvQS(d)}'">`
       + `<span class="rvmd">${rvMD(d)}</span><span class="rvlbl">${lbl}</span>`
       + `<span class="rvcnt">오답 ${wlogCount(wlog[d])}문항</span></button>`;
   }).join("");
+  const scope = RVCH ? chLabel(RVCH) : "전 챕터";
   document.title="오답 날짜 고르기";
-  $("chTitle").textContent=`📅 오답 복습 — 날짜 고르기 (${days.length}일)`;
+  $("chTitle").textContent=`📅 ${scope} 오답 — 날짜 고르기 (${days.length}일)`;
   $("keyTitle").textContent="📋 답안 확인";
-  $("qText").innerHTML=`<div class="rvpick">${rows}`
+  const foot = RVCH
+    ? `<button class="rvday" onclick="location.href='app.html?review=pick'"><span class="rvmd">🌐</span>`
+      + `<span class="rvlbl">전체</span><span class="rvcnt">전 챕터 오답 보기</span></button>`
+    : "";
+  $("qText").innerHTML=`<div class="rvpick">${rows}${foot}`
     + `<button class="rvday" onclick="location.href='index.html'"><span class="rvmd">📚</span>`
     + `<span class="rvlbl">목차</span><span class="rvcnt">돌아가기</span></button></div>`;
   $("oxRow").style.display="none"; $("numRow").style.display="none";
@@ -3095,14 +3116,15 @@ async function reviewBoot(){
   $("qText").textContent="지난 오답 기록을 모으는 중입니다…";
   // 복습 덱은 필터를 타지 않는다 (화면 세션에만 적용 — 전역 설정은 건드리지 않음)
   selThemes=new Set(); selGrades=new Set(); weakOnlyOn=false; weakFirstOn=false; unsolvedOnlyOn=false;
-  const wlog=await collectWlog();
+  let wlog=await collectWlog();
+  if(RVCH) wlog=onlyCh(wlog, RVCH);      // 이 챕터의 오답만
   // 3) 대상 날짜: pick=고르기 / YYYY-MM-DD=지정 / 그 외=오늘 이전 가장 최근 학습일
   const today=wlogDay(Date.now());
   const days=Object.keys(wlog).filter(d=>wlogCount(wlog[d])>0).sort();
   if(RVPARAM==="pick"){ reviewPick(wlog); return; }
   let target;
   if(RVDATE){
-    if(days.indexOf(RVDATE)<0){ reviewEmpty(`${rvMD(RVDATE)} 오답 기록이 없습니다.`); return; }
+    if(days.indexOf(RVDATE)<0){ reviewEmpty(`${RVCH?chLabel(RVCH)+" ":""}${rvMD(RVDATE)} 오답 기록이 없습니다.`); return; }
     target=RVDATE;
   }else{
     target=[...days].reverse().find(d=>d<today) || (days.indexOf(today)>=0 ? today : null);
@@ -3126,7 +3148,7 @@ async function reviewBoot(){
   const md=rvMD(target);
   const label = target===today ? "오늘" : (wlogDay(Date.now()-86400000)===target ? "어제" : rvWd(target)+"요일");
   document.title="오답 복습 "+md;
-  $("chTitle").textContent=`📅 ${md} ${label} 오답 복습 (${qs.length}문항)`;
+  $("chTitle").textContent=`📅 ${RVCH?chLabel(RVCH)+" ":""}${md} ${label} 오답 복습 (${qs.length}문항)`;
   $("rvDateBtn").style.display="";   // 다른 날짜로 바꾸기
   $("keyTitle").textContent="📋 답안 확인 — "+label+" 오답 복습";
   deck=[...qs]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
@@ -3139,7 +3161,8 @@ function reviewEmpty(msg){
   $("chTitle").textContent="📅 오답 복습";
   const btn=(href,txt)=>`<button onclick="location.href='${href}'" style="margin:14px 8px 0 0;padding:11px 22px;font-size:15px;font-weight:800;border-radius:10px;border:none;background:#1F2937;color:#fff">${txt}</button>`;
   $("qText").innerHTML=msg + "<br>"
-    + (RVDATE ? btn("app.html?review=pick","📅 다른 날짜 고르기") : "")
+    + (RVDATE ? btn("app.html?review=pick"+(RVCH?"&rch="+RVCH:""),"📅 다른 날짜 고르기") : "")
+    + (RVCH ? btn("app.html?review=pick","🌐 전 챕터 오답 보기") : "")
     + btn("index.html","📚 목차로 돌아가기");
   $("oxRow").style.display="none"; $("numRow").style.display="none";
 }

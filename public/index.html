@@ -909,9 +909,12 @@ function renderPlan(){
   const daysLeft=Math.max(0, days-(dayNum-1));          // 오늘 포함 남은 일수
   const end=new Date(start.getTime()+(days-1)*86400000);
   const endStr=`${end.getMonth()+1}/${end.getDate()}`;
-  const targetQ=planTargetAt(p, Math.max(dayNum,1), totalQ);
-  const behindQ=Math.max(0, targetQ-seenQ);
+  const targetQ=planTargetAt(p, Math.max(dayNum,1), totalQ);        // 오늘까지 누적 목표
+  const targetPrev=planTargetAt(p, Math.max(dayNum-1,0), totalQ);   // 어제까지 누적 목표
+  // '뒤처짐'은 어제까지 끝냈어야 할 몫 기준. 오늘 몫은 아직 진행 중이므로 뒤처짐이 아니다.
+  const behindQ=Math.max(0, targetPrev-seenQ);
   const aheadQ=Math.max(0, seenQ-targetQ);
+  const todayLeft=Math.max(0, targetQ-seenQ);                       // 오늘 남은 몫
   const perDayQ=daysLeft>0?Math.ceil(remainQ/daysLeft):remainQ;
   const overdue = dayNum>days;
 
@@ -927,8 +930,10 @@ function renderPlan(){
   let stTone="", stMain="", stSub="";
   if(done){ stTone="ok"; stMain=`${currentRound()}회독 완료`; stSub=`${roundDoneDate()} 마무리`; }
   else if(overdue){ stTone="bad"; stMain="기한 초과"; stSub=`남은 ${N(remainQ)}문항`; }
-  else if(behindQ>0){ stTone="bad"; stMain=`${N(behindQ)}문항 뒤처짐`; stSub=boundary?`오늘 ${boundary}`:""; }
-  else { stTone="ok"; stMain=aheadQ>0?`순조 · ${N(aheadQ)}문항 앞섬`:"순조"; stSub=boundary?`오늘 ${boundary}`:""; }
+  else if(behindQ>0){ stTone="bad"; stMain=`${N(behindQ)}문항 뒤처짐`;
+    stSub=`오늘 몫까지 ${N(todayLeft)}문항`+(boundary?` · ${boundary}`:""); }
+  else if(todayLeft>0){ stTone="ok"; stMain=`오늘 ${N(todayLeft)}문항 남음`; stSub=boundary?`${boundary}`:""; }
+  else { stTone="ok"; stMain=`오늘 몫 완료`; stSub=aheadQ>0?`${N(aheadQ)}문항 앞섬`:""; }
 
   const gsel=gset||new Set();
   const allOn=!gset;

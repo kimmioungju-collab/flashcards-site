@@ -24,7 +24,7 @@ from fs_summary_html import convert as intro_convert, validate as intro_validate
 BASE = Path(__file__).resolve().parent
 SRC = Path("/tmp/hz_full.txt")
 WORK = Path("/tmp/hz_build")
-MODEL = "claude-opus-5"  # Fable 5 한도 도달로 Opus 5 전환 (사용자 지시 2026-09-16)
+MODEL = "claude-fable-5-1"  # Fable 5.1 전환 (사용자 지시 2026-09-18)
 CLAUDE_TIMEOUT = 1500
 PART_CHARS = 6500                      # claude 1회 입력 상한(문자) — 긴 장은 나눠서 생성
 Q_PER_HANGUL = 110                     # 한글 N자당 문제 1개

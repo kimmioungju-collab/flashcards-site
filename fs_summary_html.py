@@ -16,7 +16,7 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent
 INTRO_DIR = BASE / "public" / "intros"
 SRC_DIR = Path("/tmp/fs_sum")
-MODEL = "opus"
+MODEL = "claude-fable-5-1"  # Fable 5.1 전환 (사용자 지시 2026-09-18)
 MIN_KEEP_RATIO = 0.85          # 변환 후 한글 글자 수 / 원문 한글 글자 수 — 이보다 낮으면 누락으로 판정
 MIN_SECTIONS = 3
 CLAUDE_TIMEOUT = 900

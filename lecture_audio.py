@@ -52,9 +52,9 @@ def make_script(summary: str, n_q: int) -> str:
     mins = target_minutes(n_q)
     chars = mins * CHARS_PER_MIN
     prompt = SCRIPT_PROMPT.format(mins=mins, chars=chars)
-    print(f"[2/5] 대본 작성 중 (목표 {mins}분 ≈ {chars}자, claude opus)…", flush=True)
+    print(f"[2/5] 대본 작성 중 (목표 {mins}분 ≈ {chars}자, claude fable 5.1)…", flush=True)
     r = subprocess.run(
-        ["claude", "-p", prompt, "--model", "opus"],
+        ["claude", "-p", prompt, "--model", "claude-fable-5-1"],
         input=summary, capture_output=True, text=True, timeout=1200,
     )
     script = (r.stdout or "").strip()

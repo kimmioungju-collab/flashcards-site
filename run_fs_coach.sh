@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 CHAPTERS=(fs01 fs02 fs03 fs04 fs05 fs06 fs07)
 SUM_DIR=/tmp/fs_sum
 LOG=/tmp/fs_coach_run.log
-export LECTURE_TTS=edge LECTURE_EDGE_VOICE=ko-KR-SunHiNeural LECTURE_CLAUDE=opus   # 사용자 선택 2026-09-13: MS SunHi(여). Airy 음성은 억양·감탄사 처리 불량
+export LECTURE_TTS=edge LECTURE_EDGE_VOICE=ko-KR-SunHiNeural LECTURE_CLAUDE=claude-fable-5-1   # 사용자 선택 2026-09-13: MS SunHi(여). Airy 음성은 억양·감탄사 처리 불량
 
 log() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
 

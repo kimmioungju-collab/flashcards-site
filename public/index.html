@@ -43,8 +43,13 @@ h1{color:#fff;font-size:21px;font-weight:800;letter-spacing:-.02em;margin-bottom
 .list{display:flex;flex-direction:column;gap:10px}
 a.ch{display:block;background:var(--paper);border-radius:14px;padding:14px 16px 13px;text-decoration:none;color:var(--ink);
   box-shadow:0 8px 20px rgba(0,0,0,.22);position:relative;overflow:hidden}
-a.ch::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#E0DBCE}
-a.ch.done::before{background:var(--ink)}
+a.ch::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#DCD5C4}
+/* 완료 챕터: 카드를 한 톤 눌러 "지나간 것"으로, 남은 챕터가 밝게 도드라지게 */
+a.ch.done{background:#E9E4D6;box-shadow:0 3px 9px rgba(0,0,0,.15)}
+a.ch.done::before{background:#2F7F63;width:5px}
+a.ch.done .ctitle{color:#767C84;font-weight:600}
+a.ch.done .cid{color:#BDB9AF}
+a.ch.done .stat.best{color:#2F7F63;font-weight:800}
 .row1{display:flex;align-items:baseline;gap:9px}
 .cid{font-size:10.5px;font-weight:800;color:#B5BAC2;letter-spacing:.08em;font-variant-numeric:tabular-nums}
 .ctitle{font-size:15px;font-weight:700;letter-spacing:-.01em;flex:1;word-break:keep-all}
@@ -153,6 +158,7 @@ body.choose .plan,body.choose .toolbar,body.choose .tools2{display:none}
 a.ch.subj{padding:17px 18px 15px}
 a.ch.subj .ctitle{font-size:18px;font-weight:800;letter-spacing:-.02em}
 a.ch.subj .spbar{height:4px;border-radius:99px;background:#E7E3D9;overflow:hidden;margin-top:12px}
+a.ch.subj.done .spbar{background:#D6D0BF}
 a.ch.subj .spbar>i{display:block;height:100%;border-radius:99px;background:var(--ink)}
 a.ch.subj.fire::before{background:#B4544E}
 a.ch.subj.fire .spbar>i{background:#B4544E}
@@ -372,7 +378,7 @@ function makeCard(c,gset){
   let stats="";
   if(isGoal && !done) stats += `<span class="stat goal">오늘 목표선 ~${dailyT.boundaryQno}번</span>`;
   else if(isDue && !done) stats += `<span class="stat due">오늘까지</span>`;
-  if(done) stats += `<span class="stat best">완료 ${cnt}/${cnt}</span>`;
+  if(done) stats += `<span class="stat best">✓ 완료 ${cnt}/${cnt}</span>`;
   else if(seen>0) stats += `<span class="stat new">진도 ${seen}/${cnt}</span>`;
   if(s){
     if(s.rounds) stats += `<span class="stat">${s.rounds}회독</span><span class="stat best">최고 ${s.best}%</span>`;

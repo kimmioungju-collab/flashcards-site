@@ -839,7 +839,21 @@ async function togglePlanGrade(g){
   if(gs.length) await ensureQGrades();
   // 등급 범위가 바뀌면 기준선(이미 푼 문항)도 새 범위 기준으로 다시 잡는다
   savePlan({start:p.start, days:p.days, grades: gs.length?gs:undefined, base:seenQForGrades(gs)});
+  syncQuizGrades(gs);   // 🎯 문제 풀이 화면의 등급 필터도 같은 범위로 맞춘다
   renderPlan();
+  render(document.getElementById("q").value);
+}
+/* 🎯 등급 회독 — 플랜 등급 범위를 app.html의 등급 필터(fc:opts.grades)에 그대로 반영.
+   이걸 해줘야 "S등급만 전 챕터 돌기"가 목차 진도와 실제 덱에서 동시에 성립한다. */
+function syncQuizGrades(gs){
+  try{
+    const o=JSON.parse(localStorage.getItem("fc:opts")||"{}")||{};
+    o.grades=Array.isArray(gs)?gs.slice():[];
+    o._at=Date.now();
+    localStorage.setItem("fc:opts", JSON.stringify(o));
+    const c=syncCode();
+    if(c) fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/opts.json`,{method:"PUT",body:JSON.stringify(o)}).catch(()=>{});
+  }catch(e){}
 }
 /* 현재 회독 수: '완전 초기화(새 회독)' 횟수 기반 (클라우드 동기화).
    저장값 없으면 행정법(ch*) 챕터만으로 추정 — fs 챕터가 섞이면 최솟값이 왜곡됨 */

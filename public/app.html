@@ -624,6 +624,17 @@ const RVDATE = /^\d{4}-\d{2}-\d{2}$/.test(RVPARAM) ? RVPARAM : "";
 const RVCH = new URLSearchParams(location.search).get("rch") || "";   // 지정 시 그 챕터 오답만
 const REVIEW = RVPARAM === "prev" || RVPARAM === "pick" || !!RVDATE;
 if(REVIEW) document.body.classList.add("review");
+/* 🎯 등급 회독 — 목차 플랜에서 등급(S/A/…)을 고르면 그 등급만 전 챕터를 돌린다.
+   진도·완료 판정은 이미 목차가 같은 범위로 계산하므로, 여기서는 덱과 챕터 이동만 맞춘다. */
+function chSubj(id){ return /^fs/.test(id)?"fire":/^ts/.test(id)?"tactic":/^rv/.test(id)?"review":/^hz/.test(id)?"hazmat":"admin"; }
+function planGrades(){
+  try{
+    const sj=chSubj(CH);
+    const p=JSON.parse(localStorage.getItem(sj==="admin"?"fc:plan":"fc:plan:"+sj)||"null");
+    return (p && Array.isArray(p.grades) && p.grades.length) ? p.grades : null;
+  }catch(e){ return null; }
+}
+const GROUND = CH ? planGrades() : null;   // null = 등급 회독 꺼짐(전체)
 const GC = {"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F","위":"#C00000","장":"#ED7D31","교":"#2E75B6"};
 
 /* ── 화면이 안 뜨는 사고를 막는 최소 안전장치 ──
@@ -793,7 +804,7 @@ async function pullOpts(){
       if(!OPT.themes) OPT.themes={};
       try{ localStorage.setItem(OPTKEY, JSON.stringify(OPT)); }catch(e){}
       // 파생 변수 갱신 (필터/모드 UI 반영용)
-      selGrades = new Set(OPT.grades||[]);
+      selGrades = new Set(GROUND || OPT.grades || []);
       selThemes = new Set((OPT.themes&&OPT.themes[CH])||[]);
       mode = OPT.mode||"quiz";
       shuffleOn = OPT.shuffle!==false;
@@ -1003,7 +1014,7 @@ function saveOpt(){
 let deck=[], idx=0, ok=0, no=0, wrongs=[], answers=[];
 let shuffleOn = OPT.shuffle!==false, mode = OPT.mode || "quiz";
 let selThemes = new Set((OPT.themes&&OPT.themes[CH])||[]);
-let selGrades = new Set(OPT.grades||[]);
+let selGrades = new Set(GROUND || OPT.grades || []);
 let weakOnlyOn = !!OPT.weakOnly, weakFirstOn = !!OPT.weakFirst;
 let unsolvedOnlyOn = !!OPT.unsolvedOnly;
 
@@ -1367,7 +1378,11 @@ function buildDeck(){
   if(gFilter.size){
     const present = new Set(QUESTIONS.map(q=>((q.grade||"").trim())||"-"));
     const eff = new Set([...gFilter].filter(g=>present.has(g)));
-    if(eff.size===0) gFilter = new Set();
+    // 등급 회독 중에는 "없으면 전체" 폴백을 쓰지 않는다 — 그 챕터는 건너뛴다
+    if(eff.size===0){
+      if(GROUND){ groundSkip(); return; }
+      gFilter = new Set();
+    }
   }
   deck = QUESTIONS.filter(q=>
     (selThemes.size===0 || selThemes.has(q.theme)) &&
@@ -1392,6 +1407,19 @@ function buildDeck(){
   $("card").style.display="flex";
   updateRoundPill();
   show();
+}
+/* 🎯 등급 회독 — 이 챕터에 해당 등급 문항이 없을 때 */
+let GSKIP=false;
+function groundSkip(){
+  GSKIP=true;
+  const g=(GROUND||[]).map(x=>x==="-"?"무등급":x).join("·");
+  $("doneBox").style.display="none"; $("card").style.display="flex";
+  $("qText").innerHTML=`이 챕터에는 <b>${g}등급</b> 문항이 없습니다.`
+    + `<div style="margin-top:6px;font-size:13px;color:#8B97A3">🎯 ${g}등급 회독 중 — 등급 범위는 목차 플랜에서 바꿉니다</div>`
+    + (NEXTCH ? `<br><button onclick="location.href='app.html?ch=${NEXTCH.id}'" style="margin:14px 8px 0 0;padding:11px 22px;font-size:15px;font-weight:800;border-radius:10px;border:none;background:#1F2937;color:#fff">다음 챕터 →</button>` : "")
+    + `<button onclick="location.href='index.html?s=${chSubj(CH)}'" style="margin-top:14px;padding:11px 22px;font-size:15px;font-weight:800;border-radius:10px;border:1.5px solid #D5DBE1;background:#fff;color:#1F2937">📚 목차</button>`;
+  $("oxRow").style.display="none"; $("numRow").style.display="none";
+  $("qTimer").style.display="none";
 }
 function startWeakDeck(){
   const wd = QUESTIONS.filter(q=>isWeak(q.no)).sort((a,b)=>weakWeight(b.no)-weakWeight(a.no));
@@ -2586,7 +2614,9 @@ fetch("data/manifest.json").then(r=>r.json()).then(d=>{
   const pfx=(String(CH).match(/^[a-z]+/)||["ch"])[0];
   const list=(d.chapters||[]).filter(c=>((c.id||"").match(/^[a-z]+/)||[""])[0]===pfx);   // 같은 과목 안에서만 이동
   const i=list.findIndex(c=>c.id===CH);
-  if(i>=0 && i+1<list.length) NEXTCH=list[i+1];
+  const hasG=c=>!GROUND || GROUND.some(g=>((c.grades||{})[g]||0)>0);   // 등급 회독: 해당 등급 있는 챕터만
+  if(i>=0) NEXTCH=list.slice(i+1).find(hasG)||null;
+  if(GSKIP) groundSkip();   // 건너뛰기 화면이 떠 있으면 '다음 챕터' 버튼을 채워 다시 그린다
 }).catch(()=>{});
 
 /* ── 🎧 팟캐스트 (NotebookLM 오디오) ────────────────────────

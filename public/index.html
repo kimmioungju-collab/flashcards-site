@@ -676,6 +676,25 @@ function solvedToday(){
   catch(e){ return 0; }
 }
 function loadDaily(){ try{ return JSON.parse(localStorage.getItem("fc:daily")||"{}"); }catch(e){ return {}; } }
+let DQCLOUD={};   // 클라우드 dq (날짜별 그날 처음 푼 문항)
+/* 플랜 기준 '오늘 푼' — 등급 범위 안이면서 *현재 회독에 살아 있는* 문항만 센다.
+   새 회독 시작(진도 초기화) 이전에 푼 문항은 진도에서 빠졌으므로 여기서도 빼야 숫자가 맞는다. */
+function solvedTodayInPlan(gset){
+  if(!gset) return solvedToday();
+  let local={}; try{ local=JSON.parse(localStorage.getItem("fc:dq")||"{}"); }catch(e){}
+  const t=todayStr();
+  const byCh=Object.assign({}, (DQCLOUD[t]||{}));
+  for(const id in (local[t]||{})) byCh[id]=Object.assign({}, byCh[id]||{}, local[t][id]);
+  let n=0;
+  for(const id in byCh){
+    const gm=qgrades[id]||{}, st=stat(id), qs=(st&&st.qstat)||{};
+    for(const no in byCh[id]){
+      if(no==="N1") continue;
+      if(gset.has(gm[no]) && qs[no] && (qs[no].s||0)>0) n++;
+    }
+  }
+  return n;
+}
 /* 학습 날짜 기록 클라우드에서 병합 (기기 간 누적 유지) */
 async function pullDaily(){
   const c=syncCode(); if(!c) return;
@@ -691,6 +710,7 @@ async function pullDaily(){
         fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/dqbase.json`,{cache:"no-store"}),
         fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/dq.json`,{cache:"no-store"})]);
       const base=rb.ok ? ((await rb.json())||{}) : {}, dq=rq.ok ? ((await rq.json())||{}) : {};
+      DQCLOUD=dq||{};
       for(const k in base){ let n=0; for(const ch in (dq[k]||{})) n+=Object.keys(dq[k][ch]).length; merged[k]=base[k]+n; }
     }catch(e){}
     localStorage.setItem("fc:daily", JSON.stringify(merged));
@@ -986,7 +1006,7 @@ function renderPlan(){
     <div class="state ${stTone}"><span class="dot"></span><span>${stMain}${
       stSub?` <span class="thin">· ${stSub}</span>`:""}</span></div>
     <div class="grid">
-      <div><div class="k">오늘 푼</div><div class="v">${N(solvedToday())}</div></div>
+      <div><div class="k">오늘 푼</div><div class="v">${N(solvedTodayInPlan(gset))}</div></div>
       <div><div class="k">하루 권장</div><div class="v">${done?"—":N(perDayQ)}</div></div>
       <div><div class="k">완료 챕터</div><div class="v">${D}<s>/${T}</s></div></div>
       <div><div class="k">종료 예정</div><div class="v">${endStr}</div></div>

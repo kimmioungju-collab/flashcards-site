@@ -364,7 +364,7 @@ body.podon .sheet{padding-bottom:84px}
 /* 📅 전날 오답 복습 모드 — 챕터 전용 기능 버튼 숨김 */
 body.review #reviewBtn,body.review #aiSumBtn,body.review #weakBtn,body.review #podBtn,body.review #filterBtn,
 body.review #reviewBtn2,body.review #aiSumBtn2,body.review #weakStartBtn,body.review #nextChBtn,
-body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!important}
+body.review #markBtn,body.review #askBtn,body.review #histBox,body.review #wrongDayBtn{display:none!important}
 /* 📅 오답 날짜 고르기 */
 .rvpick{display:flex;flex-direction:column;gap:9px;margin-top:4px}
 .rvpick .rvday{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1.5px solid var(--line);
@@ -392,6 +392,7 @@ body.review #markBtn,body.review #askBtn,body.review #histBox{display:none!impor
       <button class="iconbtn" id="reviewBtn">📝풀이</button>
       <button class="iconbtn" id="aiSumBtn">🧠정리</button>
       <button class="iconbtn" id="weakBtn">⭐취약</button>
+      <button class="iconbtn" id="wrongDayBtn" onclick="location.href='app.html?review=pick'">❌오답</button>
       <button class="iconbtn" id="relBtn" style="display:none">🔗연관</button>
       <button class="iconbtn" id="podBtn">🎧듣기</button>
       <button class="iconbtn" id="filterBtn">필터</button>

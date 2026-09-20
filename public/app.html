@@ -61,10 +61,9 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .badge{font-size:12px;font-weight:900;color:#fff;border-radius:6px;padding:3px 9px;background:var(--gcol,#8B97A3)}
 .badge.dim{background:#C7CDD4;color:#5B6672}
 .theme{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.5px;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.weakchip{font-size:11px;font-weight:900;color:#fff;background:var(--wrong);border-radius:99px;padding:2.5px 9px}
-.qno{margin-left:auto;font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;user-select:none}
-.qtimer{font-size:12px;font-weight:900;color:#fff;background:#1F2937;border-radius:99px;padding:2.5px 10px;width:58px;flex:0 0 58px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
-.qtimer.warn{background:var(--wrong)}
+.weakchip{font-size:11px;font-weight:800;color:#5B6672;background:#EDF0F3;border:1px solid #DDE2E7;border-radius:99px;padding:2.5px 9px;white-space:nowrap;flex:0 0 auto}
+.qno{margin-left:auto;font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap;flex:0 0 auto}
+.qtimer{display:none!important}
 .qno .jarrow{color:var(--right)}
 .jumpgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:4px}
 .jumpgrid button{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:11px 0;font-size:13px;font-weight:800;color:#5B6672;cursor:pointer;position:relative}
@@ -1067,11 +1066,11 @@ function toggleMark(no){
 }
 function renderWeakChip(q){
   const el=$("weakChip"), w=qw(q.no), m=qmark(q.no), t=qt(q.no);
-  const parts=[];
-  if(w>0) parts.push(`누적 오답 ${w}회`);
-  if(t>0) parts.push(`⏱ 시간초과 ${t}회`);
-  if(m) parts.push("⭐체크");
-  if(parts.length){ el.style.display=""; el.textContent=parts.join(" · "); }
+  const parts=[];                       // 한 줄에 들어가도록 짧게 — 오답/시간초과/체크
+  if(w>0) parts.push(`❌${w}`);
+  if(t>0) parts.push(`⏱${t}`);
+  if(m) parts.push("⭐");
+  if(parts.length){ el.style.display=""; el.textContent=parts.join(" "); el.title=`누적 오답 ${w}회 · 시간초과 ${t}회${m?" · ⭐체크":""}`; }
   else el.style.display="none";
 }
 function renderMarkBtn(q){
@@ -1833,30 +1832,15 @@ let qTimerIv = null;
 let qOvertime = false;                            // 현재 문항이 제한시간을 넘겼는지
 let qStartAt = 0;                                 // 현재 문항 풀이 시작 시각 (풀이 시간 기록용)
 function stopQTimer(){
-  clearInterval(qTimerIv); qTimerIv = null;
-  const el = $("qTimer"); if(el) el.style.display = "none";
+  clearTimeout(qTimerIv); qTimerIv = null;
 }
+/* 카운트다운은 화면에 그리지 않는다 — 숫자가 초마다 바뀌면 지문 읽기에 방해가 돼서,
+   제한시간은 속으로만 재고 넘기면 '시간초과'로 기록만 남긴다. */
 function startQTimer(){
   stopQTimer();
   qOvertime = false;
   qStartAt = Date.now();
-  let left = qLimit(deck[idx]);
-  const el = $("qTimer");
-  el.textContent = "⏱ " + left;
-  el.className = "qtimer";
-  el.style.display = "inline-block";
-  qTimerIv = setInterval(() => {
-    left--;
-    if(left <= 0){
-      clearInterval(qTimerIv); qTimerIv = null;
-      qOvertime = true;                           // 자동 오답 처리는 안 하고 '초과' 상태만 기록
-      el.textContent = "⏰ 초과";
-      el.classList.add("warn");
-      return;
-    }
-    el.textContent = "⏱ " + left;
-    if(left <= 5) el.classList.add("warn");
-  }, 1000);
+  qTimerIv = setTimeout(() => { qOvertime = true; qTimerIv = null; }, qLimit(deck[idx]) * 1000);
 }
 function answer(a){
   const q=deck[idx];

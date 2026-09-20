@@ -950,7 +950,10 @@ function renderPlan(){
   const behindQ=Math.max(0, targetPrev-seenQ);
   const aheadQ=Math.max(0, seenQ-targetQ);
   const todayLeft=Math.max(0, targetQ-seenQ);                       // 오늘 남은 몫
-  const perDayQ=daysLeft>0?Math.ceil(remainQ/daysLeft):remainQ;
+  // 오늘 몫을 이미 끝냈으면 오늘은 남은 날에서 뺀다.
+  // (안 빼면 이미 쓴 오늘까지 여유일로 세어 '하루 권장'이 목표선보다 헐거워진다)
+  const paceDays=Math.max(1, daysLeft-(todayLeft<=0?1:0));
+  const perDayQ=daysLeft>0?Math.ceil(remainQ/paceDays):remainQ;
   const overdue = dayNum>days;
 
   const N=n=>Number(n||0).toLocaleString();

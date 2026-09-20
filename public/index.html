@@ -235,9 +235,10 @@ const inSubj=c=> SUBJ ? subjOf(c.id)===SUBJ : true;
 const SUBJ_NAME = SUBJ==="fire" ? "소방공무원법" : SUBJ==="tactic" ? "소방전술" : SUBJ==="review" ? "복습 노트" : SUBJ==="hazmat" ? "위험물" : "행정법";
 const GC={"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F","-":"#9AA3AD","위":"#C00000","장":"#ED7D31","교":"#2E75B6","복":"#0E9F6E"};
 const GORDER=["S","A","B","C","기","인","소","Z","위","장","교","복","-"];
-function gradesHtml(g){
+function gradesHtml(g, gset){
   if(!g) return "";
-  const keys=Object.keys(g).sort((a,b)=>GORDER.indexOf(a)-GORDER.indexOf(b));
+  let keys=Object.keys(g).sort((a,b)=>GORDER.indexOf(a)-GORDER.indexOf(b));
+  if(gset) keys=keys.filter(k=>gset.has(k));   // 플랜 등급 선택 시 선택 등급 칩만 표시
   if(!keys.length) return "";
   const chips=keys.map(k=>`<span class="gc" style="--gc:${GC[k]||'#7F7F7F'}">${k==="-"?"무":k} <b>${g[k]}</b></span>`).join("");
   return `<div class="grades">${chips}</div>`;
@@ -400,8 +401,8 @@ function makeCard(c,gset){
     stats += `<span class="stat last">${ymd}</span>`;
   }
   a.innerHTML=`<div class="row1"><span class="cid">${c.id.toUpperCase()}</span><span class="ctitle">${c.title}</span>${sumChip(c.id)}${podChip(c.id)}</div>
-    <div class="row2"><span class="stat">${c.count}문항</span>${stats}</div>
-    ${gradesHtml(c.grades)}`;
+    <div class="row2"><span class="stat">${cnt}문항</span>${stats}</div>
+    ${gradesHtml(c.grades, gset)}`;
   return a;
 }
 
@@ -503,8 +504,9 @@ function render(filter=""){
   const others=items.filter(c=>unitOf(c).name==="기타");
   if(others.length) groups.push({u:{name:"기타"}, list:others});
   for(const g of groups){
-    const totalC=chapters.filter(c=>unitOf(c).name===g.u.name).length;
-    const doneC=chapters.filter(c=>unitOf(c).name===g.u.name && chDoneP(c,gset)).length;
+    const inUnit=chapters.filter(c=>unitOf(c).name===g.u.name && chCountP(c,gset)>0);
+    const totalC=inUnit.length;
+    const doneC=inUnit.filter(c=>chDoneP(c,gset)).length;
     const pct=totalC?Math.round(doneC/totalC*100):0;
     const collapsed = !searching && isFolded(g.u.name);
     const unit=document.createElement("div"); unit.className="unit";
@@ -679,21 +681,32 @@ function loadDaily(){ try{ return JSON.parse(localStorage.getItem("fc:daily")||"
 let DQCLOUD={};   // 클라우드 dq (날짜별 그날 처음 푼 문항)
 /* 플랜 기준 '오늘 푼' — 등급 범위 안이면서 *현재 회독에 살아 있는* 문항만 센다.
    새 회독 시작(진도 초기화) 이전에 푼 문항은 진도에서 빠졌으므로 여기서도 빼야 숫자가 맞는다. */
-function solvedTodayInPlan(gset){
-  if(!gset) return solvedToday();
+/* 특정 날짜에 푼 문항 기록(로컬 fc:dq + 클라우드 dq 병합) → {챕터: {문항no:1}} */
+function dqForDay(dayKey){
   let local={}; try{ local=JSON.parse(localStorage.getItem("fc:dq")||"{}"); }catch(e){}
-  const t=todayStr();
-  const byCh=Object.assign({}, (DQCLOUD[t]||{}));
-  for(const id in (local[t]||{})) byCh[id]=Object.assign({}, byCh[id]||{}, local[t][id]);
+  const byCh=Object.assign({}, (DQCLOUD[dayKey]||{}));
+  for(const id in (local[dayKey]||{})) byCh[id]=Object.assign({}, byCh[id]||{}, local[dayKey][id]);
+  return byCh;
+}
+/* 하루치 문항 수 — gset이 있으면 선택 등급만, live면 현재 회독에 살아 있는 문항만 센다 */
+function dqCount(dayKey, gset, live){
+  const byCh=dqForDay(dayKey);
   let n=0;
   for(const id in byCh){
+    if(subjOf(id)!==(SUBJ||"admin")) continue;      // 현재 과목만
     const gm=qgrades[id]||{}, st=stat(id), qs=(st&&st.qstat)||{};
     for(const no in byCh[id]){
       if(no==="N1") continue;
-      if(gset.has(gm[no]) && qs[no] && (qs[no].s||0)>0) n++;
+      if(gset && !gset.has(gm[no])) continue;
+      if(live && !(qs[no] && (qs[no].s||0)>0)) continue;
+      n++;
     }
   }
   return n;
+}
+function solvedTodayInPlan(gset){
+  if(!gset) return solvedToday();
+  return dqCount(todayStr(), gset, true);
 }
 /* 학습 날짜 기록 클라우드에서 병합 (기기 간 누적 유지) */
 async function pullDaily(){
@@ -723,11 +736,20 @@ function heatLevel(n){ return n<=0?0 : n<5?1 : n<15?2 : n<30?3 : 4; }
 function renderStudyLog(){
   const card=document.getElementById("studyCard"); if(!card) return;
   const d=loadDaily();
+  const gsetS=planGradeSet();
+  /* 등급을 고른 플랜이면 그 등급 문항만 센다. dq 기록이 없는 옛 날짜는 전체 수치로 대체 */
+  const QCACHE={};
+  const qOn=k=>{
+    if(k in QCACHE) return QCACHE[k];
+    let v=d[k]||0;
+    if(gsetS && Object.keys(dqForDay(k)).length) v=dqCount(k, gsetS, false);
+    return (QCACHE[k]=v);
+  };
   const dates=Object.keys(d).filter(k=>d[k]>0).sort();
   if(!dates.length){ card.style.display="none"; return; }
   card.style.display="block";
   const totalDays=dates.length;
-  const totalQ=dates.reduce((s,k)=>s+(d[k]||0),0);
+  const totalQ=dates.reduce((s,k)=>s+qOn(k),0);
   // 현재 연속(오늘 또는 어제부터 거꾸로) / 최장 연속
   const has=k=>!!d[k]&&d[k]>0;
   const oneDay=86400000;
@@ -748,14 +770,14 @@ function renderStudyLog(){
   for(let w=0;w<weeks;w++){ let col="";
     for(let dd=0;dd<7;dd++){
       const cell=new Date(start.getTime()+(w*7+dd)*oneDay);
-      const key=dKey(cell), n=d[key]||0, future=cell>today;
+      const key=dKey(cell), n=qOn(key), future=cell>today;
       const lv=future?"":("l"+heatLevel(n));
       const tip=future?"":`${key} · ${n}문항`;
       col+=`<div class="hc ${lv}" ${tip?`title="${tip}"`:""} style="${future?"visibility:hidden":""}"></div>`;
     }
     cols.push(`<div class="hcol">${col}</div>`);
   }
-  const recent=dates.slice(-5).reverse().map(k=>`${k.slice(5).replace("-","/")} ${d[k]}문항`).join("  ·  ");
+  const recent=dates.slice(-5).reverse().map(k=>`${k.slice(5).replace("-","/")} ${qOn(k)}문항`).join("  ·  ");
   // 기본은 접힘 — 제목 줄을 누르면 펼쳐지고, 선택은 이 기기에 기억된다
   const open = localStorage.getItem("fc:slogOpen") === "1";
   card.innerHTML=`

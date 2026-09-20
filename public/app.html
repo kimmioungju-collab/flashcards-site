@@ -1067,7 +1067,7 @@ function toggleMark(no){
 function renderWeakChip(q){
   const el=$("weakChip"), w=qw(q.no), m=qmark(q.no), t=qt(q.no);
   const parts=[];                       // 한 줄에 들어가도록 짧게 — 오답/시간초과/체크
-  if(w>0) parts.push(`❌${w}`);
+  if(w>0) parts.push(`오답${w}`);
   if(t>0) parts.push(`⏱${t}`);
   if(m) parts.push("⭐");
   if(parts.length){ el.style.display=""; el.textContent=parts.join(" "); el.title=`누적 오답 ${w}회 · 시간초과 ${t}회${m?" · ⭐체크":""}`; }

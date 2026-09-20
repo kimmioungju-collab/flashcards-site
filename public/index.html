@@ -491,6 +491,7 @@ function render(filter=""){
   const f=filter.trim();
   const items=chapters.filter(c=>
     (!f || c.title.includes(f) || c.id.includes(f)) &&
+    (!!f || !gset || chCountP(c,gset)>0) &&   // 선택 등급 문항이 0개인 챕터는 숨김 (검색 중엔 표시)
     (!leftOnly || !chDoneP(c,gset)) &&
     (!goalOnly || (dailyT && dailyT.dueSet.has(c.id))) );
   if(!items.length){

@@ -323,18 +323,12 @@ function chDoneP(c,gset){ const t=chCountP(c,gset); return t>0 && chSeenP(c,gset
 /* ── 오늘의 목표선 계산 ──
    플랜(N일 1회독) 기준으로, 오늘까지 끝내야 할 누적 목표 문항(targetQ)을 구하고
    챕터를 순서대로 누적해 "여기까지 하면 오늘 분량 완료"인 경계 챕터를 찾는다. */
-/* 플랜 시작 시점에 이미 푼 문항(p.base)은 목표에서 제외하고, 남은 문항만 기간에 나눠 누적 목표를 잡는다.
-   (플랜을 오늘부터 잡으면 "풀고 남은 문항 ÷ 일수"가 하루 페이스가 되도록) */
+/* 누적 목표 = 전체 문항을 기간으로 균등 분할. (N일 1회독 = 전체 ÷ N일)
+   진행률 바(푼 문항/전체)와 같은 분모를 쓰므로 목표선과 막대가 항상 같은 축에서 읽힌다. */
 function planTargetAt(p, dn, totalQ){
   const days=Math.max(1,p.days);
-  const base=Math.min(totalQ, Math.max(0, p.base||0));
   const d=Math.min(Math.max(dn,0),days);
-  return Math.min(totalQ, base + Math.ceil(d/days*(totalQ-base)));
-}
-/* 플랜 저장 시 기준선 계산용: 현재 등급 조건에서 이미 푼 문항 수 (fs* 제외) */
-function seenQForGrades(grades){
-  const gset=(Array.isArray(grades)&&grades.length)? new Set(grades) : null;
-  return chapters.filter(c=>subjOf(c.id)===(SUBJ||"admin")).reduce((s,c)=>s+chSeenP(c,gset),0);
+  return Math.min(totalQ, Math.ceil(d/days*totalQ));
 }
 function computeDailyTarget(){
   const p=loadPlan(); if(!p) return null;
@@ -862,14 +856,13 @@ function setupPlan(){
   if(dv===null) return;
   const days=Math.max(1, parseInt(dv)||10);
   const start=(cur&&cur.start)?cur.start:todayStr();
-  const base=(cur&&cur.start)? (cur.base||0) : seenQForGrades(cur?cur.grades:undefined);
-  savePlan({start, days, grades: cur?cur.grades:undefined, base});
+  savePlan({start, days, grades: cur?cur.grades:undefined});
   renderPlan(); render(document.getElementById("q").value);
 }
 function resetPlanStart(){
   const cur=loadPlan(); if(!cur) return;
   if(!confirm("시작일을 오늘("+todayStr()+")로 다시 맞출까요?\n(진행 기록은 그대로 유지됩니다)")) return;
-  savePlan({start:todayStr(), days:cur.days, grades:cur.grades, base:seenQForGrades(cur.grades)});
+  savePlan({start:todayStr(), days:cur.days, grades:cur.grades});
   renderPlan(); render(document.getElementById("q").value);
 }
 /* 등급 선택 토글 → 플랜 재계산 */
@@ -880,8 +873,7 @@ async function togglePlanGrade(g){
   else if(gs.includes(g)){ gs=gs.filter(x=>x!==g); }
   else { gs.push(g); }
   if(gs.length) await ensureQGrades();
-  // 등급 범위가 바뀌면 기준선(이미 푼 문항)도 새 범위 기준으로 다시 잡는다
-  savePlan({start:p.start, days:p.days, grades: gs.length?gs:undefined, base:seenQForGrades(gs)});
+  savePlan({start:p.start, days:p.days, grades: gs.length?gs:undefined});
   syncQuizGrades(gs);   // 🎯 문제 풀이 화면의 등급 필터도 같은 범위로 맞춘다
   renderPlan();
   render(document.getElementById("q").value);

@@ -362,9 +362,9 @@ body.podon .sheet{padding-bottom:84px}
 .aisumbody .trap{background:#FBEEEE;border-radius:9px;padding:9px 11px;margin:7px 0}
 
 /* 📅 전날 오답 복습 모드 — 챕터 전용 기능 버튼 숨김 */
-body.review #reviewBtn,body.review #aiSumBtn,body.review #weakBtn,body.review #podBtn,body.review #filterBtn,
-body.review #reviewBtn2,body.review #aiSumBtn2,body.review #weakStartBtn,body.review #nextChBtn,
-body.review #markBtn,body.review #askBtn,body.review #histBox,body.review #wrongDayBtn{display:none!important}
+body.review #aiSumBtn,body.review #podBtn,body.review #filterBtn,
+body.review #aiSumBtn2,body.review #nextChBtn,
+body.review #histBox,body.review #wrongDayBtn{display:none!important}
 /* 📅 오답 날짜 고르기 */
 .rvpick{display:flex;flex-direction:column;gap:9px;margin-top:4px}
 .rvpick .rvday{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1.5px solid var(--line);
@@ -754,14 +754,15 @@ function mergeQstat(a,b){
   return out;
 }
 let _pulledCloud=false;
-let _pushTimer=null;
+const _pushTimers={};
 function pushCloud(){
-  if(!SYNC || !CH) return;
-  clearTimeout(_pushTimer);
-  _pushTimer = setTimeout(()=>{
+  if(!SYNC || !ACH) return;
+  const ch = ACH, rec = S;                 // 지금 시점의 챕터·기록을 고정해 둔다
+  clearTimeout(_pushTimers[ch]);
+  _pushTimers[ch] = setTimeout(function fire(){
     // 클라우드를 확인하기 전에는 밀어올리지 않는다 (기존 기록 덮어쓰기 방지) — 확인되면 재시도
-    if(!_pulledCloud){ pushCloud(); return; }
-    fetch(cloudUrl("ch/"+CH), {method:"PUT", body:JSON.stringify(S)}).catch(()=>{});
+    if(!_pulledCloud){ _pushTimers[ch]=setTimeout(fire, 1200); return; }
+    fetch(cloudUrl("ch/"+ch), {method:"PUT", body:JSON.stringify(rec)}).catch(()=>{});
   }, 1200);
 }
 async function pullCloud(){
@@ -828,6 +829,35 @@ S = { rounds, best, last, when, wrongNos,           // 요약
 */
 let S = { rounds:0, best:0, last:0, wrongNos:[], history:[], qstat:{}, prog:null };
 try { const raw = JSON.parse(localStorage.getItem(LSKEY) || "null"); if(raw) S = Object.assign(S, raw); } catch(e) {}
+
+/* 📅 복습 모드는 여러 챕터의 문항이 한 덱에 섞인다.
+   오답 횟수·⭐체크·푼 표시는 반드시 그 문항의 '출신 챕터' 기록에 남아야 하므로,
+   카드가 바뀔 때마다 활성 기록(S)과 기록 대상 챕터(ACH)를 그 챕터 것으로 갈아끼운다. */
+let ACH = CH;            // 지금 기록을 쓰는 챕터 (일반 모드에서는 CH 그대로)
+const _recs = {};        // 출신 챕터별 기록 캐시
+let CLOUDCH = null;      // 복습 부팅 때 한 번 받아둔 전 챕터 클라우드 기록
+const blankRec = () => ({rounds:0,best:0,last:0,wrongNos:[],history:[],qstat:{},prog:null});
+function recOf(ch){
+  if(!ch || ch===CH) return S;
+  if(_recs[ch]) return _recs[ch];
+  let r = blankRec();
+  try{ const raw=JSON.parse(localStorage.getItem("fc:"+ch)||"null"); if(raw) r=Object.assign(r,raw); }catch(e){}
+  const c = CLOUDCH && CLOUDCH[ch];
+  if(c && typeof c==="object"){
+    const localQ = r.qstat||{};
+    // 빈 클라우드 기록이 이 기기의 실기록을 덮어쓰지 않게 한다 (pullCloud와 같은 규칙)
+    if((c._at||0) > (r._at||0) && !(emptyRec(c) && !emptyRec(r))) r = Object.assign(blankRec(), c);
+    r.qstat = mergeQstat(localQ, c.qstat||{});
+  }
+  if(!r.qstat) r.qstat={};
+  if(!r.history) r.history=[];
+  _recs[ch]=r;
+  return r;
+}
+function useCh(ch){ if(!ch || ch===ACH) return; ACH=ch; S=recOf(ch); }
+const qch = q => (q && q._ch) || CH || "";
+/* 그 문항을 한 번이라도 푼 적이 있는지 — 출신 챕터 기록으로 판정 */
+const isSolvedQ = q => !!((recOf(qch(q)).qstat||{})[q.no]||{}).s;
 if(!S.qstat) S.qstat = {};
 if(!S.history) S.history = [];
 /* 통신 대기 시간 제한 —
@@ -874,7 +904,7 @@ function lsSet(k, v){
     }
   }
 }
-function save(){ if(CH){ S._at=Date.now(); S._st=S._at; lsSet(LSKEY, JSON.stringify(S)); pushCloud(); } }
+function save(){ if(ACH){ S._at=Date.now(); S._st=S._at; lsSet("fc:"+ACH, JSON.stringify(S)); pushCloud(); } }
 
 /* 오늘 푼 문항수(전 챕터 공통) — 날짜별 "처음 푼 고유 문항" 수.
    같은 문제를 오답 재도전 등으로 다시 풀어도 그날은 1번만 센다.
@@ -1020,14 +1050,17 @@ let unsolvedOnlyOn = !!OPT.unsolvedOnly;
 
 const $=id=>document.getElementById(id);
 const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-const qw=no=>(S.qstat[no]&&S.qstat[no].w)||0;
-const qt=no=>(S.qstat[no]&&S.qstat[no].t)||0;             // ⏱ 시간초과 횟수 (맞혔어도 기록)
-const qmark=no=>!!(S.qstat[no]&&S.qstat[no].m);           // 사용자가 직접 체크한 문제
-const qat=no=>(S.qstat[no]&&S.qstat[no].at)||0;           // 평균 풀이시간(초) — 오래 걸림 = 헷갈림
-const isWeak=no=>qw(no)>0 || qmark(no) || qt(no)>0;       // 취약 = 틀렸거나 체크했거나 시간초과
-const isSolved=no=>!!(S.qstat[no]&&S.qstat[no].s>0);      // 한 번이라도 푼 문항
+/* 문항 통계 — 두 번째 인자 ch를 주면 그 챕터 기록에서 읽는다(복습 덱처럼 챕터가 섞일 때).
+   ch를 생략하면 지금 활성 기록(S) 기준 — 기존 호출부는 그대로 동작한다. */
+const qst=(no,ch)=>(recOf(ch).qstat||{})[no]||{};
+const qw=(no,ch)=>qst(no,ch).w||0;
+const qt=(no,ch)=>qst(no,ch).t||0;                        // ⏱ 시간초과 횟수 (맞혔어도 기록)
+const qmark=(no,ch)=>!!qst(no,ch).m;                      // 사용자가 직접 체크한 문제
+const qat=(no,ch)=>qst(no,ch).at||0;                      // 평균 풀이시간(초) — 오래 걸림 = 헷갈림
+const isWeak=(no,ch)=>qw(no,ch)>0 || qmark(no,ch) || qt(no,ch)>0;   // 취약 = 틀렸거나 체크했거나 시간초과
+const isSolved=(no,ch)=>!!(qst(no,ch).s>0);               // 한 번이라도 푼 문항
 // 취약 우선 정렬 가중치 — 오답 10/회 > 시간초과 7/회 > 체크 5 + 풀이시간(최대 10점, 30초=만점)
-const weakWeight=no=>qw(no)*10 + qt(no)*7 + (qmark(no)?5:0) + Math.min(qat(no),30)/3;
+const weakWeight=(no,ch)=>qw(no,ch)*10 + qt(no,ch)*7 + (qmark(no,ch)?5:0) + Math.min(qat(no,ch),30)/3;
 function toggleMark(no){
   const st = S.qstat[no] || (S.qstat[no]={s:0,w:0});
   st.m = st.m?0:1; save();
@@ -1121,9 +1154,9 @@ function mdLite(src){
   return out.join("");
 }
 
-const ansKey = no => "fcAns:" + CH + ":" + no;
-function loadAns(no){ try{ return JSON.parse(localStorage.getItem(ansKey(no))||"null"); }catch(e){ return null; } }
-function saveAns(no, obj){ lsSet(ansKey(no), JSON.stringify(obj)); }
+const ansKey = (no, ch) => "fcAns:" + (ch || ACH) + ":" + no;
+function loadAns(no, ch){ try{ return JSON.parse(localStorage.getItem(ansKey(no, ch))||"null"); }catch(e){ return null; } }
+function saveAns(no, obj, ch){ lsSet(ansKey(no, ch), JSON.stringify(obj)); }
 
 function showAns(q, state, data){
   const box = $("ansBox");
@@ -1145,10 +1178,10 @@ function showAns(q, state, data){
 
 /* 대기 중인 질문은 localStorage에 남긴다.
    → 텔레그램으로 넘어가 탭이 잠들거나 새로고침돼도, 돌아오면 답변을 다시 찾아온다. */
-const pendKey = no => "fcPend:" + CH + ":" + no;
-function loadPend(no){ try{ return JSON.parse(localStorage.getItem(pendKey(no))||"null"); }catch(e){ return null; } }
-function savePend(no, obj){ lsSet(pendKey(no), JSON.stringify(obj)); }
-function dropPend(no){ try{ localStorage.removeItem(pendKey(no)); }catch(e){} }
+const pendKey = (no, ch) => "fcPend:" + (ch || ACH) + ":" + no;
+function loadPend(no, ch){ try{ return JSON.parse(localStorage.getItem(pendKey(no, ch))||"null"); }catch(e){ return null; } }
+function savePend(no, obj, ch){ lsSet(pendKey(no, ch), JSON.stringify(obj)); }
+function dropPend(no, ch){ try{ localStorage.removeItem(pendKey(no, ch)); }catch(e){} }
 
 /* 답변 1회 조회 — 받았으면 저장·표시하고 true 반환 */
 async function checkAns(q, id, myq, quiet){
@@ -1204,27 +1237,31 @@ function ansJumpBanner(qno){
 
 /* 질문을 보낸 뒤 텔레그램으로 넘어가면 탭이 잠들거나 통째로 버려진다.
    → 돌아왔을 때 "현재 카드"만이 아니라 이 챕터의 대기 중인 질문을 전부 확인한다. */
+function pendPrefix(){ return REVIEW ? "fcPend:" : "fcPend:" + CH + ":"; }
 async function sweepPending(){
-  const jobs = [];
-  const prefix = "fcPend:" + CH + ":";
+  const jobs = [];      // [챕터, 문항번호]
+  const prefix = pendPrefix();
   for(let i=0; i<localStorage.length; i++){
     const k = localStorage.key(i);
-    if(k && k.startsWith(prefix)) jobs.push(k.slice(prefix.length));
+    if(!k || !k.startsWith(prefix)) continue;
+    const rest = k.slice("fcPend:".length), cut = rest.indexOf(":");
+    if(cut < 0) continue;
+    jobs.push([rest.slice(0, cut), rest.slice(cut+1)]);
   }
-  for(const qno of jobs){
-    const p = loadPend(qno); if(!p || !p.id) continue;
-    if(loadAns(qno)){ dropPend(qno); continue; }
+  for(const [pch, qno] of jobs){
+    const p = loadPend(qno, pch); if(!p || !p.id) continue;
+    if(loadAns(qno, pch)){ dropPend(qno, pch); continue; }
     // 화면의 "생성 중" 표시는 5분에 접지만, 답변 회수는 하루 동안 계속 시도한다
     // (텔레그램에서 오래 읽다 돌아와도 이미 도착한 답변을 잃지 않게)
-    if(Date.now() - p.t > PEND_KEEP_MS){ dropPend(qno); continue; }
+    if(Date.now() - p.t > PEND_KEEP_MS){ dropPend(qno, pch); continue; }
     try{
       const r = await fetch(ANS_BASE + p.id + ".json", {cache:"no-store"});
       const d = await r.json();
       if(!(d && d.a)) continue;
       const rec = {a:d.a, myq:p.myq, t:Date.now()};
-      saveAns(qno, rec); dropPend(qno);
+      saveAns(qno, rec, pch); dropPend(qno, pch);
       const cur = deck[idx];
-      if(cur && String(cur.no) === String(qno)){ showAns(cur, "done", rec); $("askBtn").style.display="none"; }
+      if(cur && String(cur.no) === String(qno) && qch(cur) === pch){ showAns(cur, "done", rec); $("askBtn").style.display="none"; }
       else ansJumpBanner(qno);
     }catch(e){}
   }
@@ -1235,7 +1272,7 @@ async function sweepPending(){
    게다가 다음 문제로 넘어가면 renderAskBtn이 그 문항의 폴링을 끊어버려 답변을 영영 못 받았다.
    현재 카드와 무관하게 대기 질문이 남아 있는 동안 계속 훑는다. */
 function hasPending(){
-  const prefix = "fcPend:" + CH + ":";
+  const prefix = pendPrefix();
   for(let i=0; i<localStorage.length; i++){
     const k = localStorage.key(i);
     if(k && k.startsWith(prefix)) return true;
@@ -1283,7 +1320,7 @@ function renderAskBtn(q){
       no: q.no || "", q: q.q || "", ans: q.ans || "",
       exp: q.exp || "", src: q.src || "",
       myq: myq,
-      link: location.origin + location.pathname + "?ch=" + encodeURIComponent(CH||"") + "&q=" + encodeURIComponent(q.no||""),
+      link: location.origin + location.pathname + "?ch=" + encodeURIComponent(qch(q)) + "&q=" + encodeURIComponent(q.no||""),
       t: Date.now()
     };
     b.disabled=true; b.textContent="📨 전송 중...";
@@ -1304,7 +1341,7 @@ function renderAskBtn(q){
 function updateRoundPill(){
   const p=$("roundPill");
   // 덱 전체가 이미 풀린 상태면 '재도전 중'임을 명시해 낮은 진행수가 후퇴로 보이지 않게 한다
-  const redo = deck.length>0 && deck.every(q=>isSolved(q.no));
+  const redo = deck.length>0 && deck.every(q=>isSolved(q.no,qch(q)));
   if(S.rounds){
     p.style.display="";
     p.textContent = redo ? `✅ ${S.rounds}회독 완료 · 재도전 중` : `${S.rounds}회독 · 최고 ${S.best}%`;
@@ -1364,12 +1401,13 @@ function qKeyParse(n){
   return { ch:p[1], no:p[2], rel:p[3], opt:p[4]||"" };
 }
 function saveProg(){
+  if(REVIEW){ save(); return; }   // 복습 덱은 이어하기 대상이 아님 — 출신 챕터 prog는 그대로 두고 기록만 저장
   S.prog = { mode, nos: deck.map(qKey), idx,
              ans: answers.map((a,i)=>a?[qKey(deck[i]),a.a,a.correct]:null).filter(Boolean),
              ok, no, redo: REDO_SESSION };
   save();
 }
-function clearProg(){ S.prog=null; save(); }
+function clearProg(){ if(REVIEW) return; S.prog=null; save(); }   // 복습 덱은 출신 챕터의 이어하기 상태를 건드리지 않는다
 
 function buildDeck(){
   // 등급 필터는 다른 과목(행정법 S~Z ↔ 전술 위·장·교)에서 저장된 값이 새어 들어올 수 있다.
@@ -1422,7 +1460,7 @@ function groundSkip(){
   $("qTimer").style.display="none";
 }
 function startWeakDeck(){
-  const wd = QUESTIONS.filter(q=>isWeak(q.no)).sort((a,b)=>weakWeight(b.no)-weakWeight(a.no));
+  const wd = QUESTIONS.filter(q=>isWeak(q.no,qch(q))).sort((a,b)=>weakWeight(b.no,qch(b))-weakWeight(a.no,qch(a)));
   if(!wd.length){ alert("틀렸거나 ⭐체크한 문제가 아직 없습니다.\n문제를 풀거나 결과 화면에서 체크해 보세요."); return; }
   deck=[...wd]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
   markRedo();
@@ -1575,7 +1613,7 @@ async function resumeSession(p){
   REL_SESSION = deck.some(q=>q&&q._rel);
   // 저장된 재도전 플래그 우선, 없던 옛 기록이면 덱 상태로 재계산
   REDO_SESSION = ("redo" in p) ? !!p.redo
-               : REL_SESSION || (deck.length>0 && deck.every(q=>isSolved(q.no)));
+               : REL_SESSION || (deck.length>0 && deck.every(q=>isSolved(q.no,qch(q))));
   answers = new Array(deck.length);
   ok=0; no=0; wrongs=[];
   const ansByNo = Object.fromEntries((p.ans||[]).map(a=>[a[0],a]));
@@ -1603,10 +1641,10 @@ let REDO_SESSION=false;
 let REL_SESSION=false;
 function markRedo(){
   REL_SESSION = deck.some(q=>q&&q._rel);
-  REDO_SESSION = REL_SESSION || (deck.length>0 && deck.every(q=>isSolved(q.no)));
+  REDO_SESSION = REL_SESSION || (deck.length>0 && deck.every(q=>isSolved(q.no,qch(q))));
 }
 // 덱에 남은 미응답이 없는지 — 이번 세션 응답 + (진도 채우기 세션에 한해) 과거 회차에 이미 푼 문항 인정
-const allAnswered=()=>deck.length>0 && deck.every((q,i)=>answers[i]||(!REDO_SESSION&&isSolved(q.no)));
+const allAnswered=()=>deck.length>0 && deck.every((q,i)=>answers[i]||(!REDO_SESSION&&isSolved(q.no,qch(q))));
 
 /* ===== 시험지 모드: 선지(줄 시작 ①~)가 포함된 기출 문항 파싱·렌더 ===== */
 function examParse(q){
@@ -1658,6 +1696,7 @@ function show(){
   stopQTimer(); qOvertime=false; qStartAt=0;
   if(idx>=deck.length){ return finish(); }
   const q=deck[idx];
+  if(REVIEW) useCh(q._ch);        // 📅 복습 덱 — 기록은 이 문항의 출신 챕터에 남긴다
   const g=q.grade in GC ? q.grade : null;
   document.querySelector(".card").style.setProperty("--gcol", g?GC[g]:"#B9C2CC");
   const badge=$("gradeBadge");
@@ -1789,7 +1828,7 @@ function reveal(q, correct){
 }
 /* ⏱ 문제당 제한시간 — 초과해도 답은 할 수 있지만, 맞혀도 '시간초과'로 취약 기록에 남는다.
    OX(행정법·공무원법)=15초, 소방전술(ts*)은 사지선다라 40초 */
-const Q_TIME_LIMIT = /^ts/.test(CH||"") ? 40 : 15;
+const qLimit = q => /^ts/.test(qch(q)) ? 40 : 15;
 let qTimerIv = null;
 let qOvertime = false;                            // 현재 문항이 제한시간을 넘겼는지
 let qStartAt = 0;                                 // 현재 문항 풀이 시작 시각 (풀이 시간 기록용)
@@ -1801,7 +1840,7 @@ function startQTimer(){
   stopQTimer();
   qOvertime = false;
   qStartAt = Date.now();
-  let left = Q_TIME_LIMIT;
+  let left = qLimit(deck[idx]);
   const el = $("qTimer");
   el.textContent = "⏱ " + left;
   el.className = "qtimer";
@@ -1873,7 +1912,7 @@ function finish(){
   const answered = ga.filter(Boolean).length;
   const partial = answered > 0 && answered < gq.length;
   // 이번 세션에도, 과거에도 안 푼 문항 수 — 이게 남아 있으면 "완료"가 아니다
-  const unsolvedLeft = gq.filter((q,i)=>!ga[i] && !isSolved(q.no)).length;
+  const unsolvedLeft = gq.filter((q,i)=>!ga[i] && !isSolvedQ(q)).length;
   const gok = ga.filter(a=>a&&a.correct).length;
   const gwrongs = gq.filter((q,i)=>ga[i]&&!ga[i].correct);
   const total = partial ? answered : gq.length;
@@ -1924,7 +1963,7 @@ function renderHistory(){
 }
 /* ── 문항 이동 ── */
 // 아직 안 푼 문항: 이번 세션 미응답 + (재도전 세션이 아니면) 과거에도 푼 적 없음
-const isTodo=(q,i)=>!answers[i] && (REDO_SESSION || !isSolved(q.no));
+const isTodo=(q,i)=>!answers[i] && (REDO_SESSION || !isSolved(q.no,qch(q)));
 function findNextTodo(){
   const n=deck.length; if(!n) return -1;
   for(let k=1;k<=n;k++){                 // 현재 위치 다음부터 순환 탐색
@@ -1950,7 +1989,7 @@ function openJump(){
     if(i===idx) b.classList.add("cur");
     else if(a) b.classList.add(a.correct?"ok":"no");
     else if(isTodo(q,i)){ b.classList.add("todo"); todo++; }
-    if(isWeak(q.no)) b.classList.add("weak");
+    if(isWeak(q.no,qch(q))) b.classList.add("weak");
     b.onclick=()=>{ $("jumpWrap").classList.remove("show"); jumpTo(i); };
     g.appendChild(b);
   });
@@ -1972,19 +2011,19 @@ function openKey(){
     const kind = a==="O" ? "aO" : (a==="X" ? "aX" : "aE");
     if(kind==="aO") cO++; else if(kind==="aX") cX++; else cM++;
     const g=((q.grade||"").trim())||"-";
-    const st=S.qstat[q.no];
-    const seen=!!(st&&st.s>0), w=(st&&st.w)||0;
+    const st=qst(q.no,qch(q));
+    const seen=!!(st.s>0), w=st.w||0;
     if(seen) solved++;
     const mine = seen ? (w>0 ? `❌${w}` : "⭕") : "–";
     const b=document.createElement("button");
     b.className="keyrow";
     b.innerHTML =
-      `<span class="kno">${esc(String(q.no))}${qmark(q.no)?"⭐":""}</span>`+
+      `<span class="kno">${esc(String(q.no))}${qmark(q.no,qch(q))?"⭐":""}</span>`+
       `<span class="kg" style="background:${GC[g]||"#8B97A3"}">${esc(g)}</span>`+
       `<span class="ka ${kind}">${esc(a||"?")}</span>`+
       `<span class="kq">${esc(String(q.theme||q.q||""))}</span>`+
       `<span class="kst ${w>0?"kw":(seen?"ko":"")}">${mine}</span>`;
-    b.onclick=()=>jumpToNo(q.no);
+    b.onclick=()=>jumpToNo(q.no, qch(q));
     el.appendChild(b);
   });
   $("keySum").innerHTML=`총 <b>${list.length}</b>문항 · <b style="color:var(--right)">O ${cO}</b> · `+
@@ -1994,7 +2033,7 @@ function openKey(){
 /* ── 오답·취약 요약 풀이 : 틀렸거나 ⭐체크한 문제를 주제별로 묶어 정답·해설을 한 번에 복습 ── */
 function openReview(){
   if(!QUESTIONS.length) return;
-  const list=QUESTIONS.filter(q=>isWeak(q.no)).sort((a,b)=>numNo(a.no)-numNo(b.no));
+  const list=QUESTIONS.filter(q=>isWeak(q.no,qch(q))).sort((a,b)=>numNo(a.no)-numNo(b.no));
   const el=$("reviewList"); el.innerHTML="";
   const sum=$("reviewSum");
   if(!list.length){
@@ -2004,7 +2043,7 @@ function openReview(){
     $("reviewWrap").classList.add("show");
     return;
   }
-  const nw=list.filter(q=>qw(q.no)>0).length, nm=list.filter(q=>qmark(q.no)).length;
+  const nw=list.filter(q=>qw(q.no,qch(q))>0).length, nm=list.filter(q=>qmark(q.no,qch(q))).length;
   sum.innerHTML=`취약 <b>${list.length}</b>문항 — 오답 <b style="color:var(--wrong)">${nw}</b> · ⭐체크 <b>${nm}</b> · 문항 번호를 누르면 바로 풀 수 있습니다`;
   const groups=new Map();
   list.forEach(q=>{ const t=(q.theme||"기타").trim()||"기타"; if(!groups.has(t)) groups.set(t,[]); groups.get(t).push(q); });
@@ -2012,7 +2051,7 @@ function openReview(){
     const h=document.createElement("div"); h.className="rvtheme"; h.textContent=`${theme} (${qs.length})`;
     el.appendChild(h);
     qs.forEach(q=>{
-      const w=qw(q.no), m=qmark(q.no);
+      const w=qw(q.no,qch(q)), m=qmark(q.no,qch(q));
       const a=String(q.ans||"").trim();
       const kind=a==="O"?"O":a==="X"?"X":"etc";
       const g=((q.grade||"").trim())||"-";
@@ -2024,7 +2063,7 @@ function openReview(){
         `<span class="anschip ${kind}">${esc(a||"?")}</span></div>`+
         `<div class="rvq qtext">${hl(esc(q.q||""), q.kw, q.kwr)}</div>`+
         `<div class="rvexp exp">${renderExp(q.exp||"", q.kw2||q.kw)}</div>`;
-      d.querySelector(".rvhead").onclick=()=>{ $("reviewWrap").classList.remove("show"); jumpToNo(q.no); };
+      d.querySelector(".rvhead").onclick=()=>{ $("reviewWrap").classList.remove("show"); jumpToNo(q.no, qch(q)); };
       el.appendChild(d);
     });
   }
@@ -2032,7 +2071,12 @@ function openReview(){
   $("reviewWrap").classList.add("show");
   $("reviewWrap").querySelector(".sheet").scrollTop=0;
 }
-function jumpToNo(qno){
+function jumpToNo(qno, ch){
+  // 복습 덱은 챕터가 섞여 번호가 겹친다 — 출신 챕터까지 맞는 문항을 먼저 찾는다
+  if(ch){
+    const j = deck.findIndex(q=>String(q.no)===String(qno) && qch(q)===ch);
+    if(j>=0) return jumpTo(j);
+  }
   // 연관문제 세션에선 다른 챕터 문항과 번호가 겹칠 수 있어, 본 챕터 문항(_rel 없음)을 우선 찾는다
   let i = deck.findIndex(q=>String(q.no)===String(qno) && !q._rel);
   if(i<0) i = deck.findIndex(q=>String(q.no)===String(qno));
@@ -3081,7 +3125,8 @@ async function collectWlog(){
     wlog[d][id]=Object.assign({}, wlog[d][id]||{});
     h.wrongNos.forEach(n=>{ wlog[d][id][String(n)]=1; });
   }); };
-  if(cloudCh){ for(const id in cloudCh) addHist(id, cloudCh[id]); }
+  if(cloudCh){ CLOUDCH = cloudCh; for(const id in cloudCh) addHist(id, cloudCh[id]); }
+  _pulledCloud = true;   // 전 챕터 기록을 확인했으므로 이제 기록을 올려도 안전하다
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
     if(k && /^fc:(ch|fs|ts)\d/.test(k)){ try{ addHist(k.slice(3), JSON.parse(localStorage.getItem(k)||"null")); }catch(e){} }

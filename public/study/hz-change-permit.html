@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>위험물 변경허가 완전정복 — 9단계 판별법</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#2a2f3a;--tx:#e8eaf0;--dim:#9aa3b2;
+--ok:#3fb950;--no:#f85149;--warn:#d29922;--acc:#58a6ff;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.7 -apple-system,"Apple SD Gothic Neo",sans-serif;padding:16px 14px 60px}
+h1{font-size:21px;margin:.2em 0 .1em}
+h2{font-size:18px;margin:1.6em 0 .5em;padding-left:9px;border-left:4px solid var(--acc)}
+h3{font-size:16px;margin:1.2em 0 .4em;color:var(--acc)}
+.sub{color:var(--dim);font-size:13px;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin:10px 0}
+.ok{color:var(--ok);font-weight:700}.no{color:var(--no);font-weight:700}
+.warn{color:var(--warn);font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}
+th,td{border:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
+th{background:#20242d;color:var(--dim);font-weight:600;white-space:nowrap}
+code{background:#20242d;padding:1px 6px;border-radius:5px;font-size:14px}
+.flow{background:#12151b;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:14.5px}
+.flow div{padding:5px 0;border-bottom:1px dashed #262b35}
+.flow div:last-child{border:0}
+.n{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;
+background:var(--acc);color:#0b0e14;border-radius:50%;font-weight:700;font-size:12px;margin-right:7px}
+.n0{background:var(--warn)}
+.big{font-size:17px;font-weight:700;color:#fff;background:#1d2530;border-left:4px solid var(--acc);
+padding:11px 13px;border-radius:0 10px 10px 0;margin:12px 0}
+ul{margin:.4em 0;padding-left:19px}li{margin:3px 0}
+.chip{display:inline-block;background:#20242d;border:1px solid var(--line);border-radius:14px;
+padding:2px 10px;margin:2px 3px 2px 0;font-size:13px}
+.hit{background:#14261a;border-color:#2d5a34}
+.miss{background:#2a1618;border-color:#5c2a2e}
+.q{font-size:14px;color:var(--dim);margin-top:4px}
+
+.y{color:var(--ok);text-align:center;font-weight:700}
+.n2{color:var(--no);text-align:center;opacity:.75}
+sup{font-size:10px}
+</style></head><body>
+
+<h1>🔧 위험물 변경허가 완전정복</h1>
+<div class="sub">시행규칙 별표1의2 · 빨간키 p.10~14 원문 + 기출 9문항 전수 검증 기반 · 2026.09</div>
+
+<div class="big">먼저 <span class="warn">목록에 있는 항목인지</span> 보고 → 없으면 끝(면제).<br>
+있으면 <span style="color:var(--acc)">8단계 동사·숫자</span>로 판별한다.</div>
+
+<h2>0. 9단계 판별 플로우</h2>
+<div class="flow">
+<div><span class="n n0">0</span><b>그 시설 목록에 그 항목이 있나?</b> → 없으면 <span class="no">면제</span> (동사 볼 필요 없음)</div>
+<div><span class="n">1</span>위치를 <b>이전</b>하나? → <span class="ok">허가</span> <span class="q">(예외: 같은 사업장·울 안 상치장소 이전)</span></div>
+<div><span class="n">2</span><b>신설·철거</b>하나? → <span class="ok">허가</span> <span class="q">(배출설비는 신설만 존재)</span></div>
+<div><span class="n">3</span><b>증설</b>하나? → <span class="ok">허가</span> <span class="q">(예외: 펌프설비, 1일 취급량 지정수량 1/5 미만)</span></div>
+<div><span class="n">4</span><b>스펙이 바뀌나?</b> → <span class="ok">허가</span> <span class="q">(용량·내용적·면적·높이·셀프전환)</span></div>
+<div><span class="n">5</span><b>절개·개구부</b>가 생기나? → <span class="ok">허가</span></div>
+<div><span class="n">6</span><b>숫자 기준</b>을 넘나? → <span class="ok">허가</span> <span class="q">(250mm·300m/30m·30%·20%·300mm·4㎡)</span></div>
+<div><span class="n">7</span><b>계통</b>을 통째로 갈거나 <b>구조체를 정비</b>하나? → <span class="ok">허가</span> <span class="q">(부품 교체·게시판 정비는 면제)</span></div>
+<div><span class="n">8</span>전부 아니오 → <span class="no">면제</span></div>
+</div>
+
+<h2>1. 제1원리 — "새 통로가 생기는가"</h2>
+<div class="card">
+이 법의 뿌리는 <b>누출 경로의 신설·확대</b>다. 공사 중·후에 위험물이 흘러나올 수 있으면 허가.
+<ul>
+<li><span class="ok">⭕</span> 탱크 본체 <b>절개</b> · 노즐/맨홀 <b>신설</b> · 배관 <b>절개</b> · 탱크 내부 구획</li>
+<li><span class="no">❌</span> 탱크 <b>청소</b> · 지붕 <b>보수</b> · 바닥공사 · 게시판 정비</li>
+</ul>
+<b>판별 한 문장:</b> "이 공사 중에 위험물이 새어나올 수 있나?"
+</div>
+
+<h2>2. 제2원리 — "계통이냐 부품이냐"</h2>
+<table>
+<tr><th>계통 = 허가 ⭕</th><th>부품 = 면제 ❌</th></tr>
+<tr><td>소화설비 <b>신설·교체·철거</b></td><td>배관·밸브·압력계·소화전 본체·소화약제탱크·포헤드·포방출구 <b>교체</b></td></tr>
+<tr><td>자동화재탐지설비 <b>신설·철거</b></td><td>자동화재탐지설비 <b>교체</b></td></tr>
+<tr><td>옥외탱크 수조·밑판·옆판·누액방지판·해상탱크 정치설비 <b>교체</b></td><td>게시판 교체·정비</td></tr>
+</table>
+<div class="card"><span class="warn">⚠️ 최대 함정 — 비대칭</span><br>
+· <b>소화설비</b>: 신설 ⭕ / <b>교체 ⭕</b> / 철거 ⭕ <span class="q">(부속품 교체만 ❌)</span><br>
+· <b>자동화재탐지설비</b>: 신설 ⭕ / <b>교체 ❌</b> / 철거 ⭕<br>
+→ <b>"소화설비는 교체도 허가, 탐지설비 교체는 면제"</b>
+</div>
+
+<h2>3. 동사 사다리 (위험도 순)</h2>
+<div class="flow">
+<div>1. <b>신설</b> — 없던 게 생김 → <span class="ok">전부 허가</span></div>
+<div>2. <b>이전</b> — 자리가 바뀜 → <span class="ok">전부 허가</span> <span class="q">(같은 울 안 상치장소만 ❌)</span></div>
+<div>3. <b>철거</b> — 있던 게 사라짐 → <span class="ok">전부 허가</span></div>
+<div>4. <b>증설</b> — 규모가 커짐 → <span class="ok">허가</span> <span class="q">(펌프·1/5미만 ❌)</span></div>
+<div>5. <b>변경</b> — 스펙이 달라짐 → <span class="ok">허가</span> <span class="q">(용량·면적·높이·셀프전환)</span></div>
+<div style="border-top:2px solid var(--warn);padding-top:8px">━━ 여기부터 조건부 ━━</div>
+<div>6. <b>교체</b> → 계통이면 <span class="ok">⭕</span> / 부품이면 <span class="no">❌</span></div>
+<div>7. <b>보수</b> → 절개하면 <span class="ok">⭕</span> / 안 하면 <span class="no">❌</span></div>
+<div>8. <b>정비</b> → 구조체(기초·지반·내벽)면 <span class="ok">⭕</span> / 게시판이면 <span class="no">❌</span></div>
+<div>9. <b>청소</b> → <span class="no">전부 면제</span></div>
+</div>
+
+<h2>4. 숫자 6개</h2>
+<table>
+<tr><th>숫자</th><th>대상</th><th>기준</th></tr>
+<tr><td><b>250mm</b></td><td>노즐·맨홀 신설</td><td>초과</td></tr>
+<tr><td><b>300m</b><br>(지하 <b>30m</b>)</td><td>위험물배관 신설·교체·철거·보수(절개)</td><td>초과</td></tr>
+<tr><td><b>30%</b></td><td>옥외탱크 <b>지붕판</b> 교체·구조/재질/두께 변경</td><td>이상</td></tr>
+<tr><td><b>20%</b></td><td>옥외탱크 <b>밑판·옆판</b> 겹침/육성보수</td><td>초과</td></tr>
+<tr><td><b>300mm</b></td><td>애뉼러판·밑판↔옆판 용접이음부 보수</td><td>초과</td></tr>
+<tr><td><b>4㎡</b></td><td>주유취급소 공작물 신설·증축</td><td>이상</td></tr>
+</table>
+<div class="card">
+<b>🔑 왜 지붕은 30%, 밑·옆판은 20%인가</b><br>
+밑판·옆판은 <b>위험물이 직접 닿는 면</b> → 뚫리면 즉시 유출 → 더 빡센 20%.<br>
+지붕은 기체만 닿음 → 관대한 30%.<br>
+<b>"위험물이 닿는 면일수록 기준이 낮다"</b><br><br>
+<b>🔑 왜 지하배관은 30m인가</b><br>
+지상 300m의 <b>1/10</b>. 안 보이는 곳이라 누출을 못 잡기 때문.
+</div>
+
+<h2>5. 열거주의 — 가장 잘 틀리는 함정</h2>
+<div class="card">
+별표1의2는 <b>시설별 열거 목록</b>이다. <b>목록에 없으면 동사가 뭐든 면제.</b><br><br>
+<b>제조소·일반취급소에 <span class="no">없는</span> 항목</b><br>
+<span class="chip miss">주입구</span><span class="chip miss">통풍장치</span><span class="chip miss">고정주유설비</span>
+<div class="q">→ "주입구 위치 이전"(기출 정답), "통풍장치 신설"(기출 정답) 둘 다 면제</div>
+<br>
+<b>이동탱크저장소에 <span class="no">없는</span> 항목</b><br>
+<span class="chip miss">방유제</span><span class="chip miss">건축물</span>
+<br><br>
+<b>판매취급소 — 딱 2개</b><br>
+<span class="chip hit">건축물 벽·기둥·바닥·보·지붕 증설/철거</span><span class="chip hit">자동화재탐지설비 신설/철거</span>
+<br><br>
+<b>옥외저장소 — 딱 3개</b><br>
+<span class="chip hit">면적 변경</span><span class="chip hit">살수설비 신설/철거</span><span class="chip hit">소화설비 신설·교체·철거</span>
+<br><br>
+<b>간이탱크저장소 — 5개</b><br>
+<span class="chip hit">위치 이전</span><span class="chip hit">건축물 뼈대 증설/철거</span><span class="chip hit">탱크 신설·교체·철거</span><span class="chip hit">탱크 보수(절개)</span><span class="chip hit">노즐·맨홀 신설(250mm 초과)</span>
+</div>
+
+
+<h2 id="mx">5-2. ★ 시설별 매트릭스 — "있는 것만 목록에 있다"</h2>
+<div class="big">목록은 외우는 게 아니라 <b>그 시설을 머릿속에 그려서</b> 판단한다.<br>
+<span class="q" style="color:#d29922">그 시설에 그 물건이 물리적으로 없으면 → 목록에도 없다.</span></div>
+
+<div style="overflow-x:auto">
+<table style="font-size:12.5px;white-space:nowrap">
+<tr><th>항목</th><th>제조<br>일반</th><th>옥내<br>저장</th><th>옥외<br>저장</th><th>옥외<br>탱크</th><th>옥내<br>탱크</th><th>지하<br>탱크</th><th>간이<br>탱크</th><th>이동<br>탱크</th><th>암반<br>탱크</th><th>주유</th><th>판매</th><th>이송</th></tr>
+<tr><td>위치 이전</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕<sup>*</sup></td><td class="n2">✗</td><td class="y">⭕</td><td class="n2">✗</td><td class="y">⭕</td></tr>
+<tr><td>주입구 이전·신설</td><td class="n2">✗</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td><td class="y">⭕</td></tr>
+<tr><td>건축물 뼈대<br>증설·철거</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="n2">✗</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td></tr>
+<tr><td>노즐·맨홀 신설<br>(250mm 초과)</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td></tr>
+<tr><td>탱크 보수<br>(본체 절개)</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td></tr>
+<tr><td>배관 300m/30m</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td><td class="y">⭕</td></tr>
+<tr><td>자동화재탐지<br>신설·철거</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td></tr>
+<tr><td>소화설비<br>신설·교체·철거</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td></tr>
+<tr><td>면적 변경</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td><td class="n2">✗</td><td class="n2">✗</td><td class="n2">✗</td><td class="n2">✗</td><td class="y">⭕</td><td class="n2">✗</td><td class="n2">✗</td></tr>
+<tr><td>총 항목 수</td><td>19</td><td>6</td><td><b>3</b></td><td>다수</td><td>7</td><td>8</td><td><b>5</b></td><td>6</td><td>5</td><td>다수</td><td><b>2</b></td><td>7</td></tr>
+</table>
+</div>
+<div class="q">* 이동탱크는 탱크 자체가 아니라 <b>상치장소</b>의 위치 이전 (같은 울 안 제외)</div>
+
+<h3>왜 ✗ 인지 — 전부 "물리적 이유"가 있습니다</h3>
+<table>
+<tr><th>빈칸</th><th>이유 (그림으로 떠올리기)</th></tr>
+<tr><td><b>암반탱크</b>에 위치 이전 ✗</td><td>암반을 파서 만든 공동(空洞)이다. <b>옮길 수가 없다.</b></td></tr>
+<tr><td><b>간이탱크</b>에 주입구 ✗</td><td>600L 이하 소형. <b>별도 주입구 설비 없이</b> 직접 넣는다.</td></tr>
+<tr><td><b>제조소</b>에 주입구 ✗</td><td>제조소 탱크는 "취급탱크"다. 저장탱크에 딸린 <b>주입구 개념 자체가 없다.</b></td></tr>
+<tr><td><b>옥외저장소·옥외탱크·지하탱크<br>이동탱크·암반탱크</b>에 건축물 ✗</td><td>말 그대로 <b>건물이 없는 시설</b>이다. 야적장·탱크뿐.</td></tr>
+<tr><td><b>옥외저장소</b>에 탱크 항목 전무</td><td>드럼·용기를 야외에 쌓아두는 곳. <b>탱크가 없다.</b> 그래서 딱 3개.</td></tr>
+<tr><td><b>판매취급소</b>에 탱크·배관 ✗</td><td>페인트 가게 수준. <b>건물과 화재감지기</b>뿐. 그래서 딱 2개.</td></tr>
+<tr><td><b>암반탱크</b>에 노즐·맨홀 ✗</td><td>강판 탱크가 아니라 암반 공동. <b>맨홀 개념이 다르다.</b></td></tr>
+<tr><td><b>이송취급소</b>에 건축물·탱크 ✗</td><td>배관으로 보내는 시설. <b>배관·펌프·주입구/배출구</b>가 전부.</td></tr>
+</table>
+
+<div class="card">
+<b>🔑 그림 3장으로 끝내기</b><br><br>
+<b>① 옥외저장소</b> = 야외 드럼 야적장 → 울타리(면적) + 물뿌리개(살수) + 소화전<br>
+&nbsp;&nbsp;<span class="q">건물도 탱크도 배관도 없음 → <b>3개</b></span><br><br>
+<b>② 판매취급소</b> = 동네 페인트 가게 → 가게 건물 + 화재감지기<br>
+&nbsp;&nbsp;<span class="q">탱크도 배관도 소화설비도 목록에 없음 → <b>2개</b></span><br><br>
+<b>③ 이동탱크저장소</b> = 탱크로리 트럭 → 세워두는 자리(상치장소) + 탱크 본체 + 주입설비 + 펌프<br>
+&nbsp;&nbsp;<span class="q">건물·방유제 없음 → <b>6개</b></span>
+</div>
+
+<h3>암기 부담 실측</h3>
+<div class="card">
+전체 항목 <b>약 100개</b> → 매트릭스로 보면 실제 외울 것은:<br>
+<span class="chip hit">공통 뼈대 9줄</span><span class="chip hit">✗ 이유 8개</span><span class="chip hit">시설 특유 항목 소수</span><br><br>
+<b>공통 뼈대 9줄</b>(위 표 세로축)만 잡으면 어떤 시설이 나와도 <b>그림 그려서 판단</b> 가능.<br>
+<span class="warn">외울 것은 100개가 아니라 "9줄 + 없는 이유 8개" = 17개.</span>
+</div>
+
+<h3>기출 실패 2건 재검증</h3>
+<table>
+<tr><th>보기</th><th>매트릭스</th><th>판정</th></tr>
+<tr><td>제조소 <b>주입구</b> 위치 이전</td><td>제조소 × 주입구 = <span class="no">✗</span></td><td class="y">면제 ✅</td></tr>
+<tr><td>제조소 <b>통풍장치</b> 신설</td><td>목록에 통풍장치 행 자체가 없음<br><span class="q">(제조소 설비 = 배출·채광·조명·환기)</span></td><td class="y">면제 ✅</td></tr>
+</table>
+
+<h2>6. 위치 이전 18개 — 대칭 구조</h2>
+<table>
+<tr><th>탱크 위치 이전 (6)</th><th>주입구 위치 이전·신설 (6)</th></tr>
+<tr><td>옥외 · 옥내 · 지하 · <b>간이</b> · 지하매설 · 주유옥내</td>
+<td>옥외 · 옥내 · 지하 · <b>암반</b> · 주유 · 이송(주입구·배출구·펌프설비)</td></tr>
+</table>
+<div class="card"><span class="warn">⚠️ 비대칭 2개</span><br>
+· 탱크에는 <b>암반이 없다</b><br>
+· 주입구에는 <b>간이가 없다</b><br>
+→ 여기가 보기 바꿔치기 자리
+<br><br>
+나머지 6개 = 제조소·일반취급소 이전 / 이송취급소 이전 / 상치장소 이전(같은 울 안 제외) /
+옥외저장소 면적변경 / 주유취급소 부지 면적·위치 변경 / 고정주유·급유설비 위치 이전
+</div>
+
+<h2>7. 면제 목록 총정리</h2>
+<table>
+<tr><th>구분</th><th>면제 내용</th></tr>
+<tr><td>숫자 미달</td><td>노즐·맨홀 250mm <b>이하</b> / 배관 300m·30m <b>이하</b> / 지붕판 30% <b>미만</b> / 공작물 4㎡ <b>미만</b> / 밑·옆판 20% <b>이하</b> / 용접 300mm <b>이하</b></td></tr>
+<tr><td>부품 교체</td><td>소화설비 배관·밸브·압력계·소화전본체·소화약제탱크·포헤드·포방출구 / 자동화재탐지설비 교체 / 옥내소화전 배관·밸브·압력계</td></tr>
+<tr><td>원상 유지</td><td>탱크 청소 / 게시판 교체·정비 / 건축물 <b>지붕 보수</b> / 주유취급소 바닥공사·주입설비 설치·보수</td></tr>
+<tr><td>증설 예외</td><td><b>배출설비 증설</b> / 펌프설비 증설 / 1일 취급량 지정수량 <b>1/5 미만</b> 설비 증설</td></tr>
+<tr><td>이전 예외</td><td>같은 사업장·같은 울 안에서의 <b>상치장소 이전</b></td></tr>
+<tr><td>별도 트랙</td><td><b>품명 변경</b>(주유취급소 등유→경유) → 변경허가 아님, <b>1일 전 신고</b> 사항</td></tr>
+</table>
+
+<h2>8. 예외 7개 (이것만 따로 외움)</h2>
+<div class="card">
+<b>①</b> 배출설비는 <b>신설만</b> 존재 (증설 ❌)<br>
+<b>②</b> 펌프설비 — 제조소는 <b>증설 ❌</b> / 이동탱크는 <b>신설 ⭕</b><br>
+<b>③</b> 1일 취급량 지정수량 <b>1/5 미만</b> 설비 증설 ❌<br>
+<b>④</b> 같은 사업장·울 안 <b>상치장소 이전</b> ❌<br>
+<b>⑤</b> 자동화재탐지설비 <b>교체</b> ❌ (소화설비 교체는 ⭕)<br>
+<b>⑥</b> 주입설비 — 이동탱크는 설치·<b>철거</b> ⭕ / 주유취급소는 설치·<b>보수</b> ❌<br>
+<b>⑦</b> 정비 — 기초·지반·내벽은 <b>⭕</b> / 게시판은 <b>❌</b>
+</div>
+
+<h2>9. 기출 전수 검증 (28개 보기)</h2>
+<table>
+<tr><th>연도</th><th>문제</th><th>정답</th><th>적용 단계</th></tr>
+<tr><td>2025 소방위</td><td>주유취급소 변경허가 대상</td><td>셀프용 고정주유설비로 변경</td><td>4 스펙변경</td></tr>
+<tr><td>2024 소방위</td><td>변경허가 대상 <b>아닌</b> 것</td><td>옥내저장탱크 보수(절개 제외)</td><td>5 절개 없음</td></tr>
+<tr><td>기출</td><td>이동탱크 변경허가 대상</td><td>내용적 변경 위해 구조 변경</td><td>4 스펙변경</td></tr>
+<tr><td>2017 소방위</td><td>제조소 변경허가 대상</td><td>30m 초과 지하배관 보수(절개)</td><td>5+6</td></tr>
+<tr><td>15·18 소방위</td><td>변경허가 대상 <b>아닌</b> 것</td><td><b>통풍장치</b> 신설</td><td><b>0 열거주의</b></td></tr>
+<tr><td>기출</td><td>변경허가 <b>불필요</b></td><td><b>주입구</b> 위치 이전</td><td><b>0 열거주의</b></td></tr>
+<tr><td>2021 통합소방장</td><td>변경허가 <b>불필요</b></td><td><b>배출설비 증설</b></td><td>예외 ①</td></tr>
+</table>
+<div class="card">
+<b>검증 결과 — 9단계 적용 시 28/28 (100%)</b><br>
+<span class="q">8단계(0번 제외)로는 26/28. 실패 2건이 모두 "목록에 없는 항목"이라 0번 열거주의를 최상단에 넣어 해결.</span>
+</div>
+
+<h2>10. 최종 압축</h2>
+<div class="big">
+<b>목록에 있나?</b> — 외우지 말고 <b>그 시설을 그려라.</b> 그 물건이 없으면 목록에도 없다 → 면제.<br>
+있으면 → <b>옮기거나·생기거나·없어지거나·커지거나·스펙이 바뀌거나·구멍 나거나·기준 넘거나·계통을 갈면</b> 허가.<br>
+<b>원상복구(청소·게시판정비·부품교체·지붕보수)</b>는 면제.<br>
+<span class="q" style="color:#d29922">+ 예외 7개만 따로.</span>
+</div>
+
+<h3>암기 구호</h3>
+<div class="card">
+숫자 — "<b>이오공(250) 삼백삼십(300m/30m) 삼십(30%) 이십(20%) 삼백밀(300mm) 사제곱(4㎡)</b>"<br>
+항목수 — "<b>십팔(18) 십구(19) 사오(45)</b>, 판매는 둘, 옥외저장은 셋"<br>
+동사 — "<b>신·이·철·증·변은 허가, 청소·정비는 프리, 교체·보수는 조건부</b>"
+</div>
+
+<div style="margin-top:30px;color:var(--dim);font-size:12px;text-align:center">
+출처: 위험물안전관리법(문옥섭, 시대에듀) 빨간키 p.10~14 원문 · 시행규칙 별표1의2<br>
+기출 2015~2025 소방장·소방위 공개문제/기출복원문제 9문항 전수 대조
+</div>
+</body></html>

@@ -374,6 +374,11 @@ body.review #histBox,body.review #wrongDayBtn{display:none!important}
 .rvpick .rvday .rvcnt{margin-left:auto;font-size:13px;font-weight:900;color:var(--wrong)}
 .rvpick .rvday.today .rvlbl{background:var(--right)}
 .rvpick .rvday.yday .rvlbl{background:#2E75B6}
+.rvsubs{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 4px}
+.rvsubs button{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:7px 13px;
+  font-size:13px;font-weight:800;color:#5B6672;cursor:pointer}
+.rvsubs button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.rvsubs .rvhint{font-size:12px;font-weight:700;color:#8B97A3;align-self:center;margin-left:2px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -385,7 +390,7 @@ body.review #histBox,body.review #wrongDayBtn{display:none!important}
     <span class="pill" id="scorePill">⭕ <b id="okCnt">0</b> · ❌ <b id="noCnt">0</b></span>
     <div class="tbtns">
       <button class="iconbtn" onclick="location.href='index.html'+(typeof CH==='string'&&CH?(/^fs/.test(CH)?'?s=fire':/^ts/.test(CH)?'?s=tactic':/^rv/.test(CH)?'?s=review':/^hz/.test(CH)?'?s=hazmat':'?s=admin'):'')">목차</button>
-      <button class="iconbtn" id="rvDateBtn" style="display:none" onclick="location.href='app.html?review=pick'+(typeof RVCH==='string'&&RVCH?('&rch='+RVCH):'')">📅날짜</button>
+      <button class="iconbtn" id="rvDateBtn" style="display:none" onclick="location.href='app.html?review=pick'+(typeof RVCH==='string'&&RVCH?('&rch='+RVCH):'')+(typeof subsQS==='function'?subsQS():'')">📅날짜</button>
       <button class="iconbtn" id="introBtn" style="display:none">📖요약</button>
       <button class="iconbtn" id="keyBtn">📋답안</button>
       <button class="iconbtn" id="reviewBtn">📝풀이</button>
@@ -621,6 +626,19 @@ const LSKEY = "fc:" + CH;
 const RVPARAM = new URLSearchParams(location.search).get("review") || "";
 const RVDATE = /^\d{4}-\d{2}-\d{2}$/.test(RVPARAM) ? RVPARAM : "";
 const RVCH = new URLSearchParams(location.search).get("rch") || "";   // 지정 시 그 챕터 오답만
+/* 과목 체크 — 날짜별 오답 복습에서 볼 과목을 고른다 (빈 선택 = 전 과목) */
+const SUBJS=[{k:"ch",n:"행정법"},{k:"fs",n:"공무원법"},{k:"ts",n:"전술"},{k:"hz",n:"위험물"},{k:"rv",n:"복습노트"}];
+const subOf = id => (String(id||"").match(/^[a-z]+/)||["ch"])[0];
+function parseSubs(v){
+  return new Set(String(v||"").split(",").map(x=>x.trim()).filter(x=>SUBJS.some(s=>s.k===x)));
+}
+const _rsubParam = new URLSearchParams(location.search).get("rsub");
+/* URL이 우선, 없으면 지난번 선택을 기억 */
+let RVSUB = parseSubs(_rsubParam!==null ? _rsubParam : (localStorage.getItem("fc:rvsub")||""));
+function subsQS(){ return RVSUB.size ? "&rsub="+[...RVSUB].join(",") : ""; }
+function subsLabel(){
+  return RVSUB.size ? SUBJS.filter(s=>RVSUB.has(s.k)).map(s=>s.n).join("·") : "전 과목";
+}
 const REVIEW = RVPARAM === "prev" || RVPARAM === "pick" || !!RVDATE;
 if(REVIEW) document.body.classList.add("review");
 /* 🎯 등급 회독 — 목차 플랜에서 등급(S/A/…)을 고르면 그 등급만 전 챕터를 돌린다.
@@ -3137,25 +3155,73 @@ function onlyCh(wlog, ch){
   for(const d in wlog){ if(wlog[d] && wlog[d][ch]) m[d]={[ch]:wlog[d][ch]}; }
   return m;
 }
+/* 고른 과목의 오답만 남긴 로그 (빈 선택 = 전 과목 그대로) */
+function onlySubs(wlog, subs){
+  if(!subs || !subs.size) return wlog;
+  const m={};
+  for(const d in wlog){
+    const byCh=wlog[d]||{}, keep={};
+    for(const id in byCh){ if(subs.has(subOf(id))) keep[id]=byCh[id]; }
+    if(Object.keys(keep).length) m[d]=keep;
+  }
+  return m;
+}
+/* 한 과목의 오답 문항 수 (전 날짜 합계) — 칩에 표시 */
+function subCount(wlog, k){
+  let n=0;
+  for(const d in (wlog||{})){
+    const byCh=wlog[d]||{};
+    for(const id in byCh) if(subOf(id)===k) n += Object.keys(byCh[id]||{}).length;
+  }
+  return n;
+}
 /* 날짜 표기: 2026-09-18 → 9/18 (수) */
 const WD=["일","월","화","수","목","금","토"];
 function rvMD(d){ const [y,m,dd]=d.split("-").map(Number); return m+"/"+dd; }
 function rvWd(d){ const [y,m,dd]=d.split("-").map(Number); return WD[new Date(y,m-1,dd).getDay()]; }
 
 /* 📅 오답 날짜 고르기 화면 — 기록이 있는 날짜를 최신순으로 보여준다 */
-const rvQS = d => "app.html?review=" + d + (RVCH ? "&rch="+RVCH : "");
-function reviewPick(wlog){
+const rvQS = d => "app.html?review=" + d + (RVCH ? "&rch="+RVCH : "") + subsQS();
+let RVWLOG=null;   // 날짜 고르기 화면이 쓰는 전체 오답 로그 (과목 체크 변경 시 재사용)
+/* 과목 체크 칩 — 기록이 있는 과목만 노출. 하나도 안 고르면 전 과목 */
+function subChips(wlog){
+  const avail=SUBJS.map(s=>({s, n:subCount(wlog, s.k)})).filter(x=>x.n>0);
+  if(avail.length<2) return "";   // 과목이 하나뿐이면 고를 게 없다
+  const chips=avail.map(({s,n})=>{
+    const on=RVSUB.has(s.k);
+    return `<button class="${on?"on":""}" onclick="toggleSub('${s.k}')">${on?"✓ ":""}${s.n} ${n}</button>`;
+  }).join("");
+  const hint = RVSUB.size ? "" : `<span class="rvhint">안 고르면 전 과목</span>`;
+  return `<div class="rvsubs">${chips}${hint}</div>`;
+}
+/* 과목 체크 토글 — 선택을 기억하고 URL에도 반영한 뒤 화면만 다시 그린다 */
+function toggleSub(k){
+  const next=new Set(RVSUB);
+  if(next.has(k)) next.delete(k); else next.add(k);
+  RVSUB=next;
+  try{ localStorage.setItem("fc:rvsub",[...RVSUB].join(",")); }catch(e){}
+  try{
+    const u=new URL(location.href);
+    if(RVSUB.size) u.searchParams.set("rsub",[...RVSUB].join(",")); else u.searchParams.delete("rsub");
+    history.replaceState(null,"",u.toString());
+  }catch(e){}
+  reviewPick(RVWLOG);
+}
+function reviewPick(wlogAll){
+  RVWLOG=wlogAll;
+  const wlog = RVCH ? wlogAll : onlySubs(wlogAll, RVSUB);   // 챕터 지정 모드에선 과목 체크 없음
   const today=wlogDay(Date.now()), yday=wlogDay(Date.now()-86400000);
   const days=Object.keys(wlog).filter(d=>wlogCount(wlog[d])>0).sort().reverse();
-  if(!days.length){ reviewEmpty("복습할 오답 기록이 아직 없습니다.<br>문제를 풀면 날짜별 오답이 자동으로 쌓입니다."); return; }
-  const rows=days.map(d=>{
+  const chips = RVCH ? "" : subChips(wlogAll);
+  const rows = days.length ? days.map(d=>{
     const cls = d===today ? "today" : d===yday ? "yday" : "";
     const lbl = d===today ? "오늘" : d===yday ? "어제" : rvWd(d)+"요일";
     return `<button class="rvday ${cls}" onclick="location.href='${rvQS(d)}'">`
       + `<span class="rvmd">${rvMD(d)}</span><span class="rvlbl">${lbl}</span>`
       + `<span class="rvcnt">오답 ${wlogCount(wlog[d])}문항</span></button>`;
-  }).join("");
-  const scope = RVCH ? chLabel(RVCH) : "전 챕터";
+  }).join("")
+  : `<div style="padding:14px 4px;color:#8B97A3;font-weight:700">${esc(subsLabel())} 오답 기록이 없습니다.</div>`;
+  const scope = RVCH ? chLabel(RVCH) : subsLabel();
   document.title="오답 날짜 고르기";
   $("chTitle").textContent=`📅 ${scope} 오답 — 날짜 고르기 (${days.length}일)`;
   $("keyTitle").textContent="📋 답안 확인";
@@ -3163,7 +3229,7 @@ function reviewPick(wlog){
     ? `<button class="rvday" onclick="location.href='app.html?review=pick'"><span class="rvmd">🌐</span>`
       + `<span class="rvlbl">전체</span><span class="rvcnt">전 챕터 오답 보기</span></button>`
     : "";
-  $("qText").innerHTML=`<div class="rvpick">${rows}${foot}`
+  $("qText").innerHTML=`<div class="rvpick">${chips}${rows}${foot}`
     + `<button class="rvday" onclick="location.href='index.html'"><span class="rvmd">📚</span>`
     + `<span class="rvlbl">목차</span><span class="rvcnt">돌아가기</span></button></div>`;
   $("oxRow").style.display="none"; $("numRow").style.display="none";
@@ -3177,13 +3243,14 @@ async function reviewBoot(){
   selThemes=new Set(); selGrades=new Set(); weakOnlyOn=false; weakFirstOn=false; unsolvedOnlyOn=false;
   let wlog=await collectWlog();
   if(RVCH) wlog=onlyCh(wlog, RVCH);      // 이 챕터의 오답만
+  if(RVPARAM==="pick"){ reviewPick(wlog); return; }   // 과목 체크는 고르기 화면에서 처리
+  if(!RVCH) wlog=onlySubs(wlog, RVSUB);  // 고른 과목의 오답만
   // 3) 대상 날짜: pick=고르기 / YYYY-MM-DD=지정 / 그 외=오늘 이전 가장 최근 학습일
   const today=wlogDay(Date.now());
   const days=Object.keys(wlog).filter(d=>wlogCount(wlog[d])>0).sort();
-  if(RVPARAM==="pick"){ reviewPick(wlog); return; }
   let target;
   if(RVDATE){
-    if(days.indexOf(RVDATE)<0){ reviewEmpty(`${RVCH?chLabel(RVCH)+" ":""}${rvMD(RVDATE)} 오답 기록이 없습니다.`); return; }
+    if(days.indexOf(RVDATE)<0){ reviewEmpty(`${RVCH?chLabel(RVCH)+" ":RVSUB.size?subsLabel()+" ":""}${rvMD(RVDATE)} 오답 기록이 없습니다.`); return; }
     target=RVDATE;
   }else{
     target=[...days].reverse().find(d=>d<today) || (days.indexOf(today)>=0 ? today : null);
@@ -3207,7 +3274,7 @@ async function reviewBoot(){
   const md=rvMD(target);
   const label = target===today ? "오늘" : (wlogDay(Date.now()-86400000)===target ? "어제" : rvWd(target)+"요일");
   document.title="오답 복습 "+md;
-  $("chTitle").textContent=`📅 ${RVCH?chLabel(RVCH)+" ":""}${md} ${label} 오답 복습 (${qs.length}문항)`;
+  $("chTitle").textContent=`📅 ${RVCH?chLabel(RVCH)+" ":RVSUB.size?subsLabel()+" ":""}${md} ${label} 오답 복습 (${qs.length}문항)`;
   $("rvDateBtn").style.display="";   // 다른 날짜로 바꾸기
   $("keyTitle").textContent="📋 답안 확인 — "+label+" 오답 복습";
   deck=[...qs]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
@@ -3220,7 +3287,7 @@ function reviewEmpty(msg){
   $("chTitle").textContent="📅 오답 복습";
   const btn=(href,txt)=>`<button onclick="location.href='${href}'" style="margin:14px 8px 0 0;padding:11px 22px;font-size:15px;font-weight:800;border-radius:10px;border:none;background:#1F2937;color:#fff">${txt}</button>`;
   $("qText").innerHTML=msg + "<br>"
-    + (RVDATE ? btn("app.html?review=pick"+(RVCH?"&rch="+RVCH:""),"📅 다른 날짜 고르기") : "")
+    + (RVDATE ? btn("app.html?review=pick"+(RVCH?"&rch="+RVCH:"")+subsQS(),"📅 다른 날짜 고르기") : "")
     + (RVCH ? btn("app.html?review=pick","🌐 전 챕터 오답 보기") : "")
     + btn("index.html","📚 목차로 돌아가기");
   $("oxRow").style.display="none"; $("numRow").style.display="none";

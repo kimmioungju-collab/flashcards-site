@@ -162,6 +162,14 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 /* ⚠️ 취약만 보기: 취약 표시와 무관한 요약 내용 숨김 */
 .introbody .wkhide{display:none !important}
 .introbody .wknote-empty{padding:18px 6px;color:var(--muted);font-weight:700;text-align:center}
+/* 요약 → 문항으로 돌아가기 플로팅 버튼 (근거 보기로 들어왔을 때만 표시) */
+.sumback{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);border:none;background:#2B5D8A;color:#fff;
+  padding:11px 20px;border-radius:99px;font-size:13.5px;font-weight:800;z-index:20;white-space:nowrap;cursor:pointer;
+  box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.sumback:active{opacity:.85}
+body.podon .sumback{bottom:154px}
+/* 돌아온 문항 잠깐 강조 */
+.card.cardflash{box-shadow:0 0 0 4px #FFE99A}
 /* 문제 → 요약 위치 보기: 근거 문장(sumhit) / 근거 섹션(sumsec) 하이라이트 */
 .introbody .sumhit{background:#FFF3C4;border-radius:6px;box-shadow:0 0 0 4px #FFF3C4}
 .introbody .sumsec{background:#FFFBEA;border-radius:6px;box-shadow:0 0 0 4px #FFFBEA}
@@ -587,6 +595,7 @@ body.review #histBox,body.review #wrongDayBtn{display:none!important}
       <span class="inknote">펜슬로 쓰고 손가락으로 스크롤. 형광펜은 거의 수평이면 자동으로 직선이 됩니다. 필기는 챕터별 자동 저장.</span>
     </div>
     <div class="introbody" id="introBody"></div>
+    <button class="sumback" id="sumBack" style="display:none">↩ 문항으로 돌아가기</button>
     <button class="apply" id="introStart">읽었어요 · 문제 풀기 →</button>
   </div>
 </div>
@@ -2214,6 +2223,7 @@ async function loadIntro(title){
   }catch(e){}
 }
 function openIntro(){ if(!INTRO_HTML) return; $("introWrap").classList.add("show");
+  try{ showSumBack(null); }catch(e){}   // 기본은 숨김 — 근거로 들어온 경우만 showInSummary가 켠다
   try{ podFetch(); }catch(e){}
   try{ markWeakInSummary(); }catch(e){}   // 최신 오답 기록 반영
   try{ inkPull(); setTimeout(inkRefresh, 50); }catch(e){} }
@@ -2223,7 +2233,7 @@ function renderSumBtn(q){
   const b=$("sumBtn"); if(!b) return;
   const m=INTRO_MAP[q.no];
   b.style.display = (m && INTRO_HTML) ? "" : "none";
-  b.onclick = m ? ()=>showInSummary(m) : null;
+  b.onclick = m ? ()=>showInSummary(m, q.no) : null;
   // 해설과 함께 요약 근거 인용을 바로 보여준다 (탭하면 요약 해당 위치로)
   const sq=$("sumQuote");
   if(sq){
@@ -2234,7 +2244,7 @@ function renderSumBtn(q){
         + (w?`<span class="sqweak">누적 오답 ${w}회 · 요약에 ⚠️ 표시됨</span>`:"") + `</span>`
         + (m.q ? "“"+esc(m.q)+"”" : "탭하면 요약의 근거 섹션으로 이동합니다.");
       sq.style.display="";
-      sq.onclick=()=>showInSummary(m);
+      sq.onclick=()=>showInSummary(m, q.no);
     } else { sq.style.display="none"; sq.onclick=null; }
   }
 }
@@ -2243,11 +2253,12 @@ function sectionEls(h4){                     // h4 + 다음 h4 전까지의 형�
   while(n && n.tagName!=="H4"){ els.push(n); n=n.nextElementSibling; }
   return els;
 }
-function showInSummary(m){
+function showInSummary(m, fromNo){
   if(WEAK_ONLY_SUM){ WEAK_ONLY_SUM=false; }   // 특정 위치로 점프할 땐 전체 보기로 (숨김에 가리지 않게)
   const useEasy = (INTRO_MODE==="easy" && INTRO_HTML_EASY && m.es);
   if(INTRO_MODE==="easy" && INTRO_HTML_EASY && !m.es){ INTRO_MODE="full"; renderIntroBody(); }
   openIntro();
+  showSumBack(fromNo);                        // 근거로 들어왔으니 문항 복귀 버튼 노출
   const body=$("introBody");
   body.querySelectorAll(".sumhit,.sumsec").forEach(e=>e.classList.remove("sumhit","sumsec"));
   const title=normTxt(useEasy ? m.es : m.s), quote=normTxt(useEasy ? m.eq : m.q);
@@ -2262,6 +2273,21 @@ function showInSummary(m){
   if(hit){ hit.classList.add("sumhit"); h4.classList.add("sumsec"); }
   else els.forEach(e=>e.classList.add("sumsec"));
   setTimeout(()=>{ (hit||h4).scrollIntoView({block:"center", behavior:"smooth"}); }, 60);
+}
+/* ── ↩ 요약 근거 → 원래 문항으로 복귀 ── */
+let SUM_FROM_NO=null;
+function showSumBack(no){
+  const b=$("sumBack"); if(!b) return;
+  SUM_FROM_NO = no || null;
+  b.style.display = SUM_FROM_NO ? "" : "none";
+  b.textContent = SUM_FROM_NO ? ("↩ "+SUM_FROM_NO+"번 문항으로 돌아가기") : "↩ 문항으로 돌아가기";
+}
+function backToQuestion(){
+  closeIntro();
+  const card=$("card"); if(!card) return;
+  card.scrollIntoView({block:"start", behavior:"smooth"});
+  card.classList.add("cardflash");
+  setTimeout(()=>card.classList.remove("cardflash"), 900);
 }
 /* ── ⚠️ 취약(누적 오답 ≥1) 문항 위치를 요약에 표시 — map 기반, 배지는 ::after라 본문 텍스트는 안 건드림 ── */
 function markWeakInSummary(){
@@ -2558,7 +2584,7 @@ $("inkUndo").addEventListener("click",inkUndo);
 $("inkRedo").addEventListener("click",inkRedo);
 $("inkLock").addEventListener("click",()=>{ INK.lock=!INK.lock; $("inkLock").classList.toggle("on",INK.lock); $("introBody").classList.toggle("inklock",INK.lock); });
 $("inkClear").addEventListener("click",()=>{ if(!INK.strokes.length) return; if(!confirm("이 요약의 필기를 모두 지울까요?")) return; INK.redo.push(...INK.strokes.map(g=>({del:g}))); INK.strokes=[]; inkRefresh(); inkSave(); });
-function closeIntro(){ ttsStop(); $("introWrap").classList.remove("show"); try{localStorage.setItem(introSeenKey,"1");}catch(e){} }
+function closeIntro(){ ttsStop(); $("introWrap").classList.remove("show"); try{ showSumBack(null); }catch(e){} try{localStorage.setItem(introSeenKey,"1");}catch(e){} }
 
 /* ── 요약 읽어주기(TTS) + 현재 읽는 부분 하이라이트 ── */
 /* 서버에서 미리 만든 구글 음성 MP3(같은 도메인 정적파일)를 재생 → iOS 사파리 확실 재생.
@@ -2957,6 +2983,7 @@ $("gotoTodoBtn").addEventListener("click",gotoNextTodo);
 $("jumpWrap").addEventListener("click",e=>{if(e.target===$("jumpWrap"))$("jumpWrap").classList.remove("show");});
 $("introBtn").addEventListener("click",openIntro);
 $("introClose").addEventListener("click",closeIntro);
+$("sumBack").addEventListener("click",backToQuestion);
 $("introStart").addEventListener("click",closeIntro);
 $("ttsBtn").addEventListener("click",()=>{ if(ttsOn) ttsStop(); else ttsStart(); });
 $("podRateBtn").addEventListener("click",cycleRate);

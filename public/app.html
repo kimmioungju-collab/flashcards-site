@@ -162,6 +162,21 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 /* ⚠️ 취약만 보기: 취약 표시와 무관한 요약 내용 숨김 */
 .introbody .wkhide{display:none !important}
 .introbody .wknote-empty{padding:18px 6px;color:var(--muted);font-weight:700;text-align:center}
+/* 요약 본문 → 해당 문항 바로가기: map에 걸린 위치에 파란 문항번호 칩(::before, 본문 텍스트는 안 건드림) */
+.introbody .sumq{cursor:pointer}
+.introbody .sumq[data-qnote]::before{content:attr(data-qnote);display:inline-block;margin-right:6px;font-size:11px;font-weight:900;color:#fff;background:#2B5D8A;border-radius:99px;padding:1px 8px;vertical-align:middle;white-space:nowrap}
+.introbody.qoff .sumq{cursor:auto}
+.introbody.qoff .sumq[data-qnote]::before{display:none}
+/* 한 위치에 여러 문항이 걸렸을 때 고르는 팝업 */
+.qpick{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:40;align-items:center;justify-content:center;padding:18px}
+.qpick.show{display:flex}
+.qpbox{background:var(--paper);width:100%;max-width:440px;border-radius:16px;padding:16px;max-height:70dvh;overflow-y:auto}
+.qphead{font-size:14px;font-weight:900;margin:0 0 10px;color:#1E4A73}
+.qpitem{display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;background:#fff;border:1.5px solid #BcD5EE;border-radius:11px;padding:10px 11px;margin-bottom:7px;cursor:pointer;font-family:inherit}
+.qpitem:active{transform:translateY(1px)}
+.qpitem .qpno{flex:0 0 auto;min-width:34px;height:22px;line-height:22px;text-align:center;border-radius:99px;background:#2B5D8A;color:#fff;font-size:11.5px;font-weight:900}
+.qpitem .qptx{flex:1;font-size:13px;font-weight:700;color:#24405C;line-height:1.5;word-break:keep-all}
+#qpCancel{width:100%;border:none;background:#EEE9DC;color:var(--muted);border-radius:12px;padding:11px;font-size:13.5px;font-weight:800;cursor:pointer}
 /* 요약 → 문항으로 돌아가기 플로팅 버튼 (근거 보기로 들어왔을 때만 표시) */
 .sumback{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);border:none;background:#2B5D8A;color:#fff;
   padding:11px 20px;border-radius:99px;font-size:13.5px;font-weight:800;z-index:20;white-space:nowrap;cursor:pointer;
@@ -572,10 +587,17 @@ body.review #histBox,body.review #wrongDayBtn{display:none!important}
   </div>
 </div>
 
+<div class="qpick" id="qPick">
+  <div class="qpbox">
+    <div class="qphead" id="qpHead">📝 이 부분과 연결된 문항</div>
+    <div id="qpList"></div>
+    <button id="qpCancel">닫기</button>
+  </div>
+</div>
 <div class="sheetwrap" id="introWrap">
   <div class="sheet introsheet">
     <div class="introhead"><h3 id="introTitle">📖 이 챕터 핵심 요약</h3>
-      <div class="introhbtns"><button class="ttsbtn" id="weakOnlySumBtn" style="display:none">⚠️ 취약만</button><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="docBtn" title="인쇄 화면처럼 넓게 보기">⛶ 크게</button><button class="ttsbtn" id="inkBtn">✍️ 펜</button><button class="ttsbtn" id="printBtn">🖨 인쇄</button><button class="ttsbtn" id="introPodBtn">🎧 AI음성</button><button class="ttsbtn" id="ttsRateBtn" title="말하기 속도">⚡1×</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
+      <div class="introhbtns"><button class="ttsbtn" id="qChipBtn" title="요약 본문의 문항번호 칩 켜기/끄기">📝 문항칩</button><button class="ttsbtn" id="weakOnlySumBtn" style="display:none">⚠️ 취약만</button><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="docBtn" title="인쇄 화면처럼 넓게 보기">⛶ 크게</button><button class="ttsbtn" id="inkBtn">✍️ 펜</button><button class="ttsbtn" id="printBtn">🖨 인쇄</button><button class="ttsbtn" id="introPodBtn">🎧 AI음성</button><button class="ttsbtn" id="ttsRateBtn" title="말하기 속도">⚡1×</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
     <div class="intropod" id="introPodStat" style="display:none"></div>
     <div class="inkbar" id="inkBar">
       <div class="inkrow">
@@ -2192,6 +2214,7 @@ function renderIntroBody(){
   $("introBody").scrollTop=0;
   inkLoad(); inkRefresh();
   try{ markWeakInSummary(); }catch(e){}
+  try{ markQsInSummary(); }catch(e){}
   const b=$("lvlBtn");
   if(b) b.textContent = useEasy ? "📚 상세" : "🧒 쉬운말";
 }
@@ -2226,6 +2249,7 @@ function openIntro(){ if(!INTRO_HTML) return; $("introWrap").classList.add("show
   try{ showSumBack(null); }catch(e){}   // 기본은 숨김 — 근거로 들어온 경우만 showInSummary가 켠다
   try{ podFetch(); }catch(e){}
   try{ markWeakInSummary(); }catch(e){}   // 최신 오답 기록 반영
+  try{ markQsInSummary(); }catch(e){}    // 문항번호 칩 갱신
   try{ inkPull(); setTimeout(inkRefresh, 50); }catch(e){} }
 /* ── 📖 문제 → 요약 위치 보기: intros/chNN.json 의 map[문항번호] = {s:섹션제목, q:근거문장, es/eq:쉬운말} ── */
 const normTxt = s => (s||"").replace(/\s+/g," ").trim();
@@ -2288,6 +2312,59 @@ function backToQuestion(){
   card.scrollIntoView({block:"start", behavior:"smooth"});
   card.classList.add("cardflash");
   setTimeout(()=>card.classList.remove("cardflash"), 900);
+}
+/* ── 📝 요약 → 문항 이동: INTRO_MAP에 걸린 위치마다 문항번호 칩, 탭하면 그 문항으로 ── */
+function sumTarget(m, h4s, useEasy){          // 문항의 map 정보 → 요약 본문에서 대응되는 요소
+  const title=normTxt(useEasy ? m.es : m.s), quote=normTxt(useEasy ? m.eq : m.q);
+  if(!title) return null;
+  const h4=h4s.find(h=>normTxt(h.textContent)===title);
+  if(!h4) return null;
+  let hit=null;
+  if(quote){
+    const els=sectionEls(h4);
+    const cands=els.flatMap(e=>[e, ...e.querySelectorAll("li,p")]).filter(e=>/^(LI|P|DIV|H4)$/.test(e.tagName));
+    hit=cands.filter(e=>normTxt(e.textContent).includes(quote)).sort((a,b)=>a.textContent.length-b.textContent.length)[0]||null;
+  }
+  return hit||h4;
+}
+let SUMQ=new Map();                            // 요약 본문 요소 → 연결된 문항 배열
+let QCHIP=true; try{ QCHIP = (localStorage.getItem("fc_qchip")!=="0"); }catch(e){}
+function markQsInSummary(){
+  const body=$("introBody"); if(!body) return;
+  body.querySelectorAll(".sumq").forEach(e=>{ e.classList.remove("sumq"); e.removeAttribute("data-qnote"); });
+  SUMQ=new Map();
+  body.classList.toggle("qoff", !QCHIP);
+  const btn=$("qChipBtn"); if(btn) btn.textContent = QCHIP ? "📝 문항칩 끄기" : "📝 문항칩 켜기";
+  if(typeof QUESTIONS==="undefined" || !QUESTIONS.length) return;
+  const useEasy=(INTRO_MODE==="easy" && INTRO_HTML_EASY);
+  const h4s=[...body.querySelectorAll("h4")];
+  for(const q of QUESTIONS){
+    const m=INTRO_MAP[q.no]; if(!m) continue;
+    const el=sumTarget(m,h4s,useEasy); if(!el) continue;
+    if(!SUMQ.has(el)) SUMQ.set(el,[]);
+    SUMQ.get(el).push(q);
+  }
+  for(const [el,list] of SUMQ){
+    el.classList.add("sumq");
+    el.setAttribute("data-qnote","📝 "+list.map(q=>q.no).join("·")+"번");
+  }
+}
+function sumGoQ(q){                            // 요약 → 문항으로 이동
+  $("qPick").classList.remove("show");
+  closeIntro();
+  jumpToNo(q.no, qch(q));
+}
+function openQPick(list){
+  const box=$("qpList");
+  box.innerHTML="";
+  for(const q of list){
+    const b=document.createElement("button");
+    b.className="qpitem";
+    b.innerHTML=`<span class="qpno">${esc(String(q.no))}번</span><span class="qptx">${esc((q.q||"").slice(0,80))}${(q.q||"").length>80?"…":""}</span>`;
+    b.onclick=()=>sumGoQ(q);
+    box.appendChild(b);
+  }
+  $("qPick").classList.add("show");
 }
 /* ── ⚠️ 취약(누적 오답 ≥1) 문항 위치를 요약에 표시 — map 기반, 배지는 ::after라 본문 텍스트는 안 건드림 ── */
 function markWeakInSummary(){
@@ -2804,6 +2881,22 @@ $("introBody").addEventListener("click", e=>{
   const hit = podTl.find(x => x.i === h4s.indexOf(h4) + podSecOff); if(!hit) return;
   $("podAudio").currentTime = hit.s;
   $("podAudio").play().catch(()=>{});
+});
+/* 요약 본문에서 문항번호 칩이 붙은 부분 탭 → 해당 문항으로 이동 */
+$("introBody").addEventListener("click", e=>{
+  if(!QCHIP || INK.on) return;                           // 칩 끄거나 필기 중엔 이동 안 함
+  if(window.getSelection && String(window.getSelection())) return;   // 텍스트 드래그 선택 중엔 무시
+  const el=e.target.closest(".sumq"); if(!el) return;
+  if(podSecOn && $("podBar").style.display!=="none" && el.tagName==="H4") return;  // 라이브 모드 섹션 점프 우선
+  const list=SUMQ.get(el); if(!list || !list.length) return;
+  if(list.length===1) sumGoQ(list[0]); else openQPick(list);
+});
+$("qpCancel").addEventListener("click",()=>$("qPick").classList.remove("show"));
+$("qPick").addEventListener("click",e=>{ if(e.target===$("qPick")) $("qPick").classList.remove("show"); });
+$("qChipBtn").addEventListener("click",()=>{
+  QCHIP=!QCHIP;
+  try{ localStorage.setItem("fc_qchip", QCHIP?"1":"0"); }catch(e){}
+  markQsInSummary();
 });
 $("podScript").addEventListener("click", e=>{
   const el = e.target.closest(".podline"); if(!el) return;

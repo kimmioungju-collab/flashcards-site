@@ -2366,6 +2366,17 @@ function openQPick(list){
   }
   $("qPick").classList.add("show");
 }
+/* ── 🎚 현재 적용 중인 등급 필터 (buildDeck과 같은 규칙: 이 챕터에 없는 등급만 고른 경우는 무시) ── */
+const gnorm = q => ((q && q.grade || "").trim()) || "-";
+function gradeEff(){
+  if(typeof selGrades==="undefined" || !selGrades || !selGrades.size) return null;
+  if(typeof QUESTIONS==="undefined" || !QUESTIONS.length) return null;
+  const present=new Set(QUESTIONS.map(gnorm));
+  const eff=new Set([...selGrades].filter(g=>present.has(g)));
+  return eff.size ? eff : null;
+}
+const gradeOK = (q, eff) => !eff || eff.has(gnorm(q));
+const gradeTag = eff => eff ? "("+[...eff].map(g=>g==="-"?"등급없음":g).join("·")+")" : "";
 /* ── ⚠️ 취약(누적 오답 ≥1) 문항 위치를 요약에 표시 — map 기반, 배지는 ::after라 본문 텍스트는 안 건드림 ── */
 function markWeakInSummary(){
   const body=$("introBody"); if(!body) return;
@@ -2373,21 +2384,13 @@ function markWeakInSummary(){
   if(typeof QUESTIONS==="undefined" || !QUESTIONS.length){ applyWeakOnlySum(); return; }
   const useEasy=(INTRO_MODE==="easy" && INTRO_HTML_EASY);
   const h4s=[...body.querySelectorAll("h4")];
+  const geff=gradeEff();                       // 등급을 골라 뒀으면 그 등급 문항의 취약만 표시
   const groups=new Map();
   for(const q of QUESTIONS){
     const w=qw(q.no); if(!w) continue;
+    if(!gradeOK(q,geff)) continue;
     const m=INTRO_MAP[q.no]; if(!m) continue;
-    const title=normTxt(useEasy ? m.es : m.s), quote=normTxt(useEasy ? m.eq : m.q);
-    if(!title) continue;
-    const h4=h4s.find(h=>normTxt(h.textContent)===title);
-    if(!h4) continue;
-    let hit=null;
-    if(quote){
-      const els=sectionEls(h4);
-      const cands=els.flatMap(e=>[e, ...e.querySelectorAll("li,p")]).filter(e=>/^(LI|P|DIV|H4)$/.test(e.tagName));
-      hit=cands.filter(e=>normTxt(e.textContent).includes(quote)).sort((a,b)=>a.textContent.length-b.textContent.length)[0]||null;
-    }
-    const target=hit||h4;
+    const target=sumTarget(m,h4s,useEasy); if(!target) continue;
     if(!groups.has(target)) groups.set(target,[]);
     groups.get(target).push(q.no+"번 ❌"+w);
   }
@@ -2420,7 +2423,9 @@ function applyWeakOnlySum(){
   if(btn){
     btn.style.display=hasWeak?"":"none";
     btn.classList.toggle("on",WEAK_ONLY_SUM&&hasWeak);
-    btn.textContent=(WEAK_ONLY_SUM&&hasWeak)?"⚠️ 전체 보기":"⚠️ 취약만";
+    const gt=gradeTag(gradeEff());
+    btn.textContent=(WEAK_ONLY_SUM&&hasWeak)?"⚠️ 전체 보기":("⚠️ 취약만"+gt);
+    btn.title=gt?("등급 "+gt+" 문항의 취약만 표시합니다"):"취약(누적 오답) 문항만 표시합니다";
   }
   if(!WEAK_ONLY_SUM || !hasWeak) return;
   // 섹션(파트) 단위 필터: 취약 표시가 하나라도 있는 섹션은 통째로 보여주고, 없는 섹션만 숨김

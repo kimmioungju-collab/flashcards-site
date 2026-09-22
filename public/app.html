@@ -2239,8 +2239,11 @@ async function loadIntro(title){
     if($("lvlBtn")) $("lvlBtn").style.display = INTRO_HTML_EASY ? "" : "none";
     renderIntroBody();
     $("introBtn").style.display="";   // 상단 버튼 노출
+    // 복습 덱에서 넘어온 경우(sq=문항번호): 그 문항의 근거 위치로 바로 점프
+    const SQ=new URLSearchParams(location.search).get("sq");
+    if(SQ && INTRO_MAP[SQ]){ setTimeout(()=>showInSummary(INTRO_MAP[SQ], SQ), 60); }
     // 목차의 📖 요약 칩에서 넘어온 경우 무조건 요약 시트 표시
-    if(new URLSearchParams(location.search).get("summary")){ openIntro(); }
+    else if(new URLSearchParams(location.search).get("summary")){ openIntro(); }
     // 첫 방문 시 자동 표시 — 단, 풀던 기록을 이어가는 중이면 문제 화면을 가리므로 건너뛴다
     else if(!localStorage.getItem(introSeenKey) && !RESUME_PROG) openIntro();
   }catch(e){}
@@ -2255,6 +2258,9 @@ function openIntro(){ if(!INTRO_HTML) return; $("introWrap").classList.add("show
 const normTxt = s => (s||"").replace(/\s+/g," ").trim();
 function renderSumBtn(q){
   const b=$("sumBtn"); if(!b) return;
+  const och=qch(q);
+  if(och && och!==CH){ renderSumBtnOther(q, och); return; }   // 📅 복습 덱 — 출신 챕터 요약을 따로 불러온다
+  b.textContent="📖 요약에서 이 내용 보기";
   const m=INTRO_MAP[q.no];
   b.style.display = (m && INTRO_HTML) ? "" : "none";
   b.onclick = m ? ()=>showInSummary(m, q.no) : null;
@@ -2270,6 +2276,37 @@ function renderSumBtn(q){
       sq.style.display="";
       sq.onclick=()=>showInSummary(m, q.no);
     } else { sq.style.display="none"; sq.onclick=null; }
+  }
+}
+/* ── 📅 복습 덱: 출신 챕터의 요약 근거를 불러와 보여주고, 탭하면 그 챕터 요약의 해당 위치를 새 탭으로 연다 ── */
+const INTRO_MAPS={};
+async function introMapOf(ch){
+  if(ch in INTRO_MAPS) return INTRO_MAPS[ch];
+  try{
+    const r=await fetch(`intros/${ch}.json`, {cache:"no-store"});
+    const j=r.ok ? await r.json() : null;
+    INTRO_MAPS[ch]=(j && j.map) ? j.map : null;
+  }catch(e){ INTRO_MAPS[ch]=null; }
+  return INTRO_MAPS[ch];
+}
+const sumHref=(ch,no)=>`app.html?ch=${encodeURIComponent(ch)}&q=${encodeURIComponent(no)}&summary=1&sq=${encodeURIComponent(no)}`;
+async function renderSumBtnOther(q, ch){
+  const b=$("sumBtn"), sq=$("sumQuote");
+  b.style.display="none"; b.onclick=null;
+  if(sq){ sq.style.display="none"; sq.onclick=null; }
+  const map=await introMapOf(ch);
+  if(!map) return;
+  const m=map[q.no];
+  if(!m || deck[idx]!==q) return;                 // 응답 오는 사이 문항이 바뀌었으면 무시
+  const go=()=>window.open(sumHref(ch,q.no), "_blank");
+  b.textContent=`📖 ${ch} 요약에서 이 내용 보기`;
+  b.style.display=""; b.onclick=go;
+  if(sq && (m.q || m.s)){
+    const w=qw(q.no);
+    sq.innerHTML = `<span class="sqsec">📖 ${esc(ch)} 요약 근거${m.s?" — "+esc(m.s):""}`
+      + (w?`<span class="sqweak">누적 오답 ${w}회</span>`:"") + `</span>`
+      + (m.q ? "\u201C"+esc(m.q)+"\u201D" : "탭하면 그 챕터 요약의 근거 위치가 새 탭으로 열립니다.");
+    sq.style.display=""; sq.onclick=go;
   }
 }
 function sectionEls(h4){                     // h4 + 다음 h4 전까지의 형제 요소

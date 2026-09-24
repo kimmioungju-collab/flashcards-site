@@ -161,6 +161,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .introbody .sumweak[data-weaknote]::after{content:attr(data-weaknote);display:inline-block;margin-left:6px;font-size:11px;font-weight:900;color:#fff;background:var(--wrong);border-radius:99px;padding:1px 8px;vertical-align:middle;white-space:nowrap}
 /* ⚠️ 취약만 보기: 취약 표시와 무관한 요약 내용 숨김 */
 .introbody .wkhide{display:none !important}
+.introbody .gdhide{display:none !important}
 .introbody .wknote-empty{padding:18px 6px;color:var(--muted);font-weight:700;text-align:center}
 /* 요약 본문 → 해당 문항 바로가기: map에 걸린 위치에 파란 문항번호 칩(::before, 본문 텍스트는 안 건드림) */
 .introbody .sumq{cursor:pointer}
@@ -387,6 +388,8 @@ body.podon .sheet{padding-bottom:84px}
 body.review #aiSumBtn,body.review #podBtn,body.review #filterBtn,
 body.review #aiSumBtn2,body.review #nextChBtn,
 body.review #histBox,body.review #wrongDayBtn{display:none!important}
+/* 날짜 오답 덱에서는 그날 취약 문항 기준 AI 정리본을 쓸 수 있다 */
+body.review.rvsum #aiSumBtn{display:inline-block!important}
 /* 📅 오답 날짜 고르기 */
 .rvpick{display:flex;flex-direction:column;gap:9px;margin-top:4px}
 .rvpick .rvday{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1.5px solid var(--line);
@@ -526,6 +529,7 @@ body.review #histBox,body.review #wrongDayBtn{display:none!important}
     </div>
     <h3>유형</h3><div class="chips" id="themeChips"></div>
     <h3>등급</h3><div class="chips" id="gradeChips"></div>
+    <div class="togglerow" id="autoNextRow" style="margin-top:14px;display:none"><span>🎯 등급 회독 자동 이어가기<small>이 챕터 등급 문항을 다 풀면 완료 화면 없이 다음 챕터 첫 문제로</small></span><button class="sw" id="autoNextSw"></button></div>
     <div class="togglerow" style="margin-top:14px"><span>미완료만<small>아직 안 푼 문항만 (진도 채우기)</small></span><button class="sw" id="unsolvedOnlySw"></button></div>
     <div class="togglerow"><span>취약 문제만<small>틀렸거나 ⭐체크한 문제</small></span><button class="sw" id="weakOnlySw"></button></div>
     <div class="togglerow"><span>취약 문제부터<small>누적 오답·체크 우선 정렬(섞기보다 우선)</small></span><button class="sw" id="weakFirstSw"></button></div>
@@ -597,7 +601,7 @@ body.review #histBox,body.review #wrongDayBtn{display:none!important}
 <div class="sheetwrap" id="introWrap">
   <div class="sheet introsheet">
     <div class="introhead"><h3 id="introTitle">📖 이 챕터 핵심 요약</h3>
-      <div class="introhbtns"><button class="ttsbtn" id="qChipBtn" title="요약 본문의 문항번호 칩 켜기/끄기">📝 문항칩</button><button class="ttsbtn" id="weakOnlySumBtn" style="display:none">⚠️ 취약만</button><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="docBtn" title="인쇄 화면처럼 넓게 보기">⛶ 크게</button><button class="ttsbtn" id="inkBtn">✍️ 펜</button><button class="ttsbtn" id="printBtn">🖨 인쇄</button><button class="ttsbtn" id="introPodBtn">🎧 AI음성</button><button class="ttsbtn" id="ttsRateBtn" title="말하기 속도">⚡1×</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
+      <div class="introhbtns"><button class="ttsbtn" id="qChipBtn" title="요약 본문의 문항번호 칩 켜기/끄기">📝 문항칩</button><button class="ttsbtn" id="gradeOnlySumBtn" title="선택한 등급 문항과 연결된 요약만 보기" style="display:none">🎚 등급만</button><button class="ttsbtn" id="weakOnlySumBtn" style="display:none">⚠️ 취약만</button><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="docBtn" title="인쇄 화면처럼 넓게 보기">⛶ 크게</button><button class="ttsbtn" id="inkBtn">✍️ 펜</button><button class="ttsbtn" id="printBtn">🖨 인쇄</button><button class="ttsbtn" id="introPodBtn">🎧 AI음성</button><button class="ttsbtn" id="ttsRateBtn" title="말하기 속도">⚡1×</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
     <div class="intropod" id="introPodStat" style="display:none"></div>
     <div class="inkbar" id="inkBar">
       <div class="inkrow">
@@ -671,6 +675,7 @@ function subsLabel(){
   return RVSUB.size ? SUBJS.filter(s=>RVSUB.has(s.k)).map(s=>s.n).join("·") : "전 과목";
 }
 const REVIEW = RVPARAM === "prev" || RVPARAM === "pick" || !!RVDATE;
+let RVTARGET = "";   // 실제로 푸는 오답 날짜(YYYY-MM-DD) — AI 정리본을 이 날짜 기준으로 만든다
 if(REVIEW) document.body.classList.add("review");
 /* 🎯 등급 회독 — 목차 플랜에서 등급(S/A/…)을 고르면 그 등급만 전 챕터를 돌린다.
    진도·완료 판정은 이미 목차가 같은 범위로 계산하므로, 여기서는 덱과 챕터 이동만 맞춘다. */
@@ -860,6 +865,7 @@ async function pullOpts(){
       weakOnlyOn = !!OPT.weakOnly;
       weakFirstOn = !!OPT.weakFirst;
       unsolvedOnlyOn = !!OPT.unsolvedOnly;
+      autoNextOn = OPT.autoNext!==false;
     }
   }catch(e){}
 }
@@ -867,6 +873,7 @@ function applyToggleUI(){
   document.querySelectorAll("#modeChips button").forEach(b=>b.classList.toggle("on", b.dataset.m===mode));
   const setSw=(id,on)=>{ const e=$(id); if(e) e.classList.toggle("on", on); };
   setSw("shuffleSw", shuffleOn); setSw("weakOnlySw", weakOnlyOn); setSw("weakFirstSw", weakFirstOn); setSw("unsolvedOnlySw", unsolvedOnlyOn);
+  setSw("autoNextSw", autoNextOn);
 }
 
 /* ── 저장 구조 ──
@@ -1077,13 +1084,14 @@ function pushWlog(local){
 
 /* 필터 옵션 전역 저장 (챕터 간 유지) */
 const OPTKEY = "fc:opts";
-let OPT = { grades:[], mode:"quiz", shuffle:true, weakOnly:false, weakFirst:false, themes:{} };
+let OPT = { grades:[], mode:"quiz", shuffle:true, weakOnly:false, weakFirst:false, autoNext:true, themes:{} };
 try { const o=JSON.parse(localStorage.getItem(OPTKEY)||"null"); if(o) OPT=Object.assign(OPT,o); }catch(e){}
 if(!OPT.themes) OPT.themes={};
 function saveOpt(){
   OPT.grades=[...selGrades];
   OPT.themes[CH]=[...selThemes];
   OPT.mode=mode; OPT.shuffle=shuffleOn; OPT.weakOnly=weakOnlyOn; OPT.weakFirst=weakFirstOn; OPT.unsolvedOnly=unsolvedOnlyOn;
+  OPT.autoNext=autoNextOn;
   OPT._at=Date.now();
   try{ localStorage.setItem(OPTKEY, JSON.stringify(OPT)); }catch(e){}
   pushOpts();
@@ -1095,6 +1103,7 @@ let selThemes = new Set((OPT.themes&&OPT.themes[CH])||[]);
 let selGrades = new Set(GROUND || OPT.grades || []);
 let weakOnlyOn = !!OPT.weakOnly, weakFirstOn = !!OPT.weakFirst;
 let unsolvedOnlyOn = !!OPT.unsolvedOnly;
+let autoNextOn = OPT.autoNext!==false;   // 🎯 등급 회독: 챕터 끝나면 다음 챕터로 자동 이어가기
 
 const $=id=>document.getElementById(id);
 const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -1487,6 +1496,7 @@ function buildDeck(){
     for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
   }
   idx=0; ok=0; no=0; wrongs=[]; answers=[];
+  if(deck.length) ghopSet(0);   // 문항이 있는 챕터에 도착 — 연속 건너뜀 카운터 초기화
   markRedo();
   clearProg();
   $("doneBox").style.display="none";
@@ -1494,10 +1504,38 @@ function buildDeck(){
   updateRoundPill();
   show();
 }
+/* ── 🎯 등급 회독 자동 이어가기 ─────────────────────────────
+   등급을 지정해 돌면 챕터마다 해당 등급 문항이 한두 개뿐이라
+   완료 화면에서 '다음 챕터'를 누르는 일이 계속 반복된다.
+   이 옵션이 켜져 있으면 그 단계를 건너뛰고 다음 챕터의 첫 문제로 바로 넘어간다.
+   안내 토스트를 탭하면 이동을 취소하고 지금 화면에 머문다. */
+const GHOP_KEY="fc:ghop";   // 한 문제도 못 풀고 연달아 건너뛴 횟수
+const GHOP_MAX=30;          // manifest 등급 정보가 어긋나도 무한 점프하지 않도록
+function ghopGet(){ try{ return parseInt(sessionStorage.getItem(GHOP_KEY)||"0",10)||0; }catch(e){ return 0; } }
+function ghopSet(n){ try{ sessionStorage.setItem(GHOP_KEY, String(n)); }catch(e){} }
+function autoNextOK(){ return !!(GROUND && autoNextOn && !REVIEW); }
+let AUTONEXT_PENDING=false;             // 예약은 한 번만 (manifest 로드로 두 번 불릴 수 있다)
+function autoNextGo(msg, delay){
+  if(AUTONEXT_PENDING) return;
+  AUTONEXT_PENDING=true;
+  whenNextCh(nc=>{
+    if(!nc){ AUTONEXT_PENDING=false; return; }   // 마지막 챕터 — 그대로 둔다
+    const t=document.createElement("div");
+    t.className="asktoast"; t.style.cursor="pointer";
+    t.textContent=`${msg} → ${nc.title} (탭하면 멈춤)`;
+    document.body.appendChild(t);
+    const tm=setTimeout(()=>{ t.remove(); location.href="app.html?ch="+nc.id; }, delay);
+    t.onclick=()=>{ clearTimeout(tm); t.remove(); };
+  });
+}
 /* 🎯 등급 회독 — 이 챕터에 해당 등급 문항이 없을 때 */
 let GSKIP=false;
 function groundSkip(){
   GSKIP=true;
+  if(autoNextOK() && ghopGet() < GHOP_MAX){   // 빈 챕터는 기다릴 것 없이 바로 넘긴다
+    ghopSet(ghopGet()+1);
+    autoNextGo("건너뜀 (해당 등급 문항 없음)", 900);
+  }
   const g=(GROUND||[]).map(x=>x==="-"?"무등급":x).join("·");
   $("doneBox").style.display="none"; $("card").style.display="flex";
   $("qText").innerHTML=`이 챕터에는 <b>${g}등급</b> 문항이 없습니다.`
@@ -1979,6 +2017,11 @@ function finish(){
     // 진도 채우기 세션은 회독으로 세지 않되, 미완료 기록은 반드시 지운다
     S.when=Date.now(); S.prog=null; save();
   }
+  // 🎯 등급 회독 자동 이어가기 — 이 챕터를 다 풀었으면 완료 화면에서 멈추지 않는다
+  if(autoNextOK() && answered>0 && !partial){
+    ghopSet(0);
+    autoNextGo(`✅ ${total}문항 완료`, 1600);
+  }
 }
 function renderHistory(){
   if(!S.history.length){ $("histBox").style.display="none"; return; }
@@ -2140,9 +2183,57 @@ function updateHud(){
    앱은 RTDB flashcards/aisum/<sync>_<ch> 에 요청만 쓰고, 맥의 ai_summary.py가 만들어서 채워 넣는다. */
 const AISUM_POLL_MS = 10000;
 let aiSumTimer = null;
-function aiSumKey(){ return (SYNC||"anon").replace(/[.#$\[\]\/]/g,"_") + "_" + CH; }
+/* 정리본 저장 키 — 챕터별은 chNN, 날짜 오답은 d날짜(+챕터·과목 범위)로 서로 덮어쓰지 않게 나눈다 */
+function aiSumScope(){
+  if(!RVTARGET) return CH;
+  let k = "d" + RVTARGET;
+  if(RVCH) k += "_" + RVCH;
+  else if(RVSUB.size) k += "_" + [...RVSUB].sort().join("-");
+  return k;
+}
+function aiSumKey(){ return (SYNC||"anon").replace(/[.#$\[\]\/]/g,"_") + "_" + aiSumScope(); }
 function aiSumUrl(){ return `${DBURL}/flashcards/aisum/${aiSumKey()}.json`; }
-function weakNosNow(){ return QUESTIONS.filter(q=>isWeak(q.no)).map(q=>String(q.no)); }
+/* 날짜 오답 덱은 덱 전체가 그날의 취약 문항이다 */
+/* 챕터 정리본 대상 = '그날 푼 것 중 틀린 것'만. (누적 오답·⭐체크 전체가 아니다)
+   오늘 이 챕터를 푼 기록이 없으면, 기록이 있는 가장 최근 날의 오답으로 내려간다. */
+let AISUM_WLOG=null, AISUM_DAY="";
+async function aiSumWlogLoad(){
+  let wl={};
+  try{ wl=JSON.parse(localStorage.getItem("fc:wlog")||"{}"); }catch(e){}
+  if(SYNC){
+    try{ const r=await fetchCap(cloudUrl("wlog"), 4000); if(r&&r.ok) wl=mergeWlog(wl,(await r.json())||{}); }catch(e){}
+  }
+  AISUM_WLOG=wl;
+  return wl;
+}
+function chDayWrongNos(){
+  AISUM_DAY="";
+  const wl=AISUM_WLOG||{};
+  const inCh=new Set(QUESTIONS.map(q=>String(q.no)));
+  for(const d of Object.keys(wl).sort().reverse()){
+    const nos=Object.keys((wl[d]||{})[CH]||{}).map(String).filter(n=>inCh.has(n));
+    if(nos.length){ AISUM_DAY=d; return nos; }
+  }
+  return [];
+}
+function aiSumDayLabel(day){
+  const d=day||AISUM_DAY; if(!d) return "";
+  if(d===wlogDay(Date.now())) return "오늘";
+  if(d===wlogDay(Date.now()-86400000)) return "어제";
+  return d;
+}
+function weakNosNow(){ return RVTARGET ? QUESTIONS.map(q=>String(q.no)) : chDayWrongNos(); }
+/* 날짜 모드 요청 본문 — 챕터가 섞이므로 {ch,no}로 보낸다 */
+function aiSumDateBody(){
+  const items = QUESTIONS.map(q=>{
+    const ch = q._ch || CH;
+    const st = (CLOUDCH && CLOUDCH[ch] && CLOUDCH[ch].qstat && CLOUDCH[ch].qstat[String(q.no)]) || {};
+    return {ch:ch, no:String(q.no), w:st.w||0, m:st.m?1:0};
+  });
+  const scope = RVCH ? chLabel(RVCH) : (RVSUB.size ? subsLabel() : "전 과목");
+  return {status:"pending", mode:"date", date:RVTARGET, scope:aiSumScope(), sync:SYNC||"", t:Date.now(),
+          title:`${RVTARGET} ${scope} 취약 정리본`, items:items};
+}
 function aiSumRender(d){
   const stat=$("aiSumStat"), btn=$("aiSumMake"), body=$("aiSumBody");
   const s=(d&&d.status)||"none";
@@ -2151,7 +2242,8 @@ function aiSumRender(d){
   if(s==="done" && d.html){
     body.innerHTML=d.html;
     const when=d.t? new Date(d.t).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
-    stat.innerHTML=`✅ ${when} 생성 · 취약 <b>${d.weakCount||"?"}</b>문항 기준`
+    const dayTxt = (!RVTARGET && d.day) ? `${aiSumDayLabel(d.day)}(${d.day}) 오답 ` : "취약 ";
+    stat.innerHTML=`✅ ${when} 생성 · ${dayTxt}<b>${d.weakCount||"?"}</b>문항 기준`
       + (wc && wc!==d.weakCount ? ` — 지금은 <b>${wc}</b>문항이니 다시 만들면 최신으로 반영됩니다` : "");
     btn.textContent="🔄 최신 기록으로 다시 만들기";
   }else if(s==="pending" || s==="running"){
@@ -2162,8 +2254,12 @@ function aiSumRender(d){
   }else{
     body.innerHTML="";
     stat.textContent = wc
-      ? `틀렸거나 ⭐체크한 ${wc}문항을 AI가 분석해 '무엇을 왜 헷갈리는지'와 암기법까지 정리해 드립니다.`
-      : "아직 오답·⭐체크 문제가 없습니다. 문제를 풀면 만들 수 있어요.";
+      ? (RVTARGET
+          ? `${RVTARGET}에 틀린 ${wc}문항을 AI가 연관 주제끼리 묶어 '왜 헷갈렸는지'와 암기법으로 정리해 드립니다.`
+          : `${aiSumDayLabel()} 푼 것 중 틀린 ${wc}문항만 AI가 분석해 '무엇을 왜 헷갈렸는지'와 암기법까지 정리해 드립니다.`)
+      : (RVTARGET
+          ? "아직 오답·⭐체크 문제가 없습니다. 문제를 풀면 만들 수 있어요."
+          : "이 챕터에서 틀린 기록이 없습니다. 문제를 풀면 만들 수 있어요.");
     if(!wc) btn.disabled=true;
   }
 }
@@ -2180,18 +2276,23 @@ function aiSumFetch(){
 function aiSumRequest(){
   const nos=weakNosNow();
   if(!nos.length){ toast("오답·⭐체크 문제가 아직 없어요"); return; }
-  const st={}; nos.forEach(n=>{ st[n]={w:qw(n), m:qmark(n)?1:0}; });
-  const body={status:"pending", ch:CH, sync:SYNC||"", t:Date.now(),
-              title:($("chTitle").textContent||CH), nos:nos, stat:st};
+  let body;
+  if(RVTARGET){ body=aiSumDateBody(); }
+  else{
+    const st={}; nos.forEach(n=>{ st[n]={w:qw(n), m:qmark(n)?1:0}; });
+    body={status:"pending", ch:CH, sync:SYNC||"", t:Date.now(), day:AISUM_DAY||"",
+          title:($("chTitle").textContent||CH), nos:nos, stat:st};
+  }
   $("aiSumMake").disabled=true; $("aiSumStat").textContent="요청 보내는 중…";
   fetch(aiSumUrl(),{method:"PUT", body:JSON.stringify(body)})
     .then(()=>{ toast("🧠 정리본 생성을 시작했어요"); aiSumFetch(); })
     .catch(()=>{ $("aiSumStat").textContent="요청 실패 — 다시 시도해 주세요."; $("aiSumMake").disabled=false; });
 }
-function openAiSum(){
+async function openAiSum(){
   $("aiSumWrap").classList.add("show");
   $("aiSumWrap").querySelector(".sheet").scrollTop=0;
   $("aiSumStat").textContent="상태 확인 중…";
+  if(!RVTARGET) await aiSumWlogLoad();   // 그날 오답 목록(로컬+클라우드)부터 확보
   aiSumFetch();
 }
 function closeAiSum(){ $("aiSumWrap").classList.remove("show"); clearTimeout(aiSumTimer); }
@@ -2316,6 +2417,7 @@ function sectionEls(h4){                     // h4 + 다음 h4 전까지의 형�
 }
 function showInSummary(m, fromNo){
   if(WEAK_ONLY_SUM){ WEAK_ONLY_SUM=false; }   // 특정 위치로 점프할 땐 전체 보기로 (숨김에 가리지 않게)
+  GRADE_ONLY_SUM=false;                        // (등급 숨김도 해제 — 저장은 안 하므로 다시 열면 복원)
   const useEasy = (INTRO_MODE==="easy" && INTRO_HTML_EASY && m.es);
   if(INTRO_MODE==="easy" && INTRO_HTML_EASY && !m.es){ INTRO_MODE="full"; renderIntroBody(); }
   openIntro();
@@ -2418,7 +2520,7 @@ const gradeTag = eff => eff ? "("+[...eff].map(g=>g==="-"?"등급없음":g).join
 function markWeakInSummary(){
   const body=$("introBody"); if(!body) return;
   body.querySelectorAll(".sumweak").forEach(e=>{ e.classList.remove("sumweak"); e.removeAttribute("data-weaknote"); });
-  if(typeof QUESTIONS==="undefined" || !QUESTIONS.length){ applyWeakOnlySum(); return; }
+  if(typeof QUESTIONS==="undefined" || !QUESTIONS.length){ applyWeakOnlySum(); applyGradeOnlySum(); return; }
   const useEasy=(INTRO_MODE==="easy" && INTRO_HTML_EASY);
   const h4s=[...body.querySelectorAll("h4")];
   const geff=gradeEff();                       // 등급을 골라 뒀으면 그 등급 문항의 취약만 표시
@@ -2436,6 +2538,7 @@ function markWeakInSummary(){
     el.setAttribute("data-weaknote","⚠️ "+list.join(" · "));
   }
   applyWeakOnlySum();
+  applyGradeOnlySum();
 }
 /* ── ⚠️ 요약 취약만 보기: 취약 표시(sumweak) 부분과 그 섹션 제목만 남기고 숨김 ── */
 let WEAK_ONLY_SUM=false, WEAK_SECS=new Set();   // WEAK_SECS: 취약 표시가 있는 h4 인덱스 (팟캐스트 취약 구간 스킵용)
@@ -2472,6 +2575,66 @@ function applyWeakOnlySum(){
     const els=sectionEls(h4).slice(1);
     const secWeak=els.some(e=>e.classList.contains("sumweak")||e.querySelector(".sumweak"));
     if(!secWeak){ h4.classList.add("wkhide"); els.forEach(e=>e.classList.add("wkhide")); }
+  }
+}
+/* ── 🎚 선택 등급 관련 요약만 보기 — 등급 필터를 걸어 뒀으면 그 등급 문항이 걸린 섹션만 남긴다 ── */
+let GRADE_ONLY_SUM=true;
+try{ GRADE_ONLY_SUM = (localStorage.getItem("fc_gdonly")!=="0"); }catch(e){}
+function topEl(el, body){        // 요약 본문의 최상위 자식까지 올라간다(li·p가 ul 안에 있을 수 있음)
+  let n=el;
+  while(n && n.parentElement && n.parentElement!==body) n=n.parentElement;
+  return n;
+}
+function ownerH4(el, body){      // 그 요소가 속한 섹션의 h4
+  let n=topEl(el, body);
+  while(n && n.tagName!=="H4") n=n.previousElementSibling;
+  return n;
+}
+function gradeKeeps(){           // 선택 등급 문항이 가리키는 요약 요소들 (등급 필터 없으면 null)
+  const body=$("introBody");
+  const geff=gradeEff();
+  if(!body || !geff) return null;
+  if(typeof QUESTIONS==="undefined" || !QUESTIONS.length) return null;
+  const h4s=[...body.querySelectorAll("h4")];
+  if(!h4s.length) return null;
+  const useEasy=(INTRO_MODE==="easy" && INTRO_HTML_EASY);
+  const keep=new Set();
+  for(const q of QUESTIONS){
+    if(!gradeOK(q,geff)) continue;
+    const m=INTRO_MAP[q.no]; if(!m) continue;
+    const el=sumTarget(m,h4s,useEasy); if(!el) continue;
+    keep.add(el);
+  }
+  return keep;
+}
+/* 섹션 통째가 아니라 '그 문항의 근거 줄'만 남긴다. 제목(h4)은 어디인지 알 수 있게 유지. */
+function applyGradeOnlySum(){
+  const body=$("introBody"), btn=$("gradeOnlySumBtn");
+  if(!body) return;
+  body.querySelectorAll(".gdhide").forEach(e=>e.classList.remove("gdhide"));
+  const keep=gradeKeeps();
+  const geff=gradeEff();
+  const can=!!(keep && keep.size);
+  if(btn){
+    btn.style.display=can?"":"none";
+    btn.classList.toggle("on", can&&GRADE_ONLY_SUM);
+    btn.textContent=(can&&GRADE_ONLY_SUM)?"🎚 전체 보기":("🎚 등급만"+gradeTag(geff));
+    btn.title="선택한 등급 "+gradeTag(geff)+" 문항의 근거 줄만 표시합니다";
+  }
+  if(!can || !GRADE_ONLY_SUM) return;
+  const keeps=[...keep];
+  const hit = el => keeps.some(k => k===el || el.contains(k));
+  for(const h4 of body.querySelectorAll("h4")){
+    if(keep.has(h4)) continue;                       // 근거 위치가 섹션 전체인 문항 → 통째로 둔다
+    const els=sectionEls(h4).slice(1);
+    if(!els.some(hit)){                              // 이 섹션엔 해당 등급 문항이 없다 → 제목까지 숨김
+      h4.classList.add("gdhide"); els.forEach(e=>e.classList.add("gdhide")); continue;
+    }
+    for(const el of els){
+      if(!hit(el)){ el.classList.add("gdhide"); continue; }
+      if(/^(UL|OL)$/.test(el.tagName))               // 목록은 해당 항목만 남기고 나머지 항목 숨김
+        [...el.children].forEach(li=>{ if(!hit(li)) li.classList.add("gdhide"); });
+    }
   }
 }
 /* ── 🖨 A4 인쇄: 현재 보고 있는 요약(상세/쉬운말)을 인쇄용 창으로 띄운다 ── */
@@ -2800,15 +2963,19 @@ function webSpeak(txt, cb){
 }
 
 /* 다음 챕터 (manifest 순서 기준) */
-let NEXTCH=null;
+let NEXTCH=null, NEXTCH_DONE=false;
+const _nextChCbs=[];
+function whenNextCh(cb){ if(NEXTCH_DONE) cb(NEXTCH); else _nextChCbs.push(cb); }
+function _nextChReady(){ NEXTCH_DONE=true; _nextChCbs.splice(0).forEach(f=>{ try{ f(NEXTCH); }catch(e){} }); }
 fetch("data/manifest.json").then(r=>r.json()).then(d=>{
   const pfx=(String(CH).match(/^[a-z]+/)||["ch"])[0];
   const list=(d.chapters||[]).filter(c=>((c.id||"").match(/^[a-z]+/)||[""])[0]===pfx);   // 같은 과목 안에서만 이동
   const i=list.findIndex(c=>c.id===CH);
   const hasG=c=>!GROUND || GROUND.some(g=>((c.grades||{})[g]||0)>0);   // 등급 회독: 해당 등급 있는 챕터만
   if(i>=0) NEXTCH=list.slice(i+1).find(hasG)||null;
+  _nextChReady();
   if(GSKIP) groundSkip();   // 건너뛰기 화면이 떠 있으면 '다음 챕터' 버튼을 채워 다시 그린다
-}).catch(()=>{});
+}).catch(()=>{ _nextChReady(); });
 
 /* ── 🎧 팟캐스트 (NotebookLM 오디오) ────────────────────────
    앱이 RTDB flashcards/audio/<ch>_<mode> 에 요청을 쓰면,
@@ -3126,6 +3293,9 @@ $("ttsRateBtn").addEventListener("click",cycleRate);
 updateRateBtns();
 $("lvlBtn").addEventListener("click",toggleIntroLevel);
 $("weakOnlySumBtn").addEventListener("click",()=>{ WEAK_ONLY_SUM=!WEAK_ONLY_SUM; applyWeakOnlySum(); if(WEAK_ONLY_SUM) $("introBody").scrollTop=0; });
+$("gradeOnlySumBtn").addEventListener("click",()=>{ GRADE_ONLY_SUM=!GRADE_ONLY_SUM;
+  try{ localStorage.setItem("fc_gdonly", GRADE_ONLY_SUM?"1":"0"); }catch(e){}
+  applyGradeOnlySum(); $("introBody").scrollTop=0; });
 $("printBtn").addEventListener("click",printIntro);
 $("introWrap").addEventListener("click",e=>{if(e.target===$("introWrap"))closeIntro();});
 $("keyBtn").addEventListener("click",openKey);
@@ -3264,6 +3434,9 @@ const wfsw=$("weakFirstSw"); wfsw.classList.toggle("on",weakFirstOn);
 wfsw.onclick=()=>{wfsw.classList.toggle("on"); weakFirstOn=wfsw.classList.contains("on");};
 const uosw=$("unsolvedOnlySw"); uosw.classList.toggle("on",unsolvedOnlyOn);
 uosw.onclick=()=>{uosw.classList.toggle("on"); unsolvedOnlyOn=uosw.classList.contains("on");};
+const answ=$("autoNextSw"); answ.classList.toggle("on",autoNextOn);
+answ.onclick=()=>{answ.classList.toggle("on"); autoNextOn=answ.classList.contains("on"); saveOpt();};
+if(GROUND) $("autoNextRow").style.display="";   // 등급 회독 중일 때만 보여준다
 $("applyBtn").onclick=()=>{saveOpt(); $("sheetWrap").classList.remove("show"); buildDeck();};
 
 /* ── 📅 전날 오답 복습 모드 (?review=prev) ──
@@ -3438,6 +3611,7 @@ async function reviewBoot(){
   document.title="오답 복습 "+md;
   $("chTitle").textContent=`📅 ${RVCH?chLabel(RVCH)+" ":RVSUB.size?subsLabel()+" ":""}${md} ${label} 오답 복습 (${qs.length}문항)`;
   $("rvDateBtn").style.display="";   // 다른 날짜로 바꾸기
+  RVTARGET=target; document.body.classList.add("rvsum");   // 🧠정리 — 이 날짜의 취약 문항 기준
   $("keyTitle").textContent="📋 답안 확인 — "+label+" 오답 복습";
   deck=[...qs]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
   if(shuffleOn){ for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; } }

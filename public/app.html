@@ -27,6 +27,15 @@
     document.documentElement.style.visibility="";
   });
 })();
+/* ── 동기화 코드 링크: ?sync=코드 로 열면 그 코드로 고정 (다른 사람용 별도 진도) ──
+   다른 코드에서 바꾸는 경우 이 기기의 기존 진도(fc:*)를 비워, 남의 진도가 새 코드로 섞여 올라가지 않게 한다 */
+(function(){
+  const qs=new URLSearchParams(location.search), s=qs.get("sync"); if(s===null) return;
+  const code=s.trim(), cur=(localStorage.getItem("fc:synccode")||"").trim();
+  if(!code || (code===cur && qs.get("fresh")!=="1")) return;   // &fresh=1 이면 같은 코드라도 이 기기 로컬 진도를 비운다
+  Object.keys(localStorage).filter(k=>k.startsWith("fc:")&&k!=="fc:synccode").forEach(k=>localStorage.removeItem(k));
+  localStorage.setItem("fc:synccode",code); localStorage.removeItem("fc:syncoff");
+})();
 </script>
 <style>
 :root{
@@ -156,6 +165,18 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .sumquote{margin-top:9px;border:1.5px solid #E4D9A6;background:#FFFBEA;border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.62;color:#4A4630;cursor:pointer;word-break:keep-all}
 .sumquote .sqsec{display:block;font-size:12px;font-weight:900;color:#8A7A1E;margin-bottom:4px}
 .sumquote .sqweak{display:inline-block;margin-left:6px;font-size:11px;font-weight:900;color:#fff;background:var(--wrong);border-radius:99px;padding:1px 8px}
+/* 해설 아래 관련 두문자 박스 (data/mn_map.json 으로 문항↔두문자 연결, 탭하면 두문자 정리 페이지의 해당 카드로) */
+.mnquote{margin-top:9px;border:1.5px solid #CFE0C9;background:#F3F9F0;border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.6;color:#2F4A2A;word-break:keep-all}
+.mnquote .mqsec{display:block;font-size:12px;font-weight:900;color:#3E6B2A;margin-bottom:6px}
+.mnquote .mqcard{cursor:pointer;padding:7px 0}
+.mnquote .mqcard+.mqcard{border-top:1px dashed #CFE0C9}
+.mnquote .mqmn{font-size:16px;font-weight:900;color:#1F3A1A;background:linear-gradient(transparent 62%,#FFE99A 62%);display:inline}
+.mnquote .mqwhat{font-size:12.5px;font-weight:700;color:#4E6A48;margin:3px 0 5px}
+.mnquote .mqk{display:inline-block;margin:0 5px 4px 0;font-size:12.5px;color:#2F4A2A}
+.mnquote .mqk b{display:inline-block;color:#fff;background:#3E6B2A;border-radius:6px;padding:0 6px;margin-right:3px;font-size:12px}
+/* 요약 본문 안 두문자 카드: 연결 문항이 가장 많은 섹션 끝에 전체 카드, 나머지 섹션엔 한 줄(mini, 탭하면 전체 카드로) */
+.introbody .mnsum{margin:10px 0 14px}
+.introbody .mnsum.mini{padding:7px 12px;font-size:13px;font-weight:800;cursor:pointer}
 /* 요약 내 취약(누적 오답) 문항 위치 표시 — sumhit(노랑, 아래 정의)이 우선 */
 .introbody .sumweak{background:#FFECEC;border-radius:6px;box-shadow:0 0 0 4px #FFECEC}
 .introbody h4.sumweak{background:#FFD9D9;box-shadow:0 0 0 4px #FFD9D9;color:#8A1F2B}
@@ -326,6 +347,13 @@ body.podon .sheet{padding-bottom:84px}
 .sheetwrap.docmode .introbody li{margin-bottom:13px}
 .sheetwrap.docmode .introhead h3{font-size:19px}
 @media (max-width:600px){ .sheetwrap.docmode .introsheet{padding:16px 18px 30px} .sheetwrap.docmode .introbody{font-size:16px} }
+/* 📏 요약 읽기 진도 (시트 스크롤 비율) */
+.introprog{position:sticky;top:0;z-index:6;height:5px;margin:-20px -20px 14px;background:#E6E1D6}
+.introprog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2E75B6,#5BA3E6);border-radius:0 3px 3px 0;transition:width .12s linear}
+.introprog span{position:absolute;right:10px;top:9px;font-size:11px;font-weight:900;color:#fff;background:#2E75B6;border-radius:99px;padding:2px 9px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.introprog.on span{opacity:1}
+.sheetwrap.docmode .introprog{margin:-22px -44px 14px}
+@media (max-width:600px){ .sheetwrap.docmode .introprog{margin:-16px -18px 12px} }
 .introhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:8px;flex-wrap:wrap}
 .introhead h3{margin:0;flex:1 1 auto;min-width:0}
 .introx{border:none;background:rgba(0,0,0,.06);color:var(--muted);width:30px;height:30px;border-radius:50%;font-size:15px;font-weight:900;cursor:pointer}
@@ -465,6 +493,7 @@ body.review.rvsum #aiSumBtn{display:inline-block!important}
         </div>
         <div class="exp" id="expBox"></div>
         <div class="sumquote" id="sumQuote" style="display:none"></div>
+        <div class="mnquote" id="mnQuote" style="display:none"></div>
         <button class="sumbtn" id="sumBtn" style="display:none">📖 요약에서 이 내용 보기</button>
         <div class="linkbox" id="linkBox" style="display:none">
           <div class="linklabel" id="linkLabel">🔗 연관 OX 문제 바로가기</div>
@@ -605,6 +634,7 @@ body.review.rvsum #aiSumBtn{display:inline-block!important}
 </div>
 <div class="sheetwrap" id="introWrap">
   <div class="sheet introsheet">
+    <div class="introprog noprint" id="introProg"><i id="introProgBar"></i><span id="introProgTxt">0%</span></div>
     <div class="introhead"><h3 id="introTitle">📖 이 챕터 핵심 요약</h3>
       <div class="introhbtns"><button class="ttsbtn" id="qChipBtn" title="요약 본문의 문항번호 칩 켜기/끄기">📝 문항칩</button><button class="ttsbtn" id="gradeOnlySumBtn" title="선택한 등급 문항과 연결된 요약만 보기" style="display:none">🎚 등급만</button><button class="ttsbtn" id="weakOnlySumBtn" style="display:none">⚠️ 취약만</button><button class="ttsbtn" id="lvlBtn" style="display:none">📚 상세</button><button class="ttsbtn" id="docBtn" title="인쇄 화면처럼 넓게 보기">⛶ 크게</button><button class="ttsbtn" id="inkBtn">✍️ 펜</button><button class="ttsbtn" id="printBtn">🖨 인쇄</button><button class="ttsbtn" id="introPodBtn">🎧 AI음성</button><button class="ttsbtn" id="ttsRateBtn" title="말하기 속도">⚡1×</button><button class="ttsbtn" id="ttsBtn">🔊 읽어주기</button><button class="introx" id="introClose">✕</button></div></div>
     <div class="intropod" id="introPodStat" style="display:none"></div>
@@ -2321,6 +2351,7 @@ function renderIntroBody(){
   inkLoad(); inkRefresh();
   try{ markWeakInSummary(); }catch(e){}
   try{ markQsInSummary(); }catch(e){}
+  markMnInSummary().catch(()=>{});       // 🔤 관련 두문자 카드 (비동기 로드 후 삽입)
   const b=$("lvlBtn");
   if(b) b.textContent = useEasy ? "📚 상세" : "🧒 쉬운말";
 }
@@ -2354,7 +2385,18 @@ async function loadIntro(title){
     else if(!localStorage.getItem(introSeenKey) && !RESUME_PROG) openIntro();
   }catch(e){}
 }
+/* 📏 요약 읽기 진도: 시트 스크롤 비율 + 현재 섹션/전체 섹션 */
+const introProgUpdate=(()=>{ const sheet=$("introBody").closest(".introsheet"), box=$("introProg"), bar=$("introProgBar"), txt=$("introProgTxt");
+  if(!sheet||!box) return ()=>{};
+  const upd=()=>{ const max=sheet.scrollHeight-sheet.clientHeight; const p=max>0?Math.min(100,Math.round(sheet.scrollTop/max*100)):100;
+    const top=sheet.getBoundingClientRect().top+60, h4s=[...$("introBody").querySelectorAll("h4")].filter(h=>h.offsetParent!==null);
+    const cur=h4s.filter(h=>h.getBoundingClientRect().top<=top).length;
+    bar.style.width=p+"%"; txt.textContent=p+"% · "+Math.max(cur,1)+"/"+h4s.length+"섹션"; box.classList.toggle("on",sheet.scrollTop>40); };
+  sheet.addEventListener("scroll",upd,{passive:true});
+  try{ new ResizeObserver(upd).observe($("introBody")); }catch(e){}
+  return upd; })();
 function openIntro(){ if(!INTRO_HTML) return; $("introWrap").classList.add("show");
+  try{ setTimeout(introProgUpdate,60); }catch(e){}
   try{ showSumBack(null); }catch(e){}   // 기본은 숨김 — 근거로 들어온 경우만 showInSummary가 켠다
   try{ podFetch(); }catch(e){}
   try{ markWeakInSummary(); }catch(e){}   // 최신 오답 기록 반영
@@ -2365,6 +2407,7 @@ const normTxt = s => (s||"").replace(/\s+/g," ").trim();
 function renderSumBtn(q){
   const b=$("sumBtn"); if(!b) return;
   const och=qch(q);
+  renderMnQuote(q, och||CH);                 // 🔤 관련 두문자 (요약 근거와 나란히)
   if(och && och!==CH){ renderSumBtnOther(q, och); return; }   // 📅 복습 덱 — 출신 챕터 요약을 따로 불러온다
   b.textContent="📖 요약에서 이 내용 보기";
   const m=INTRO_MAP[q.no];
@@ -2383,6 +2426,36 @@ function renderSumBtn(q){
       sq.onclick=()=>showInSummary(m, q.no);
     } else { sq.style.display="none"; sq.onclick=null; }
   }
+}
+/* ── 🔤 관련 두문자: data/mn_map.json 의 map[챕터][문항번호] = [두문자id…] → 해설 아래 카드로 표시, 탭하면 두문자 정리 페이지 ── */
+let MN_DATA=null, MN_MAP=null, MN_LOADING=null;
+async function loadMnemonics(){
+  if(MN_LOADING) return MN_LOADING;
+  MN_LOADING=(async()=>{
+    try{
+      const [a,b]=await Promise.all([fetch("data/mnemonics.json",{cache:"no-store"}), fetch("data/mn_map.json",{cache:"no-store"})]);
+      const mj=a.ok?await a.json():null, pj=b.ok?await b.json():null;
+      MN_DATA={}; (mj&&mj.items||[]).forEach(it=>{ MN_DATA[it.id]=it; });
+      MN_MAP=(pj&&pj.map)||{};
+    }catch(e){ MN_DATA={}; MN_MAP={}; }
+  })();
+  return MN_LOADING;
+}
+function mnCardHtml(it){
+  const ks=it.items.map(x=>`<span class="mqk"><b>${esc(x.k)}</b>${esc(x.v)}</span>`).join("");
+  return `<div class="mqcard" data-id="${esc(it.id)}"><span class="mqmn">${esc(it.mn)}</span>`
+    + `<div class="mqwhat">${esc(it.what)}</div><div>${ks}</div></div>`;
+}
+async function renderMnQuote(q, ch){
+  const box=$("mnQuote"); if(!box) return;
+  box.style.display="none"; box.innerHTML="";
+  await loadMnemonics();
+  if(deck[idx]!==q) return;                       // 응답 오는 사이 문항이 바뀌었으면 무시
+  const ids=((MN_MAP[ch]||{})[q.no]||[]).filter(id=>MN_DATA[id]);
+  if(!ids.length) return;
+  box.innerHTML=`<span class="mqsec">🔤 관련 두문자 · 탭하면 정리 페이지로</span>`+ids.map(id=>mnCardHtml(MN_DATA[id])).join("");
+  box.querySelectorAll(".mqcard").forEach(el=>{ el.onclick=()=>window.open(`mnemonics.html#${encodeURIComponent(el.dataset.id)}`,"_blank"); });
+  box.style.display="";
 }
 /* ── 📅 복습 덱: 출신 챕터의 요약 근거를 불러와 보여주고, 탭하면 그 챕터 요약의 해당 위치를 새 탭으로 연다 ── */
 const INTRO_MAPS={};
@@ -2492,6 +2565,44 @@ function markQsInSummary(){
     el.classList.add("sumq");
     el.setAttribute("data-qnote","📝 "+list.map(q=>q.no).join("·")+"번");
   }
+}
+/* ── 🔤 요약 본문에 관련 두문자 넣기: mn_map[챕터][문항] → 그 문항의 요약 근거 섹션 끝에 카드 삽입 (요약 원문 텍스트는 안 건드림) ── */
+async function markMnInSummary(){
+  await loadMnemonics();
+  const body=$("introBody"); if(!body) return;
+  body.querySelectorAll(".mnsum").forEach(e=>e.remove());
+  const map=MN_MAP[CH]; if(!map) return;
+  const useEasy=(INTRO_MODE==="easy" && INTRO_HTML_EASY);
+  const h4s=[...body.querySelectorAll("h4")];
+  const cnt=new Map();                           // 두문자id → Map(섹션 h4 → 연결 문항 수)
+  for(const [no,ids] of Object.entries(map)){
+    const m=INTRO_MAP[no]; if(!m) continue;
+    const el=sumTarget(m,h4s,useEasy); if(!el) continue;
+    const h4=ownerH4(el, body); if(!h4) continue;
+    for(const id of ids){
+      if(!MN_DATA[id]) continue;
+      if(!cnt.has(id)) cnt.set(id,new Map());
+      cnt.get(id).set(h4,(cnt.get(id).get(h4)||0)+1);
+    }
+  }
+  for(const [id,secs] of cnt){
+    const it=MN_DATA[id];
+    const main=[...secs].sort((a,b)=>b[1]-a[1])[0][0];
+    for(const h4 of secs.keys()){
+      const d=document.createElement("div");
+      if(h4===main){
+        d.className="mnquote mnsum"; d.dataset.mn=id;
+        d.innerHTML=`<span class="mqsec">🔤 두문자 · 탭하면 정리 페이지로</span>`+mnCardHtml(it);
+        d.onclick=()=>window.open(`mnemonics.html#${encodeURIComponent(id)}`,"_blank");
+      }else{
+        d.className="mnquote mnsum mini";
+        d.innerHTML=`🔤 두문자 <span class="mqmn">${esc(it.mn)}</span> ↗`;
+        d.onclick=()=>{ const t=body.querySelector(`.mnsum[data-mn="${id}"]`); if(t) t.scrollIntoView({block:"center",behavior:"smooth"}); };
+      }
+      sectionEls(h4).at(-1).after(d);
+    }
+  }
+  try{ applyWeakOnlySum(); applyGradeOnlySum(); inkRefresh(); }catch(e){}
 }
 function sumGoQ(q){                            // 요약 → 문항으로 이동
   $("qPick").classList.remove("show");
@@ -2636,6 +2747,7 @@ function applyGradeOnlySum(){
       h4.classList.add("gdhide"); els.forEach(e=>e.classList.add("gdhide")); continue;
     }
     for(const el of els){
+      if(el.classList.contains("mnsum")) continue;    // 두문자 카드는 섹션이 보이면 같이 둔다
       if(!hit(el)){ el.classList.add("gdhide"); continue; }
       if(/^(UL|OL)$/.test(el.tagName))               // 목록은 해당 항목만 남기고 나머지 항목 숨김
         [...el.children].forEach(li=>{ if(!hit(li)) li.classList.add("gdhide"); });

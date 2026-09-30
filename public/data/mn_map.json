@@ -1,0 +1,1256 @@
+{
+ "updated": "2026-10-01 02:34",
+ "map": {
+  "ch02": {
+   "07": [
+    "tongchi8"
+   ],
+   "08": [
+    "tongchi8"
+   ],
+   "09": [
+    "tongchi8"
+   ],
+   "10": [
+    "tongchi8"
+   ],
+   "11": [
+    "tongchi8"
+   ],
+   "12": [
+    "tongchi8"
+   ],
+   "13": [
+    "tongchi8"
+   ],
+   "14": [
+    "tongchi8"
+   ],
+   "15": [
+    "tongchi8"
+   ],
+   "16": [
+    "tongchi8"
+   ],
+   "17": [
+    "tongchi8"
+   ],
+   "18": [
+    "tongchi8"
+   ],
+   "19": [
+    "tongchi8"
+   ],
+   "20": [
+    "tongchi8"
+   ]
+  },
+  "ch04": {
+   "28": [
+    "principles7"
+   ]
+  },
+  "ch05": {
+   "02": [
+    "principles7"
+   ],
+   "04": [
+    "principles7",
+    "jagiya"
+   ]
+  },
+  "ch06": {
+   "01": [
+    "jagiya",
+    "principles7"
+   ],
+   "03": [
+    "principles7",
+    "jagiya"
+   ],
+   "06": [
+    "jeokpilsang"
+   ],
+   "07": [
+    "jeokpilsang"
+   ],
+   "08": [
+    "jeokpilsang"
+   ],
+   "13": [
+    "jeokpilsang"
+   ],
+   "24": [
+    "principles7",
+    "jagiya"
+   ],
+   "49": [
+    "principles7",
+    "jagiya"
+   ],
+   "58": [
+    "principles7",
+    "jagiya"
+   ]
+  },
+  "ch13": {
+   "21": [
+    "jungje"
+   ]
+  },
+  "ch14": {
+   "68": [
+    "jungje"
+   ]
+  },
+  "ch15": {
+   "07": [
+    "principles7"
+   ],
+   "08": [
+    "principles7"
+   ],
+   "09": [
+    "principles7"
+   ],
+   "10": [
+    "principles7"
+   ],
+   "11": [
+    "principles7"
+   ],
+   "12": [
+    "principles7"
+   ],
+   "13": [
+    "principles7"
+   ],
+   "14": [
+    "principles7"
+   ],
+   "73": [
+    "principles7"
+   ]
+  },
+  "ch16": {
+   "20": [
+    "hahomyeon"
+   ],
+   "21": [
+    "hahomyeon"
+   ],
+   "22": [
+    "hahomyeon"
+   ],
+   "23": [
+    "hahomyeon"
+   ]
+  },
+  "ch17": {
+   "15": [
+    "hahomyeon"
+   ],
+   "N1": [
+    "hahomyeon"
+   ],
+   "N2": [
+    "hahomyeon"
+   ],
+   "21": [
+    "hahomyeon"
+   ],
+   "23": [
+    "hahomyeon"
+   ],
+   "26": [
+    "hahomyeon"
+   ]
+  },
+  "ch19": {
+   "01": [
+    "hahomyeon"
+   ],
+   "10": [
+    "hahomyeon"
+   ],
+   "11": [
+    "hahomyeon"
+   ],
+   "12": [
+    "hahomyeon"
+   ],
+   "13": [
+    "hahomyeon"
+   ],
+   "15": [
+    "hahomyeon"
+   ],
+   "16": [
+    "hahomyeon"
+   ],
+   "17": [
+    "hahomyeon"
+   ],
+   "18": [
+    "hahomyeon"
+   ],
+   "19": [
+    "hahomyeon"
+   ],
+   "20": [
+    "hahomyeon"
+   ],
+   "24": [
+    "hahomyeon"
+   ],
+   "25": [
+    "hahomyeon"
+   ],
+   "32": [
+    "hahomyeon"
+   ],
+   "33": [
+    "hahomyeon"
+   ],
+   "34": [
+    "hahomyeon"
+   ],
+   "36": [
+    "hahomyeon"
+   ],
+   "37": [
+    "hahomyeon"
+   ],
+   "39": [
+    "hahomyeon"
+   ],
+   "54": [
+    "hahomyeon"
+   ]
+  },
+  "ch21": {
+   "01": [
+    "hahomyeon"
+   ],
+   "03": [
+    "hahomyeon"
+   ],
+   "04": [
+    "hahomyeon"
+   ],
+   "05": [
+    "hahomyeon"
+   ]
+  },
+  "ch23": {
+   "01": [
+    "haengbeopsin"
+   ]
+  },
+  "ch26": {
+   "01": [
+    "pizza"
+   ],
+   "13": [
+    "songdal"
+   ],
+   "18": [
+    "songdal"
+   ],
+   "19": [
+    "songdal"
+   ],
+   "20": [
+    "songdal"
+   ],
+   "21": [
+    "songdal"
+   ],
+   "23": [
+    "songdal"
+   ],
+   "26": [
+    "songdal"
+   ],
+   "27": [
+    "songdal"
+   ],
+   "35": [
+    "songdal"
+   ],
+   "37": [
+    "pizza"
+   ]
+  },
+  "ch27": {
+   "17": [
+    "danggukmusi"
+   ],
+   "21": [
+    "danggukmusi"
+   ],
+   "22": [
+    "danggukmusi"
+   ],
+   "23": [
+    "danggukmusi"
+   ],
+   "24": [
+    "danggukmusi"
+   ],
+   "25": [
+    "danggukmusi"
+   ],
+   "26": [
+    "danggukmusi"
+   ],
+   "27": [
+    "danggukmusi"
+   ],
+   "28": [
+    "danggukmusi"
+   ],
+   "29": [
+    "danggukmusi"
+   ],
+   "31": [
+    "danggukmusi"
+   ],
+   "33": [
+    "danggukmusi"
+   ],
+   "34": [
+    "danggukmusi"
+   ],
+   "35": [
+    "danggukmusi"
+   ],
+   "36": [
+    "danggukmusi"
+   ],
+   "37": [
+    "danggukmusi"
+   ],
+   "38": [
+    "danggukmusi"
+   ],
+   "39": [
+    "danggukmusi"
+   ],
+   "40": [
+    "danggukmusi"
+   ],
+   "41": [
+    "danggukmusi"
+   ],
+   "45": [
+    "danggukmusi"
+   ],
+   "47": [
+    "danggukmusi"
+   ],
+   "48": [
+    "danggukmusi"
+   ],
+   "49": [
+    "danggukmusi"
+   ],
+   "50": [
+    "danggukmusi"
+   ],
+   "51": [
+    "danggukmusi"
+   ],
+   "52": [
+    "danggukmusi"
+   ],
+   "55": [
+    "danggukmusi"
+   ]
+  },
+  "ch28": {
+   "01": [
+    "gongbul"
+   ],
+   "02": [
+    "gongbul"
+   ],
+   "05": [
+    "gongbul"
+   ],
+   "16": [
+    "gongbul"
+   ],
+   "21": [
+    "gongbul"
+   ],
+   "22": [
+    "gongbul"
+   ]
+  },
+  "ch29": {
+   "07": [
+    "danggukmusi"
+   ],
+   "34": [
+    "pizza"
+   ],
+   "44": [
+    "pizza"
+   ],
+   "47": [
+    "pizza"
+   ],
+   "50": [
+    "pizza"
+   ],
+   "77": [
+    "danggukmusi"
+   ]
+  },
+  "ch35": {
+   "09": [
+    "haengbeopsin"
+   ],
+   "10": [
+    "jeokpilsang"
+   ],
+   "11": [
+    "jeokpilsang"
+   ],
+   "12": [
+    "jeokpilsang"
+   ]
+  },
+  "ch36": {},
+  "ch37": {
+   "100": [
+    "sinjipgwon"
+   ],
+   "101": [
+    "sinjipgwon"
+   ],
+   "N2": [
+    "sinjipgwon"
+   ]
+  },
+  "ch38": {
+   "09": [
+    "haengbeopsin"
+   ],
+   "16": [
+    "oeinjogongbyeong"
+   ],
+   "17": [
+    "haengbeopsin"
+   ],
+   "18": [
+    "haengbeopsin"
+   ],
+   "19": [
+    "haengbeopsin"
+   ],
+   "21": [
+    "haengbeopsin"
+   ],
+   "22": [
+    "haengbeopsin"
+   ],
+   "25": [
+    "oeinjogongbyeong"
+   ],
+   "26": [
+    "oeinjogongbyeong"
+   ],
+   "27": [
+    "oeinjogongbyeong"
+   ],
+   "29": [
+    "oeinjogongbyeong"
+   ],
+   "30": [
+    "oeinjogongbyeong"
+   ],
+   "31": [
+    "oeinjogongbyeong"
+   ],
+   "32": [
+    "oeinjogongbyeong"
+   ],
+   "33": [
+    "oeinjogongbyeong"
+   ],
+   "34": [
+    "oeinjogongbyeong"
+   ],
+   "36": [
+    "oeinjogongbyeong"
+   ],
+   "42": [
+    "oeinjogongbyeong"
+   ],
+   "43": [
+    "oeinjogongbyeong"
+   ],
+   "45": [
+    "oeinjogongbyeong"
+   ],
+   "46": [
+    "oeinjogongbyeong"
+   ]
+  },
+  "ch39": {
+   "08": [
+    "seonggong"
+   ],
+   "09": [
+    "seonggong",
+    "gyeongdangin"
+   ],
+   "10": [
+    "seonggong"
+   ],
+   "11": [
+    "seonggong"
+   ],
+   "12": [
+    "seonggong"
+   ],
+   "13": [
+    "seonggong"
+   ],
+   "14": [
+    "seonggong"
+   ],
+   "15": [
+    "seonggong"
+   ],
+   "16": [
+    "seonggong"
+   ],
+   "26": [
+    "seonggong"
+   ],
+   "27": [
+    "seonggong"
+   ],
+   "31": [
+    "seonggong"
+   ],
+   "32": [
+    "seonggong"
+   ],
+   "35": [
+    "seonggong"
+   ],
+   "36": [
+    "seonggong"
+   ]
+  },
+  "ch40": {
+   "04": [
+    "gyeongdangin"
+   ],
+   "05": [
+    "gyeongdangin"
+   ],
+   "06": [
+    "gyeongdangin"
+   ],
+   "07": [
+    "gyeongdangin"
+   ],
+   "08": [
+    "gyeongdangin"
+   ],
+   "09": [
+    "gyeongdangin"
+   ],
+   "10": [
+    "gyeongdangin"
+   ]
+  },
+  "ch41": {
+   "35": [
+    "pizza"
+   ]
+  },
+  "ch42": {
+   "01": [
+    "idaejikgang"
+   ],
+   "02": [
+    "idaejikgang"
+   ],
+   "03": [
+    "idaejikgang"
+   ],
+   "05": [
+    "idaejikgang"
+   ],
+   "11": [
+    "idaejikgang"
+   ],
+   "25": [
+    "nobigeongo"
+   ],
+   "26": [
+    "nobigeongo"
+   ],
+   "27": [
+    "nobigeongo"
+   ],
+   "28": [
+    "nobigeongo"
+   ],
+   "83": [
+    "geumboksutae"
+   ],
+   "84": [
+    "geumboksutae"
+   ],
+   "85": [
+    "geumboksutae"
+   ],
+   "86": [
+    "geumboksutae"
+   ],
+   "87": [
+    "geumboksutae"
+   ],
+   "88": [
+    "geumboksutae"
+   ],
+   "89": [
+    "geumboksutae"
+   ]
+  },
+  "ch43": {
+   "01": [
+    "idaejikgang"
+   ],
+   "06": [
+    "idaejikgang"
+   ],
+   "07": [
+    "idaejikgang"
+   ],
+   "08": [
+    "idaejikgang"
+   ],
+   "09": [
+    "idaejikgang"
+   ],
+   "10": [
+    "idaejikgang"
+   ],
+   "11": [
+    "idaejikgang"
+   ],
+   "12": [
+    "idaejikgang"
+   ],
+   "18": [
+    "idaejikgang"
+   ],
+   "20": [
+    "idaejikgang"
+   ],
+   "21": [
+    "idaejikgang"
+   ],
+   "23": [
+    "idaejikgang"
+   ],
+   "24": [
+    "idaejikgang"
+   ],
+   "25": [
+    "idaejikgang"
+   ],
+   "26": [
+    "idaejikgang"
+   ],
+   "27": [
+    "idaejikgang"
+   ],
+   "N1": [
+    "idaejikgang"
+   ]
+  },
+  "ch44": {
+   "02": [
+    "idaejikgang"
+   ],
+   "04": [
+    "idaejikgang"
+   ],
+   "06": [
+    "idaejikgang"
+   ],
+   "29": [
+    "idaejikgang"
+   ],
+   "30": [
+    "idaejikgang"
+   ],
+   "31": [
+    "idaejikgang"
+   ],
+   "33": [
+    "idaejikgang"
+   ],
+   "34": [
+    "idaejikgang"
+   ],
+   "N1": [
+    "idaejikgang"
+   ],
+   "36": [
+    "idaejikgang"
+   ],
+   "37": [
+    "idaejikgang"
+   ]
+  },
+  "ch45": {
+   "01": [
+    "idaejikgang"
+   ],
+   "03": [
+    "idaejikgang"
+   ],
+   "16": [
+    "idaejikgang"
+   ],
+   "18": [
+    "idaejikgang"
+   ],
+   "19": [
+    "idaejikgang"
+   ],
+   "20": [
+    "idaejikgang"
+   ],
+   "N1": [
+    "idaejikgang"
+   ],
+   "N2": [
+    "idaejikgang"
+   ],
+   "N3": [
+    "idaejikgang"
+   ]
+  },
+  "ch47": {
+   "51": [
+    "gojipsamjong"
+   ]
+  },
+  "ch48": {
+   "29": [
+    "oeinjogongbyeong"
+   ]
+  },
+  "ch50": {
+   "03": [
+    "daewoni"
+   ]
+  },
+  "ch51": {
+   "16": [
+    "noteukgam"
+   ],
+   "17": [
+    "noteukgam"
+   ],
+   "18": [
+    "noteukgam"
+   ],
+   "22": [
+    "noteukgam"
+   ],
+   "26": [
+    "noteukgam"
+   ]
+  },
+  "ch52": {
+   "45": [
+    "jeongdangin"
+   ],
+   "46": [
+    "jeongdangin"
+   ],
+   "47": [
+    "jeongdangin"
+   ]
+  },
+  "ch53": {
+   "93": [
+    "jeongdangin"
+   ],
+   "94": [
+    "sinbun"
+   ],
+   "95": [
+    "sinbun"
+   ],
+   "97": [
+    "sinbun"
+   ],
+   "102": [
+    "sinbun"
+   ],
+   "103": [
+    "sinbun"
+   ],
+   "104": [
+    "sinbun"
+   ],
+   "105": [
+    "sinbun"
+   ],
+   "106": [
+    "sinbun"
+   ],
+   "107": [
+    "sinbun"
+   ],
+   "110": [
+    "sinbun"
+   ],
+   "110-1": [
+    "sinbun"
+   ],
+   "111": [
+    "sinbun"
+   ],
+   "112": [
+    "sinbun"
+   ]
+  },
+  "ch54": {
+   "01": [
+    "geosabujip"
+   ],
+   "02": [
+    "geosabujip"
+   ],
+   "03": [
+    "geosabujip"
+   ],
+   "04": [
+    "geosabujip"
+   ],
+   "16": [
+    "geosabujip"
+   ],
+   "48": [
+    "geosabujip"
+   ],
+   "50": [
+    "geosabujip"
+   ],
+   "51": [
+    "geosabujip"
+   ],
+   "52": [
+    "geosabujip"
+   ],
+   "53": [
+    "geosabujip"
+   ],
+   "54": [
+    "geosabujip"
+   ],
+   "55": [
+    "geosabujip"
+   ],
+   "56": [
+    "geosabujip"
+   ],
+   "57": [
+    "geosabujip"
+   ],
+   "58": [
+    "geosabujip"
+   ],
+   "59": [
+    "geosabujip"
+   ],
+   "61": [
+    "geosabujip"
+   ],
+   "62": [
+    "geosabujip"
+   ],
+   "64": [
+    "geosabujip"
+   ],
+   "66": [
+    "geosabujip"
+   ],
+   "67": [
+    "geosabujip"
+   ],
+   "72": [
+    "geosabujip"
+   ],
+   "74": [
+    "geosabujip"
+   ]
+  },
+  "ch55": {
+   "04": [
+    "daewoni"
+   ],
+   "05": [
+    "daewoni"
+   ],
+   "06": [
+    "daewoni"
+   ],
+   "07": [
+    "daewoni"
+   ],
+   "08": [
+    "daewoni"
+   ],
+   "37": [
+    "daewoni"
+   ],
+   "38": [
+    "daewoni"
+   ],
+   "39": [
+    "daewoni"
+   ],
+   "40": [
+    "daewoni"
+   ],
+   "41": [
+    "daewoni"
+   ],
+   "42": [
+    "daewoni"
+   ],
+   "43": [
+    "daewoni"
+   ],
+   "44": [
+    "daewoni"
+   ],
+   "45": [
+    "daewoni"
+   ],
+   "46": [
+    "daewoni"
+   ],
+   "47": [
+    "daewoni"
+   ],
+   "48": [
+    "daewoni"
+   ],
+   "49": [
+    "daewoni"
+   ],
+   "50": [
+    "daewoni"
+   ],
+   "51": [
+    "daewoni"
+   ],
+   "52": [
+    "daewoni"
+   ],
+   "53": [
+    "daewoni"
+   ],
+   "54": [
+    "daewoni"
+   ],
+   "55": [
+    "daewoni"
+   ],
+   "56": [
+    "daewoni"
+   ],
+   "57": [
+    "daewoni"
+   ],
+   "58": [
+    "daewoni"
+   ],
+   "59": [
+    "daewoni"
+   ],
+   "60": [
+    "daewoni"
+   ],
+   "61": [
+    "daewoni"
+   ],
+   "62": [
+    "daewoni"
+   ],
+   "63": [
+    "daewoni"
+   ],
+   "64": [
+    "daewoni"
+   ],
+   "65": [
+    "daewoni"
+   ],
+   "66": [
+    "daewoni"
+   ]
+  },
+  "ch57": {
+   "60": [
+    "sajeong"
+   ],
+   "67": [
+    "sinbun"
+   ],
+   "68": [
+    "daewoni"
+   ],
+   "69": [
+    "daewoni"
+   ],
+   "70": [
+    "daewoni"
+   ]
+  },
+  "ch58": {
+   "25": [
+    "noteukgam"
+   ],
+   "43": [
+    "noteukgam"
+   ]
+  },
+  "ch59": {
+   "03": [
+    "daewoni"
+   ]
+  },
+  "ch60": {
+   "01": [
+    "gongtongse"
+   ],
+   "02": [
+    "gongtongse"
+   ],
+   "03": [
+    "gongtongse"
+   ],
+   "04": [
+    "gongtongse"
+   ],
+   "05": [
+    "gongtongse"
+   ],
+   "06": [
+    "gongtongse"
+   ],
+   "09": [
+    "odanbyeondong"
+   ],
+   "10": [
+    "odanbyeondong"
+   ],
+   "11": [
+    "odanbyeondong"
+   ],
+   "12": [
+    "odanbyeondong"
+   ],
+   "13": [
+    "odanbyeondong"
+   ],
+   "14": [
+    "odanbyeondong"
+   ],
+   "15": [
+    "odanbyeondong"
+   ],
+   "16": [
+    "odanbyeondong"
+   ],
+   "17": [
+    "odanbyeondong"
+   ],
+   "18": [
+    "gongtongse"
+   ],
+   "19": [
+    "gongtongse"
+   ],
+   "21": [
+    "gongtongse"
+   ],
+   "22": [
+    "gongtongse"
+   ],
+   "25": [
+    "gongtongse"
+   ]
+  },
+  "ch61": {},
+  "ch62": {
+   "09": [
+    "sajeong"
+   ],
+   "37": [
+    "geosabujip"
+   ],
+   "38": [
+    "geosabujip"
+   ],
+   "39": [
+    "geosabujip"
+   ],
+   "50": [
+    "gojipsamjong"
+   ],
+   "51": [
+    "gojipsamjong"
+   ],
+   "56": [
+    "sajeong"
+   ],
+   "57": [
+    "sajeong"
+   ],
+   "58": [
+    "sajeong"
+   ],
+   "N3": [
+    "sajeong"
+   ]
+  },
+  "ch63": {
+   "02": [
+    "gaedaejong"
+   ],
+   "09": [
+    "gaedaejong"
+   ],
+   "10": [
+    "gaedaejong"
+   ],
+   "11": [
+    "gaedaejong"
+   ],
+   "12": [
+    "gaedaejong"
+   ],
+   "13": [
+    "gaedaejong"
+   ],
+   "14": [
+    "gaedaejong"
+   ],
+   "15": [
+    "gaedaejong"
+   ],
+   "16": [
+    "gaedaejong"
+   ]
+  },
+  "ch64": {
+   "10": [
+    "gojipsamjong"
+   ],
+   "N3": [
+    "sajeong"
+   ],
+   "96": [
+    "sajeong"
+   ]
+  },
+  "ch65": {
+   "37": [
+    "sajeong"
+   ],
+   "38": [
+    "sajeong"
+   ],
+   "39": [
+    "sajeong"
+   ],
+   "40": [
+    "sajeong"
+   ],
+   "N2": [
+    "sajeong"
+   ]
+  },
+  "ch66": {
+   "43": [
+    "geosabujip"
+   ],
+   "64": [
+    "sajeong"
+   ],
+   "65": [
+    "sajeong"
+   ],
+   "66": [
+    "sajeong",
+    "geosabujip"
+   ],
+   "67": [
+    "sajeong"
+   ],
+   "69": [
+    "sajeong"
+   ]
+  },
+  "ch68": {
+   "37": [
+    "jungje"
+   ],
+   "N4": [
+    "jungje"
+   ],
+   "152": [
+    "geosabujip"
+   ],
+   "153": [
+    "geosabujip"
+   ],
+   "155": [
+    "geosabujip"
+   ],
+   "156": [
+    "geosabujip"
+   ],
+   "157": [
+    "geosabujip"
+   ],
+   "160": [
+    "geosabujip"
+   ],
+   "166": [
+    "geosabujip"
+   ],
+   "167": [
+    "geosabujip"
+   ],
+   "168": [
+    "geosabujip"
+   ],
+   "169": [
+    "geosabujip"
+   ],
+   "170": [
+    "geosabujip"
+   ]
+  },
+  "ch71": {}
+ }
+}

@@ -27,6 +27,15 @@
     document.documentElement.style.visibility="";
   });
 })();
+/* ── 동기화 코드 링크: ?sync=코드 로 열면 그 코드로 고정 (다른 사람용 별도 진도) ──
+   다른 코드에서 바꾸는 경우 이 기기의 기존 진도(fc:*)를 비워, 남의 진도가 새 코드로 섞여 올라가지 않게 한다 */
+(function(){
+  const qs=new URLSearchParams(location.search), s=qs.get("sync"); if(s===null) return;
+  const code=s.trim(), cur=(localStorage.getItem("fc:synccode")||"").trim();
+  if(!code || (code===cur && qs.get("fresh")!=="1")) return;   // &fresh=1 이면 같은 코드라도 이 기기 로컬 진도를 비운다
+  Object.keys(localStorage).filter(k=>k.startsWith("fc:")&&k!=="fc:synccode").forEach(k=>localStorage.removeItem(k));
+  localStorage.setItem("fc:synccode",code); localStorage.removeItem("fc:syncoff");
+})();
 </script>
 <style>
 :root{--desk:#2B3A4A;--desk-deep:#22303D;--paper:#FBFAF7;--ink:#1E242B;--hl:#FFE34D;--wrong:#D64550;--right:#2E75B6;--muted:#7A8694;--line:#E4E0D6}
@@ -219,6 +228,7 @@ a.ch.goal::before{background:#C98A2B}
     <button id="resetBtn">진도 초기화</button>
     <button id="foldBtn">단원 접기/펴기</button>
     <button id="ydayBtn" onclick="location.href='app.html?review=pick'">📅 날짜별 오답 풀기</button>
+    <button id="mnBtn" onclick="location.href='mnemonics.html'" style="display:none">🔤 두문자 정리</button>
   </div>
   <div class="list" id="list"></div>
 </div>
@@ -556,6 +566,19 @@ function mergeQstat(a,b){
   });
   return out;
 }
+/* 원격 초기화: flashcards/<코드>/meta/wipeAt 이 이 기기가 마지막으로 반영한 값보다 크면 로컬 진도(fc:*)를 비운다.
+   코드별 노드 아래만 읽으므로 다른 코드(예: 1111)에는 영향이 없다. */
+async function remoteWipeCheck(){
+  const c=syncCode(); if(!c) return;
+  try{
+    const r=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/meta/wipeAt.json`,{cache:"no-store"});
+    const at=r.ok ? +(await r.json()) : 0; if(!at) return;
+    const seen=+(localStorage.getItem("fc_wipeSeen:"+c)||0); if(at<=seen) return;
+    Object.keys(localStorage).filter(k=>k.startsWith("fc:")&&k!=="fc:synccode").forEach(k=>localStorage.removeItem(k));
+    localStorage.setItem("fc_wipeSeen:"+c, String(at));
+    location.reload();
+  }catch(e){}
+}
 async function pullAll(){
   const c=syncCode(); if(!c) return;
   try{
@@ -654,8 +677,10 @@ document.getElementById("syncBtn").onclick=async ()=>{
   updateSyncUI();
   if(code){
     document.getElementById("syncState").textContent="동기화 중…";
+    const switched = cur && code!==cur;   // 다른 사람 코드로 바꾸는 경우: 이 기기 진도를 새 코드로 올리지 않는다
+    if(switched) Object.keys(localStorage).filter(k=>k.startsWith("fc:")&&k!=="fc:synccode").forEach(k=>localStorage.removeItem(k));
     await pullAll();      // 다른 기기 진도 받기
-    await pushAll();      // 이 기기 기존 진도 올리기
+    if(!switched) await pushAll();      // 이 기기 기존 진도 올리기
     updateSyncUI();
     render(document.getElementById("q").value);
   }
@@ -1284,6 +1309,7 @@ fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
   allChapters=d.chapters;
   chapters=d.chapters.filter(inSubj);
   updateSyncUI();
+  await capWait(remoteWipeCheck(), 4000);   // 관리자가 이 코드에 초기화 표식을 남겼으면 기기 진도를 비우고 다시 시작
 
   if(!SUBJ){                          // 과목 선택 화면
     document.body.classList.add("choose");
@@ -1297,6 +1323,7 @@ fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
   }
   document.querySelector("h1").textContent = SUBJ==="fire" ? "🚒 소방공무원법 OX" : SUBJ==="tactic" ? "🧯 소방전술 기출" : SUBJ==="review" ? "📚 복습 노트" : SUBJ==="hazmat" ? "☢️ 위험물 OX" : "⚖️ 행정법 OX";
   document.title = SUBJ_NAME+" OX 플래시카드";
+  if(SUBJ==="admin") document.getElementById("mnBtn").style.display="";   // 행정법 과목에서만 두문자 정리 노출
   drawList();                        // 목록부터 먼저 그린다 — 통신을 기다리다 갇히지 않게
 
   await capWait(pullAll(), 5000);    // 다른 기기 진도 반영 (최대 5초)

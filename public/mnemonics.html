@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>행정법 두문자 정리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<script>
+/* ── 접근 잠금 게이트 (index.html과 동일 — 비번 1회 입력 → 기기에 기억) ── */
+(function(){
+  const H="f2061d07416d140f7a4f5047a7f85188d3a8adb1e36af376c56fb5d65a337a89";
+  const KEY="ox_gate_v2";
+  if(localStorage.getItem(KEY)===H) return;
+  document.documentElement.style.visibility="hidden";
+  async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+  window.addEventListener("DOMContentLoaded",async function(){
+    for(let i=0;i<3;i++){
+      const p=prompt("🔒 비밀번호를 입력하세요");
+      if(p===null) break;
+      if(await sha(p.trim())===H){
+        localStorage.setItem(KEY,H);
+        document.documentElement.style.visibility="";
+        return;
+      }
+    }
+    document.body.innerHTML="<div style='font-family:sans-serif;color:#fff;text-align:center;padding-top:40vh;font-size:18px'>🔒 접근 권한이 없습니다</div>";
+    document.documentElement.style.visibility="";
+  });
+})();
+</script>
+<style>
+:root{--desk:#2B3A4A;--desk-deep:#22303D;--paper:#FBFAF7;--ink:#1E242B;--hl:#FFE34D;--wrong:#D64550;--right:#2E75B6;--muted:#7A8694;--line:#E4E0D6}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+  background:linear-gradient(160deg,var(--desk),var(--desk-deep));min-height:100dvh;
+  display:flex;justify-content:center;padding:18px 14px 60px;color:var(--ink)}
+.wrap{width:100%;max-width:560px}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.back{color:#8FA9BC;text-decoration:none;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 10px;white-space:nowrap}
+h1{color:#fff;font-size:21px;font-weight:800;letter-spacing:-.02em}
+.sub{color:#8497A8;font-size:12.5px;font-weight:500;margin-bottom:14px;line-height:1.5}
+.search{width:100%;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:11px 14px;font-size:14px;
+  background:rgba(255,255,255,.07);color:#fff;outline:none;margin-bottom:10px}
+.search::placeholder{color:#7C8FA1}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.chips button{border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:7px 11px;font-size:12px;font-weight:600;
+  background:transparent;color:#8497A8;cursor:pointer;white-space:nowrap}
+.chips button.on{background:var(--paper);border-color:var(--paper);color:var(--ink);font-weight:700}
+.ph{color:#B5C3D0;font-size:12px;font-weight:800;letter-spacing:.06em;margin:18px 2px 8px}
+.card{background:var(--paper);border-radius:16px;padding:15px 16px 13px;margin-bottom:12px;box-shadow:0 10px 28px rgba(0,0,0,.24)}
+.card .th{font-size:11px;font-weight:800;color:#B5BAC2;letter-spacing:.06em}
+.card .mn{font-size:19px;font-weight:900;letter-spacing:-.01em;line-height:1.35;margin:3px 0 2px;
+  background:linear-gradient(transparent 62%,var(--hl) 62%);display:inline}
+.card .alt{font-size:12px;color:var(--muted);margin-top:5px}
+.card .what{font-size:13.5px;font-weight:700;color:#3C4753;margin:8px 0 9px;line-height:1.45}
+.exp{display:grid;grid-template-columns:auto 1fr;gap:6px 9px;font-size:13.5px;line-height:1.5}
+.exp .k{font-weight:900;color:#fff;background:var(--right);border-radius:7px;padding:1px 8px;white-space:nowrap;align-self:start;font-size:12.5px;line-height:1.7}
+.exp .k.tail{background:#7A8694}
+.exp .v{color:var(--ink)}
+.mean{font-size:13.5px;line-height:1.6;color:#2F3944;margin-top:11px;padding-top:10px;border-top:1px dashed var(--line)}
+.tip{font-size:12.5px;line-height:1.55;color:#7A5A00;background:#FFF6CC;border-radius:9px;padding:7px 10px;margin-top:8px}
+.src{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.src a,.src span{font-size:11.5px;font-weight:700;border-radius:8px;padding:4px 8px;text-decoration:none;line-height:1.4}
+.src .book{background:#EAF1F8;color:#2E5A8A}
+.src .yt{background:#FDECEC;color:#B4252B}
+.src .ch{background:#EEF3EA;color:#3E6B2A}
+.src .note{display:block;font-weight:500;color:inherit;opacity:.85}
+.empty{color:#8FA9BC;text-align:center;padding:40px 0;font-size:14px}
+.foot{color:#6E8296;font-size:11.5px;line-height:1.6;margin-top:24px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="index.html?s=admin">← 목차</a>
+    <h1>🔤 행정법 두문자 정리</h1>
+  </div>
+  <div class="sub" id="sub">불러오는 중…</div>
+  <input class="search" id="q" placeholder="두문자·의미·조문 검색 (예: 성공전자판, 청문, 제22조)">
+  <div class="chips" id="chips"></div>
+  <div id="list"></div>
+  <div class="foot" id="foot"></div>
+</div>
+<script>
+const PART_ORDER=["제1편 행정법 통론","제2편 행정입법","제3편 행정행위·행정작용법","제4편 행정절차법","제5편 실효성 확보수단","제6편 행정쟁송(소송·심판)","제7편 국가배상·손실보상","제8편 정보공개·개인정보"];
+const YT="https://www.youtube.com/watch?v=";
+let DATA=null, part="", query="";
+
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const mmss=t=>`${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`;
+const themeLabel=n=>`테마 ${String(n).padStart(2,"0")}`;
+
+function srcHtml(src){
+  const meta=DATA.sources[src.s]||{};
+  if(src.s==="book"){
+    const note=src.note?`<span class="note">${esc(src.note)}</span>`:"";
+    return `<span class="book">📘 교재 p.${esc(src.p)} · ${themeLabel(src.theme)}${note}</span>`;
+  }
+  const url=`${YT}${meta.id}&t=${src.t||0}s`;
+  return `<a class="yt" href="${url}" target="_blank" rel="noopener">▶ ${esc(meta.label.replace(/^유튜브 /,""))} ${mmss(src.t||0)}</a>`;
+}
+function chHtml(id){
+  const n=id.replace(/\D/g,"");
+  return `<a class="ch" href="app.html?ch=${id}&summary=1">📖 ch${n} 요약</a>`;
+}
+function itemHtml(it){
+  const rows=it.items.map(x=>{
+    const tail=/^(→|\+|짝)/.test(x.k)?" tail":"";
+    return `<div class="k${tail}">${esc(x.k)}</div><div class="v">${esc(x.v)}</div>`;
+  }).join("");
+  const alt=it.alt&&it.alt.length?`<div class="alt">= ${it.alt.map(esc).join(" · ")}</div>`:"";
+  const tip=it.tip?`<div class="tip">💡 ${esc(it.tip)}</div>`:"";
+  return `<div class="card" id="${esc(it.id)}">
+    <div class="th">${themeLabel(it.theme)}</div>
+    <div><span class="mn">${esc(it.mn)}</span></div>${alt}
+    <div class="what">${esc(it.what)}</div>
+    <div class="exp">${rows}</div>
+    <div class="mean">${esc(it.meaning)}</div>${tip}
+    <div class="src">${it.sources.map(srcHtml).join("")}${(it.ch||[]).map(chHtml).join("")}</div>
+  </div>`;
+}
+function matches(it){
+  if(part&&it.part!==part) return false;
+  if(!query) return true;
+  const hay=[it.mn,...(it.alt||[]),it.what,it.meaning,it.tip||"",...it.items.map(x=>x.k+" "+x.v),...(it.ch||[])].join(" ").toLowerCase();
+  return query.split(/\s+/).filter(Boolean).every(w=>hay.includes(w));
+}
+function render(){
+  const items=DATA.items.filter(matches).sort((a,b)=>a.theme-b.theme);
+  const list=document.getElementById("list");
+  if(!items.length){ list.innerHTML=`<div class="empty">검색 결과가 없습니다.</div>`; return; }
+  const parts=PART_ORDER.filter(p=>items.some(i=>i.part===p));
+  list.innerHTML=parts.map(p=>`<div class="ph">${esc(p)}</div>`+items.filter(i=>i.part===p).map(itemHtml).join("")).join("");
+}
+function renderChips(){
+  const parts=PART_ORDER.filter(p=>DATA.items.some(i=>i.part===p));
+  const el=document.getElementById("chips");
+  el.innerHTML=[`<button data-p="" class="${part?"":"on"}">전체 ${DATA.items.length}</button>`]
+    .concat(parts.map(p=>`<button data-p="${esc(p)}" class="${part===p?"on":""}">${esc(p.replace(/^제(\d)편 /,"$1편 "))} ${DATA.items.filter(i=>i.part===p).length}</button>`)).join("");
+  el.querySelectorAll("button").forEach(b=>b.onclick=()=>{ part=b.dataset.p; renderChips(); render(); });
+}
+document.getElementById("q").addEventListener("input",e=>{ query=e.target.value.trim().toLowerCase(); render(); });
+
+fetch("data/mnemonics.json",{cache:"no-store"}).then(r=>{
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+}).then(d=>{
+  DATA=d;
+  document.getElementById("sub").textContent=`교재(요플)에 인쇄된 것과 유휘운 강의(두문자 모음·해설강의)에서 실제로 말한 것만 ${d.items.length}개 · ▶ 출처를 누르면 그 시각의 강의로 이동`;
+  document.getElementById("foot").textContent=`기준: ${d.rule} (갱신 ${d.updated})`;
+  renderChips(); render();
+  if(location.hash){ const t=document.querySelector(location.hash); if(t) t.scrollIntoView(); }
+}).catch(err=>{
+  document.getElementById("sub").textContent="두문자 데이터를 불러오지 못했습니다: "+err.message;
+});
+</script>
+</body>
+</html>

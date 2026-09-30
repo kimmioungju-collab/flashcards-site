@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>근무성적 평정자 한눈에</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<script>
+(function(){
+  const H="f2061d07416d140f7a4f5047a7f85188d3a8adb1e36af376c56fb5d65a337a89";
+  const KEY="ox_gate_v2";
+  if(localStorage.getItem(KEY)===H) return;
+  document.documentElement.style.visibility="hidden";
+  async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+  window.addEventListener("DOMContentLoaded",async function(){
+    for(let i=0;i<3;i++){
+      const p=prompt("🔒 비밀번호를 입력하세요");
+      if(p===null) break;
+      if(await sha(p.trim())===H){ localStorage.setItem(KEY,H); document.documentElement.style.visibility=""; return; }
+    }
+    document.body.innerHTML="<div style='font-family:sans-serif;color:#fff;text-align:center;padding-top:40vh;font-size:18px'>🔒 접근 권한이 없습니다</div>";
+    document.documentElement.style.visibility="";
+  });
+})();
+</script>
+<style>
+:root{--desk:#2B3A4A;--desk-deep:#22303D;--paper:#FBFAF7;--ink:#1E242B;--hl:#FFE34D;--wrong:#D64550;--right:#2E75B6;--muted:#7A8694;--line:#E4E0D6;--c1:#2E75B6;--c2:#D64550;--me:#3B9E6B}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;background:linear-gradient(160deg,var(--desk),var(--desk-deep));min-height:100dvh;display:flex;justify-content:center;padding:18px 14px 60px;color:var(--ink)}
+.wrap{width:100%;max-width:560px}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.back{color:#8FA9BC;text-decoration:none;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 10px;white-space:nowrap}
+h1{color:#fff;font-size:20px;font-weight:800;letter-spacing:-.02em}
+.sub{color:#9FB2C2;font-size:12px;margin-bottom:12px;line-height:1.5}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{flex:1;padding:10px;border:0;border-radius:10px;background:rgba(255,255,255,.1);color:#cfd8e0;font-weight:700;font-size:14px;cursor:pointer}
+.tabs button.on{background:var(--hl);color:#1E242B}
+.card{background:var(--paper);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.lbl{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px;letter-spacing:.02em}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.grid button{padding:10px 4px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;line-height:1.3}
+.grid button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.grid button.exc::after{content:" ⚠";color:var(--wrong)}
+.ranks{grid-template-columns:repeat(4,1fr)}
+.toggle{margin-top:8px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--ink)}
+.toggle input{width:18px;height:18px}
+.ladder{display:flex;flex-direction:column;align-items:center;gap:0;padding:6px 0}
+.rung{width:100%;max-width:330px;position:relative;padding:11px 14px;border-radius:12px;border:2px solid var(--line);background:#fff;font-weight:700;font-size:15px;text-align:center;color:#9AA3AD;transition:all .25s}
+.rung .tag{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:900;padding:3px 8px;border-radius:999px;color:#fff}
+.rung.c2{border-color:var(--c2);color:var(--ink);background:#FFF1F2;box-shadow:0 0 0 4px rgba(214,69,80,.15)}
+.rung.c2 .tag{background:var(--c2)}
+.rung.c1{border-color:var(--c1);color:var(--ink);background:#EEF5FC;box-shadow:0 0 0 4px rgba(46,117,182,.15)}
+.rung.c1 .tag{background:var(--c1)}
+.rung.me{border-color:var(--me);color:var(--ink);background:#EDF8F1;border-style:dashed}
+.rung.me .tag{background:var(--me)}
+.rung.skip{opacity:.35;font-size:13px;padding:7px 14px}
+.arrow{color:#B8C0C8;font-size:16px;line-height:1;padding:2px 0}
+.ceil{width:100%;max-width:330px;border-top:3px dashed var(--c2);color:var(--c2);font-size:11px;font-weight:900;text-align:right;padding-top:2px;margin-bottom:4px}
+.result{margin-top:12px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px;font-size:14px;line-height:1.7}
+.result b.b1{color:var(--c1)} .result b.b2{color:var(--c2)}
+.exc-box{margin-top:8px;background:#FFF6E5;border-left:4px solid #E8A317;padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.6}
+.rule{font-size:13px;line-height:1.75}
+.rule li{margin-left:18px;margin-bottom:4px}
+.q{font-size:15px;font-weight:800;line-height:1.5;margin-bottom:10px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.opts button{padding:10px 6px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;line-height:1.3}
+.opts button.pick{background:var(--ink);color:#fff;border-color:var(--ink)}
+.opts button.ok{background:#E3F3E9;border-color:var(--me);color:#1E5A38}
+.opts button.ng{background:#FDE8EA;border-color:var(--wrong);color:#8B1F27}
+.qlbl{font-size:12px;font-weight:900;margin:10px 0 6px}
+.qlbl.l1{color:var(--c1)} .qlbl.l2{color:var(--c2)}
+.act{display:flex;gap:6px;margin-top:12px}
+.act button{flex:1;padding:12px;border:0;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer}
+.act .chk{background:var(--ink);color:#fff}
+.act .nxt{background:var(--hl);color:var(--ink)}
+.score{font-size:12px;color:var(--muted);font-weight:700;text-align:right;margin-bottom:6px}
+.fb{margin-top:10px;font-size:14px;line-height:1.7;padding:10px 12px;border-radius:10px;display:none}
+.fb.ok{display:block;background:#E3F3E9;color:#1E5A38}
+.fb.ng{display:block;background:#FDE8EA;color:#8B1F27}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="back" href="index.html?s=fire">← 목차</a><h1>근무성적 평정자 한눈에</h1></div>
+  <div class="sub">기관과 계급을 고르면 조직 사다리에 <b style="color:#F28B94">2차(천장)</b>와 <b style="color:#7FB3E0">1차(바로 밑)</b>가 표시됩니다.</div>
+  <div class="tabs"><button class="on" data-tab="look">🔍 찾아보기</button><button data-tab="quiz">✏️ 퀴즈</button><button data-tab="rule">📌 원리</button></div>
+
+  <!-- 찾아보기 -->
+  <div id="look">
+    <div class="card">
+      <div class="lbl">① 내가 있는 곳</div>
+      <div class="grid" id="places"></div>
+    </div>
+    <div class="card">
+      <div class="lbl">② 내 계급</div>
+      <div class="grid ranks" id="ranks"></div>
+      <label class="toggle" id="selfRow"><input type="checkbox" id="selfChk"> 내가 부서장(안전센터장·구조대장) 본인</label>
+    </div>
+    <div class="card">
+      <div class="lbl">③ 조직 사다리</div>
+      <div class="ladder" id="ladder"></div>
+      <div class="result" id="result"></div>
+      <div class="exc-box hide" id="excBox"></div>
+    </div>
+  </div>
+
+  <!-- 퀴즈 -->
+  <div id="quiz" class="hide">
+    <div class="card">
+      <div class="score" id="score">0 / 0</div>
+      <div class="q" id="qText"></div>
+      <div class="qlbl l1">1차 평정자</div>
+      <div class="opts" id="opt1"></div>
+      <div class="qlbl l2">2차 평정자</div>
+      <div class="opts" id="opt2"></div>
+      <div class="fb" id="fb"></div>
+      <div class="act"><button class="chk" id="chkBtn">채점</button><button class="nxt" id="nxtBtn">다음 문제</button></div>
+    </div>
+  </div>
+
+  <!-- 원리 -->
+  <div id="rule" class="hide">
+    <div class="card rule">
+      <div class="lbl">한 문장</div>
+      <p style="font-size:16px;font-weight:800;margin-bottom:10px"><span style="color:var(--c2)">2차 = 내 계급의 천장</span> · <span style="color:var(--c1)">1차 = 천장 바로 밑 사람</span></p>
+      <div class="lbl">천장은 3개뿐</div>
+      <ul>
+        <li><b>소방위 이하</b> → 우리 기관장 (서장·본부장·학교장·구조본부장·연구원장·국장)</li>
+        <li><b>소방령·경</b> → 우리 기관장의 윗사람 (본부장 / 국장 / 차장)</li>
+        <li><b>소방정</b> → 맨 꼭대기 (부시장·부지사 / 차장)</li>
+      </ul>
+      <div class="lbl" style="margin-top:12px">예외 4개 (함정은 여기서만)</div>
+      <ul>
+        <li>⚠ <b>국립소방연구원 소방경</b> → 소방위 취급: 과장 → 원장</li>
+        <li>⚠ <b>지방소방학교장(소방정)</b> → 본부장 → <b>차장</b> (부시장 아님)</li>
+        <li>⚠ <b>안전센터장·구조대장 본인</b> → 소방행정과장 → 서장</li>
+        <li>⚠ <b>소방청 관·국 외</b>(상황실·운영지원과 등) → 국장 칸 없음: 계급 불문 과장 → 차장</li>
+      </ul>
+      <div class="lbl" style="margin-top:12px">같이 나오는 숫자</div>
+      <ul>
+        <li>총 60점 = 1차 30 + 2차 30</li>
+        <li>조정위원회 3~5인, 조정은 <b>위원장</b>이</li>
+        <li>경력·교육훈련 평정: 평정자 인사담당 → 확인자 직근상급 감독자</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── 데이터: 각 기관의 조직 사다리(위→아래) + 계급별 1차/2차 ── */
+const RANKS=[["정","소방정"],["령","소방령"],["경","소방경"],["위","소방위 이하"]];
+const PLACES=[
+ {id:"hq",name:"소방청 관·국",ladder:["차장","국장","과장"],
+  map:{정:["국장","차장"],령:["과장","국장"],경:["과장","국장"],위:["과장","국장"]},
+  note:"소방정만 1차가 국장으로 한 칸 높다"},
+ {id:"hqx",name:"소방청 관·국 외",exc:true,ladder:["차장","과장"],
+  map:{정:["과장","차장"],령:["과장","차장"],경:["과장","차장"],위:["과장","차장"]},
+  note:"⚠ 상황실·운영지원과·대변인실 등은 국장 칸이 없다 → 계급 불문 과장 → 차장"},
+ {id:"csc",name:"중앙소방학교",ladder:["차장","중앙소방학교장","과장"],
+  map:{정:["중앙소방학교장","차장"],령:["중앙소방학교장","차장"],경:["중앙소방학교장","차장"],위:["과장","중앙소방학교장"]}},
+ {id:"c119",name:"중앙119구조본부",ladder:["차장","중앙119구조본부장","과장"],
+  map:{정:["중앙119구조본부장","차장"],령:["중앙119구조본부장","차장"],경:["중앙119구조본부장","차장"],위:["과장","중앙119구조본부장"]}},
+ {id:"nfri",name:"국립소방연구원",exc:true,ladder:["차장","국립소방연구원장","과장"],
+  map:{정:["국립소방연구원장","차장"],령:["국립소방연구원장","차장"],경:["과장","국립소방연구원장"],위:["과장","국립소방연구원장"]},
+  excRank:"경",note:"⚠ 연구원 소방경은 소방위 취급 → 과장 → 원장 (소방령은 원장 → 차장). 령·경이 갈라지는 유일한 곳"},
+ {id:"sido",name:"시·도 소방본부",ladder:["부시장·부지사","시·도 소방본부장","과장(부서장)"],
+  map:{정:["시·도 소방본부장","부시장·부지사"],령:["과장(부서장)","시·도 소방본부장"],경:["과장(부서장)","시·도 소방본부장"],위:["과장(부서장)","시·도 소방본부장"]},
+  note:"본부에는 서장 칸이 없어서 령·경·위 모두 과장 → 본부장"},
+ {id:"st",name:"소방서",exc:true,ladder:["부시장·부지사","시·도 소방본부장","소방서장","부서장(과장·센터장)"],
+  map:{정:["시·도 소방본부장","부시장·부지사"],령:["소방서장","시·도 소방본부장"],경:["소방서장","시·도 소방본부장"],위:["부서장(과장·센터장)","소방서장"]},
+  self:{ladder:["부시장·부지사","시·도 소방본부장","소방서장","소방행정과장(인사주무)"],map:{위:["소방행정과장(인사주무)","소방서장"]},
+        note:"⚠ 내가 센터장·구조대장이면 위에 부서장이 없다 → 인사주무과장(소방행정과장)이 1차를 대신"},
+  note:"소방정은 서장 본인 → 본부장 → 부시장"},
+ {id:"lsc",name:"지방소방학교",exc:true,ladder:["부시장·부지사","시·도 소방본부장","지방소방학교장","과장"],
+  map:{정:["시·도 소방본부장","차장"],령:["지방소방학교장","시·도 소방본부장"],경:["지방소방학교장","시·도 소방본부장"],위:["과장","지방소방학교장"]},
+  excRank:"정",note:"⚠ 지방소방학교장(소방정)의 2차는 부시장이 아니라 소방청 차장. 시·도 소방정 중 유일한 예외",
+  altTop:{정:"차장"}},
+ {id:"etc",name:"방재센터·특수대응단·체험관",ladder:["부시장·부지사","시·도 소방본부장","기관장(소장·단장·관장)","과장"],
+  map:{정:["시·도 소방본부장","부시장·부지사"],령:["기관장(소장·단장·관장)","시·도 소방본부장"],경:["기관장(소장·단장·관장)","시·도 소방본부장"],위:["과장","기관장(소장·단장·관장)"]}}
+];
+let place=PLACES[6], rank="위", self=false;
+
+/* ── 탭 ── */
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  ["look","quiz","rule"].forEach(id=>document.getElementById(id).classList.toggle("hide",id!==b.dataset.tab));
+  if(b.dataset.tab==="quiz"&&!cur) newQ();
+});
+
+/* ── 찾아보기 ── */
+function renderButtons(){
+  const pl=document.getElementById("places"); pl.innerHTML="";
+  PLACES.forEach(p=>{const b=document.createElement("button");b.textContent=p.name;if(p.exc)b.classList.add("exc");b.classList.toggle("on",p===place);b.onclick=()=>{place=p;renderButtons();renderLadder();};pl.appendChild(b);});
+  const rk=document.getElementById("ranks"); rk.innerHTML="";
+  RANKS.forEach(([k,n])=>{const b=document.createElement("button");b.textContent=n;b.classList.toggle("on",k===rank);b.onclick=()=>{rank=k;renderButtons();renderLadder();};rk.appendChild(b);});
+  document.getElementById("selfRow").style.display=(place.id==="st"&&rank==="위")?"flex":"none";
+}
+function resolve(p,r,s){
+  if(p.self&&s&&r==="위") return {r1:p.self.map.위[0],r2:p.self.map.위[1],ladder:p.self.ladder,note:p.self.note,exc:true};
+  const [r1,r2]=p.map[r];
+  const isExc=(p.excRank===r)||p.id==="hqx";
+  let ladder=p.ladder.slice();
+  if(p.altTop&&p.altTop[r]) ladder=[p.altTop[r],...ladder.slice(1)];
+  return {r1,r2,ladder,note:p.note,exc:isExc};
+}
+function renderLadder(){
+  const {r1,r2,ladder,note,exc}=resolve(place,rank,self);
+  const rankName=RANKS.find(x=>x[0]===rank)[1];
+  const el=document.getElementById("ladder"); el.innerHTML="";
+  // 2차보다 위 칸은 흐리게, 2차 위에 천장선
+  ladder.forEach((name,i)=>{
+    const d=document.createElement("div"); d.className="rung"; d.textContent=name;
+    if(name===r2){ const c=document.createElement("div");c.className="ceil";c.textContent="── 천장 ──";el.appendChild(c);d.classList.add("c2");d.insertAdjacentHTML("afterbegin","<span class='tag'>2차</span>"); }
+    else if(name===r1){ d.classList.add("c1");d.insertAdjacentHTML("afterbegin","<span class='tag'>1차</span>"); }
+    else d.classList.add("skip");
+    el.appendChild(d);
+    const a=document.createElement("div");a.className="arrow";a.textContent="↓";el.appendChild(a);
+  });
+  const me=document.createElement("div");me.className="rung me";me.innerHTML="<span class='tag'>나</span>"+rankName;el.appendChild(me);
+  document.getElementById("result").innerHTML=`<b>${place.name}</b>의 <b>${rankName}</b>${self&&place.id==="st"&&rank==="위"?" (부서장 본인)":""}<br>
+    <b class="b1">1차 → ${r1}</b> &nbsp;·&nbsp; <b class="b2">2차 → ${r2}</b><br>
+    <span style="color:var(--muted);font-size:13px">천장(2차)은 ${r2}, 그 바로 밑 칸이 ${r1}</span>`;
+  const ex=document.getElementById("excBox");
+  if(exc&&note){ex.textContent=note;ex.classList.remove("hide");}
+  else if(note){ex.textContent="💡 "+note.replace(/^⚠ /,"");ex.classList.remove("hide");ex.style.background="#F1F5F9";ex.style.borderLeftColor="#94A3B8";}
+  else ex.classList.add("hide");
+  if(exc){ex.style.background="#FFF6E5";ex.style.borderLeftColor="#E8A317";}
+}
+document.getElementById("selfChk").onchange=e=>{self=e.target.checked;renderLadder();};
+renderButtons(); renderLadder();
+
+/* ── 퀴즈 ── */
+const POOL=[];
+PLACES.forEach(p=>RANKS.forEach(([k])=>POOL.push({p,k,s:false})));
+POOL.push({p:PLACES[6],k:"위",s:true});
+const ALL_NAMES=[...new Set(PLACES.flatMap(p=>[...p.ladder,...(p.self?p.self.ladder:[]),"차장","시·도지사","소방청장"]))];
+let cur=null,pick1=null,pick2=null,score=[0,0];
+function shuffle(a){return a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);}
+function opts(ans,p){
+  const near=[...p.ladder,...(p.self?p.self.ladder:[]),"차장","시·도지사"].filter(x=>x!==ans);
+  return shuffle([ans,...shuffle([...new Set(near)]).slice(0,3)]);
+}
+function newQ(){
+  cur=POOL[Math.floor(Math.random()*POOL.length)];
+  const {r1,r2}=resolve(cur.p,cur.k,cur.s);
+  cur.ans=[r1,r2]; pick1=pick2=null;
+  const rn=RANKS.find(x=>x[0]===cur.k)[1];
+  document.getElementById("qText").textContent=`${cur.p.name}에 근무하는 ${rn}${cur.s?" (본인이 안전센터장)":""}의 1차·2차 평정자는?`;
+  ["opt1","opt2"].forEach((id,i)=>{
+    const el=document.getElementById(id);el.innerHTML="";
+    opts(cur.ans[i],cur.p).forEach(n=>{const b=document.createElement("button");b.textContent=n;b.onclick=()=>{if(i===0)pick1=n;else pick2=n;[...el.children].forEach(c=>c.classList.toggle("pick",c===b));};el.appendChild(b);});
+  });
+  const fb=document.getElementById("fb");fb.className="fb";fb.textContent="";
+}
+document.getElementById("chkBtn").onclick=()=>{
+  if(!cur||pick1===null||pick2===null){alert("1차·2차 둘 다 골라주세요");return;}
+  const ok=pick1===cur.ans[0]&&pick2===cur.ans[1];
+  score[1]++; if(ok)score[0]++;
+  document.getElementById("score").textContent=`${score[0]} / ${score[1]}`;
+  ["opt1","opt2"].forEach((id,i)=>[...document.getElementById(id).children].forEach(b=>{
+    if(b.textContent===cur.ans[i])b.classList.add("ok");
+    else if(b.classList.contains("pick"))b.classList.add("ng");
+  }));
+  const {note,exc}=resolve(cur.p,cur.k,cur.s);
+  const fb=document.getElementById("fb");
+  fb.className="fb "+(ok?"ok":"ng");
+  fb.innerHTML=(ok?"✅ 정답! ":"❌ 틀림. ")+`<b>1차 ${cur.ans[0]} → 2차 ${cur.ans[1]}</b><br>천장은 ${cur.ans[1]}, 바로 밑이 ${cur.ans[0]}`+(exc&&note?`<br>${note}`:"");
+};
+document.getElementById("nxtBtn").onclick=newQ;
+</script>
+</body>
+</html>

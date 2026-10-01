@@ -62,6 +62,8 @@ h1{color:#fff;font-size:20px;font-weight:800;letter-spacing:-.02em}
 .cm .row.v .k{color:var(--rc)}
 .cm .row.v{background:color-mix(in srgb,var(--rc) 9%,#fff);margin:2px -4px;padding:5px 4px;border-radius:8px;border-top:0}
 .cm .trap{margin-top:6px;background:#FFF6E5;border-left:3px solid #E8A317;padding:6px 9px;border-radius:6px;font-size:12px;line-height:1.55}
+.chh{color:#F3E7A6;font-size:13px;font-weight:900;margin:14px 2px 8px;letter-spacing:.01em}
+.chtag{display:inline-block;background:#EEF2F6;color:#51606F;border-radius:6px;padding:1px 6px;font-size:10.5px;font-weight:900;margin-right:2px}
 .legend{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
 .legend span{font-size:11px;font-weight:800;color:#fff;padding:3px 8px;border-radius:999px}
 /* 항목별 비교 */
@@ -98,7 +100,7 @@ h1{color:#fff;font-size:20px;font-weight:800;letter-spacing:-.02em}
 <body>
 <div class="wrap">
   <div class="top"><a class="back" href="index.html?s=fire">← 목차</a><h1>위원회 한눈에</h1></div>
-  <div class="sub">소방공무원법령 위원회 9개. 시험은 <b style="color:#F28B94">인원·의결·위원장·누가 정하나</b>를 서로 바꿔치기해서 냅니다. 색깔이 같으면 의결 규칙이 같습니다.</div>
+  <div class="sub">소방공무원법령 위원회 9개를 <b>교재 챕터 순서</b>로. 시험은 <b style="color:#F28B94">인원·의결·위원장·누가 정하나</b>를 서로 바꿔치기해서 냅니다. 색깔이 같으면 의결 규칙이 같습니다.</div>
   <div class="tabs"><button class="on" data-tab="all">📇 카드</button><button data-tab="pv">📊 항목별</button><button data-tab="quiz">✏️ 퀴즈</button><button data-tab="rule">🧠 함정</button></div>
 
   <div id="all">
@@ -135,41 +137,42 @@ const RULES={
   N:{n:"— (의결 규정 없음·조정)",c:"#9AA3AD"}
 };
 // 출처: 소방공무원법·임용령·징계령·승진임용규정·공무원고충처리규정·국가공무원법 (fs08 챕터 기준)
+// 교재 챕터(공무원법 01~07) 등장 순서로 배치
 const C=[
- {id:"인사",nm:"인사위원회",st:"⭐⭐⭐",note:"자문기관 — 의결권 없음",num:"5~7",numSub:"위원장 포함",
+ {id:"인사",ch:"01 총칙",nm:"인사위원회",st:"⭐⭐⭐",note:"자문기관 — 의결권 없음",num:"5~7",numSub:"위원장 포함",
   set:"소방청 / 시·도(시·도지사가 임용권 행사 시)",chair:"소방청 = 소방청 차장 / 시·도 = 소방본부장",
   mem:"소속 소방정 이상 중 기관장이 임명 (임기 규정 없음)",rule:"A",law:"대통령령 (법 §4②) · 운영세칙은 인사위 의결 거쳐 위원장",
   fn:"인사행정 방침·기준·기본계획, 인사 법령 제·개정·폐지, 회의에 부치는 사항 심의 → 위원장이 지체 없이 기관장에 보고",
   trap:"5~9 아님(보통승진) · 위원 소방령 아님 · 재적 과반 출석 아님 · 행안부령 아님"},
- {id:"중앙승진",nm:"중앙승진심사위원회",st:"⭐⭐⭐",note:"소방준감으로의 승진 전용",num:"5~7",numSub:"위원장 포함",
-  set:"소방청",chair:"위원장 선임 등 운영 = 당해 기관의 장이 정함",mem:"간사 1인 + 서기 약간인 (인사담당공무원 중 기관장 임명)",
-  rule:"A",law:"대통령령 (법 §16②)",fn:"소방준감 승진심사",trap:"인원 5~7 = 인사위와 동일 · 보통(5~9)과 바꿔 내는 낚시"},
- {id:"보통승진",nm:"보통승진심사위원회",st:"⭐⭐⭐",note:"소방정 이하 승진",num:"5~9",numSub:"위원장 포함",
-  set:"소방청 · 시·도 · 중앙소방학교 · 중앙119구조본부 · 국립소방연구원 (5곳)",chair:"운영 = 당해 기관의 장 / 특별승진심사 시·도 위원회는 시·도지사가 민간위원 중 위촉",
-  mem:"간사 1인 + 서기 약간인",rule:"A",ruleEx:"특별승진심사 = 재적 과반 찬성",law:"대통령령 (법 §16②)",
-  fn:"소방정 이하 승진심사",trap:"소방서·지방소방학교에는 없음 · 특별승진심사만 재적 과반 찬성"},
- {id:"임용심사",nm:"임용심사위원회",st:"⭐⭐",note:"25년 소방위 기출",num:"5~8",numSub:"위원장 포함",
+ {id:"채용비위",ch:"02 신규채용·시보",nm:"채용비위심의위원회",st:"⭐⭐",note:"’24.8.13 신설 — 최신 출제 1순위",num:"5~8",numSub:"위원장 포함·성별 고려",
+  set:"시험실시권자·임용권자 소속",chair:"시험실시권자·임용권자 또는 그가 지명하는 소속 공무원",mem:"상위계급 지명 + 민간 위촉 (임기 규정 없음)",
+  rule:"D",law:"그 밖의 구성·운영 = 소방청장 (임용령 §51의3)",fn:"채용비위로 인한 합격·임용 취소 여부 심의",
+  trap:"의결은 '찬성'인데 출석 요건 없이 재적 과반 찬성 · 정하는 자는 소방청장"},
+ {id:"임용심사",ch:"02 신규채용·시보",nm:"임용심사위원회",st:"⭐⭐",note:"25년 소방위 기출",num:"5~8",numSub:"위원장 포함",
   set:"임용권자·임용제청권자 소속",chair:"위원 중에서 임용(제청)권자가 지명",mem:"심사대상자보다 상위 계급인 소속 소방공무원",
   rule:"A",law:"행정안전부령 🚨 (임용령 §22의2②) — 위원회 중 유일한 부령",
   fn:"시보 정규임용·면직, 채용후보자 자격상실 적부 심사",trap:"'대통령령으로 정한다' 지문은 X — 최중요 함정"},
- {id:"징계",nm:"징계위원회",st:"⭐⭐⭐",note:"회의 = 위원장 + 회의마다 지정 4~6명",num:"17~33 / 9~15",numSub:"소방청 / 그 외",
-  set:"소방청·소속기관 / 시·도·소속기관",chair:"기관장의 차순위 계급자 (시·도 징계위는 소방정 이상 중 임명 가능 ’23.6)",
-  mem:"민간위원 ≥ 위원장 제외 위원 수의 1/2 · 특정 성별 ≤ 6/10 · 민간 임기 3년, 한 차례 연임",
-  rule:"B",law:"대통령령 (법 §28④) — 구성·관할·운영·의결요구절차·진술권",fn:"징계의결",
-  trap:"17~33은 소방청만(중앙소방학교는 9~15) · 민간 임기 2년 아님(고충이 2년) · 2/3 출석 아님"},
- {id:"고충",nm:"고충심사위원회",st:"⭐⭐⭐",note:"소방경 이하 담당 · 회의 = 위원장 + 지정 5~7명",num:"7~15",numSub:"위원장 포함",
+ {id:"근평조정",ch:"04 승진요건·평정",nm:"근무성적평정조정위원회",st:"⭐⭐",note:"가장 작은 위원회",num:"3~5",numSub:"위원장 언급 없음",
+  set:"승진대상자명부 작성 단위기관별 (둘 수 있다)",chair:"분포비율 불일치 시 위원장이 소집·조정",mem:"피평정자의 상위직급 공무원 중 기관장 지정",
+  rule:"N",law:"승진임용규정 시행규칙 §9",fn:"1·2차 평정 결과가 분포비율과 맞지 않을 때 조정",trap:"'3~5인' — 위원장 포함/제외 표현 자체가 없음"},
+ {id:"중앙승진",ch:"05 승진임용",nm:"중앙승진심사위원회",st:"⭐⭐⭐",note:"소방준감으로의 승진 전용",num:"5~7",numSub:"위원장 포함",
+  set:"소방청",chair:"위원장 선임 등 운영 = 당해 기관의 장이 정함",mem:"간사 1인 + 서기 약간인 (인사담당공무원 중 기관장 임명)",
+  rule:"A",law:"대통령령 (법 §16②)",fn:"소방준감 승진심사",trap:"인원 5~7 = 인사위와 동일 · 보통(5~9)과 바꿔 내는 낚시"},
+ {id:"보통승진",ch:"05 승진임용",nm:"보통승진심사위원회",st:"⭐⭐⭐",note:"소방정 이하 승진",num:"5~9",numSub:"위원장 포함",
+  set:"소방청 · 시·도 · 중앙소방학교 · 중앙119구조본부 · 국립소방연구원 (5곳)",chair:"운영 = 당해 기관의 장 / 특별승진심사 시·도 위원회는 시·도지사가 민간위원 중 위촉",
+  mem:"간사 1인 + 서기 약간인",rule:"A",ruleEx:"특별승진심사 = 재적 과반 찬성",law:"대통령령 (법 §16②)",
+  fn:"소방정 이하 승진심사",trap:"소방서·지방소방학교에는 없음 · 특별승진심사만 재적 과반 찬성"},
+ {id:"고충",ch:"06 복무·신분보장",nm:"고충심사위원회",st:"⭐⭐⭐",note:"소방경 이하 담당 · 회의 = 위원장 + 지정 5~7명",num:"7~15",numSub:"위원장 포함",
   set:"소방청 · 시·도 · 대통령령 소방기관(중앙소방학교·중앙119·연구원·지방소방학교·서울종합방재센터·소방서·119특수대응단·소방체험관)",
   chair:"설치기관 소속 인사·감사 담당 과장",mem:"민간위원 ≥ 위원장 제외 1/2 · 민간 임기 2년, 한 번 연임",
   rule:"C",ruleEx:"중앙고충심사위(인사혁신처) = 재적 2/3 출석 + 과반 합의",law:"대통령령 (법 §27)",
   fn:"소방경 이하 인사상담·고충 / 재심청구·소방령 이상은 중앙고충심사위",trap:"'찬성' 아니라 '합의' · 중앙고충은 소방령 이상(소방정 아님)"},
- {id:"채용비위",nm:"채용비위심의위원회",st:"⭐⭐",note:"’24.8.13 신설 — 최신 출제 1순위",num:"5~8",numSub:"위원장 포함·성별 고려",
-  set:"시험실시권자·임용권자 소속",chair:"시험실시권자·임용권자 또는 그가 지명하는 소속 공무원",mem:"상위계급 지명 + 민간 위촉 (임기 규정 없음)",
-  rule:"D",law:"그 밖의 구성·운영 = 소방청장 (임용령 §51의3)",fn:"채용비위로 인한 합격·임용 취소 여부 심의",
-  trap:"의결은 '찬성'인데 출석 요건 없이 재적 과반 찬성 · 정하는 자는 소방청장"},
- {id:"근평조정",nm:"근무성적평정조정위원회",st:"⭐⭐",note:"가장 작은 위원회",num:"3~5",numSub:"위원장 언급 없음",
-  set:"승진대상자명부 작성 단위기관별 (둘 수 있다)",chair:"분포비율 불일치 시 위원장이 소집·조정",mem:"피평정자의 상위직급 공무원 중 기관장 지정",
-  rule:"N",law:"승진임용규정 시행규칙 §9",fn:"1·2차 평정 결과가 분포비율과 맞지 않을 때 조정",trap:"'3~5인' — 위원장 포함/제외 표현 자체가 없음"},
- {id:"소청",nm:"소청심사위원회",st:"⭐",note:"국가공무원법 — 징계 등 불복 구제",num:"상임 5~7",numSub:"+ 비상임(상임의 1/2 이상)",
+ {id:"징계",ch:"07 징계·불복",nm:"징계위원회",st:"⭐⭐⭐",note:"회의 = 위원장 + 회의마다 지정 4~6명",num:"17~33 / 9~15",numSub:"소방청 / 그 외",
+  set:"소방청·소속기관 / 시·도·소속기관",chair:"기관장의 차순위 계급자 (시·도 징계위는 소방정 이상 중 임명 가능 ’23.6)",
+  mem:"민간위원 ≥ 위원장 제외 위원 수의 1/2 · 특정 성별 ≤ 6/10 · 민간 임기 3년, 한 차례 연임",
+  rule:"B",law:"대통령령 (법 §28④) — 구성·관할·운영·의결요구절차·진술권",fn:"징계의결",
+  trap:"17~33은 소방청만(중앙소방학교는 9~15) · 민간 임기 2년 아님(고충이 2년) · 2/3 출석 아님"},
+ {id:"소청",ch:"07 징계·불복",nm:"소청심사위원회",st:"⭐",note:"국가공무원법 — 징계 등 불복 구제",num:"상임 5~7",numSub:"+ 비상임(상임의 1/2 이상)",
   set:"인사혁신처",chair:"위원장 1명 포함 상임 5~7",mem:"상임위원 + 비상임위원(상임 수의 1/2 이상)",
   rule:"E",law:"국가공무원법 §9·§14",fn:"징계처분 등에 대한 소청 심사·결정",trap:"상임+비상임 구조는 소청위만"}
 ];
@@ -197,14 +200,17 @@ pickEl.querySelectorAll("button").forEach(b=>b.onclick=()=>{
 function cardHtml(c){
   const row=(k,v,cls="")=>`<div class="row ${cls}"><div class="k">${k}</div><div>${v}</div></div>`;
   return `<div class="cm" style="--rc:${RULES[c.rule].c}">
-    <div class="hd"><div><div class="nm">${esc(c.nm)} <span class="st">${c.st}</span></div><div class="note">${esc(c.note)}</div></div>
+    <div class="hd"><div><div class="nm">${esc(c.nm)} <span class="st">${c.st}</span></div><div class="note"><span class="chtag">${esc(c.ch)}</span> ${esc(c.note)}</div></div>
       <div class="num"><b>${esc(c.num)}</b><small>${esc(c.numSub)}</small></div></div>
     ${row("의결",ruleHtml(c),"v")}${row("설치",esc(c.set))}${row("위원장",esc(c.chair))}${row("위원",esc(c.mem))}${row("정하나",esc(c.law))}${row("하는 일",esc(c.fn))}
     <div class="trap">⚠️ ${esc(c.trap)}</div></div>`;
 }
 function renderCards(){
   const list=picked.size?C.filter(c=>picked.has(c.id)):C;
-  document.getElementById("cards").innerHTML=list.map(cardHtml).join("");
+  let last=null;
+  document.getElementById("cards").innerHTML=list.map(c=>{
+    const div=c.ch!==last?`<div class="chh">📘 공무원법 ${esc(c.ch)}</div>`:""; last=c.ch; return div+cardHtml(c);
+  }).join("");
 }
 renderCards();
 
@@ -217,7 +223,7 @@ function renderPv(){
   const a=ATTRS.find(x=>x.k===attr);
   document.getElementById("pvt").innerHTML=C.map(c=>{
     let v=attr==="rule"?ruleHtml(c):a.big?`<span class="big">${esc(c.num)}</span> <small style="color:#9AA3AD;font-weight:800">${esc(c.numSub)}</small>`:esc(c[attr]);
-    return `<tr><td style="border-left:4px solid ${RULES[c.rule].c};padding-left:8px">${esc(c.nm)}<small>${c.st}</small></td><td>${v}</td></tr>`;
+    return `<tr><td style="border-left:4px solid ${RULES[c.rule].c};padding-left:8px">${esc(c.nm)}<small>${c.st} · ${esc(c.ch)}</small></td><td>${v}</td></tr>`;
   }).join("");
 }
 renderPv();

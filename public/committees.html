@@ -37,7 +37,7 @@ body{font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothi
 .back{color:#8FA9BC;text-decoration:none;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 10px;white-space:nowrap}
 h1{color:#fff;font-size:20px;font-weight:800;letter-spacing:-.02em}
 .sub{color:#9FB2C2;font-size:12px;margin-bottom:12px;line-height:1.5}
-.tabs{display:flex;gap:4px;margin-bottom:12px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
 .tabs button{flex:1;padding:10px 2px;border:0;border-radius:10px;background:rgba(255,255,255,.1);color:#cfd8e0;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .tabs button.on{background:var(--hl);color:#1E242B}
 .card{background:var(--paper);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
@@ -121,6 +121,17 @@ details .ln:last-child{border-bottom:0}
 .fb{margin-top:10px;font-size:13.5px;line-height:1.7;padding:10px 12px;border-radius:10px;display:none}
 .fb.ok{display:block;background:#E3F3E9;color:#1E5A38}
 .fb.ng{display:block;background:#FDE8EA;color:#8B1F27}
+.spd{padding:7px 12px;border:1.5px solid var(--line);border-radius:999px;background:#fff;font-size:12.5px;font-weight:800;color:var(--ink);cursor:pointer}
+.spd.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#scriptBox span{cursor:pointer;border-radius:3px}
+#scriptBox span.now{background:var(--hl)}
+.ib{font-size:14.5px;line-height:1.85}
+.ib h4{font-size:15px;font-weight:900;margin:10px 0 6px;padding:5px 10px;background:#EEF2F6;border-left:4px solid #2E75B6;border-radius:3px}
+.ib ul{list-style:none;padding-left:0}.ib ul ul{padding-left:14px}.ib li{margin-bottom:6px;padding-left:12px;position:relative}.ib li::before{content:"•";position:absolute;left:0;color:#2E75B6}
+.ib mark{font-weight:800}
+.ihead{display:flex;align-items:center;gap:8px;cursor:pointer}.ihead h2{font-size:16px;font-weight:900;flex:1}.ihead .chl{font-size:11.5px;color:#2E75B6;text-decoration:none;white-space:nowrap;border:1px solid #CDD9E5;border-radius:8px;padding:3px 7px}
+.ihead .tg{font-size:12px;color:var(--muted)}.icard.fold .ib{display:none}
+#scriptBox p{margin-bottom:10px}
 .rule{font-size:13.5px;line-height:1.8}
 .rule h3{font-size:14px;font-weight:900;margin:0 0 6px}
 .rule li{margin-left:18px;margin-bottom:3px}
@@ -130,7 +141,7 @@ details .ln:last-child{border-bottom:0}
 <div class="wrap">
   <div class="top"><a class="back" href="index.html?s=fire">← 목차</a><h1>위원회 한눈에</h1></div>
   <div class="sub">교재 챕터 순. 카드 위쪽 4칸(인원·의결·위원장·위원)이 기출의 80%입니다. <mark>노랑</mark> = 시험이 바꿔치는 자리.</div>
-  <div class="tabs"><button class="on" data-tab="all">📇 카드</button><button data-tab="qual">👤 위원자격</button><button data-tab="pv">📊 항목별</button><button data-tab="pred">📈 기출·예측</button><button data-tab="quiz">✏️ 퀴즈</button></div>
+  <div class="tabs"><button class="on" data-tab="all">📇 카드</button><button data-tab="qual">👤 위원자격</button><button data-tab="pv">📊 항목별</button><button data-tab="pred">📈 기출·예측</button><button data-tab="quiz">✏️ 퀴즈</button><button data-tab="audio">🎧 듣기</button><button data-tab="intro">📖 요약</button></div>
 
   <div id="all">
     <div class="card"><div class="lbl">위원회 고르기 (비우면 전부)</div><div class="chips" id="pick"></div></div>
@@ -174,6 +185,26 @@ details .ln:last-child{border-bottom:0}
     </div>
   </div>
 
+  <div id="playerBar" class="hide">
+    <div class="card" style="position:sticky;top:0;z-index:5">
+      <div class="lbl">🎧 유치원 선생님 강의 — 듣기 탭은 대본, 요약 탭은 챕터 요약 원문</div>
+      <audio id="player" controls preload="metadata" style="width:100%" src="audio/committees_teacher.mp3"></audio>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="spd" data-r="0.9">0.9×</button><button class="spd on" data-r="1">1.0×</button><button class="spd" data-r="1.2">1.2×</button><button class="spd" data-r="1.5">1.5×</button>
+        <a href="audio/committees_teacher.mp3" download="소방공무원법_위원회_선생님강의.mp3" class="spd" style="text-decoration:none;margin-left:auto">⬇ 저장</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="audio" class="hide">
+    <div class="card" id="scriptBox" style="font-size:14.5px;line-height:1.9"></div>
+  </div>
+
+  <div id="intro" class="hide">
+    <div class="sub" style="margin-top:4px">각 챕터 핵심요약에서 위원회 부분만 그대로 모았습니다. 제목을 탭하면 접고 펼침 · 챕터 링크로 전체 요약 이동</div>
+    <div id="introBox"></div>
+  </div>
+
   <div id="quiz" class="hide">
     <div class="card">
       <div class="chips" style="margin-bottom:10px"><button class="on" data-m="swap">바꿔치기</button><button data-m="qual">민간위원 자격</button></div>
@@ -187,6 +218,7 @@ details .ln:last-child{border-bottom:0}
 </div>
 
 <script src="committees_data.js"></script>
+<script src="committees_intro.js"></script>
 <script>
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const hl=s=>esc(s).replace(/\*(.+?)\*/g,"<mark>$1</mark>").replace(/&lt;br&gt;/g,"<br>");
@@ -197,7 +229,8 @@ const rc=c=>RULES[c.rule].c;
 // ── 탭
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
-  ["all","qual","pv","pred","quiz"].forEach(id=>document.getElementById(id).classList.toggle("hide",id!==b.dataset.tab));
+  ["all","qual","pv","pred","quiz","audio","intro"].forEach(id=>document.getElementById(id).classList.toggle("hide",id!==b.dataset.tab));
+  document.getElementById("playerBar").classList.toggle("hide",!["audio","intro"].includes(b.dataset.tab));
 });
 
 // ── 카드
@@ -309,6 +342,29 @@ function grade(b){
   document.getElementById("score").textContent=`${right} / ${total}`; cur=null;
 }
 document.getElementById("nxt").onclick=newQ; newQ();
+
+// ── 요약: 챕터 핵심요약에서 뽑은 위원회 블록 (committees_intro.js)
+document.getElementById("introBox").innerHTML=INTRO.map((x,i)=>`<div class="card icard" id="ic${i}">
+  <div class="ihead"><h2>${esc(x.title)}</h2><a class="chl" href="app.html?ch=${x.ch}&summary=1" onclick="event.stopPropagation()">${esc(x.chTitle.replace(/^공무원법/,""))} 요약 →</a><span class="tg">▾</span></div>
+  <div class="ib">${x.html}</div></div>`).join("");
+document.querySelectorAll(".icard .ihead").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("fold"));
+
+// ── 듣기: 타임라인(json) 있으면 문장 하이라이트 + 탭 이동, 없으면 대본 텍스트만
+(async function(){
+  const box=document.getElementById("scriptBox"), pl=document.getElementById("player");
+  document.querySelectorAll(".spd[data-r]").forEach(b=>b.onclick=()=>{pl.playbackRate=+b.dataset.r;document.querySelectorAll(".spd[data-r]").forEach(x=>x.classList.toggle("on",x===b));});
+  let tl=null;
+  try{tl=await (await fetch("audio/committees_teacher.json")).json();}catch(e){}
+  if(tl){
+    box.innerHTML=tl.map((x,i)=>`<span data-i="${i}" data-s="${x.s}">${esc(x.t)}</span> `).join("");
+    box.querySelectorAll("span").forEach(sp=>sp.onclick=()=>{pl.currentTime=+sp.dataset.s;pl.play();});
+    pl.ontimeupdate=()=>{const t=pl.currentTime;let k=-1;for(let i=0;i<tl.length;i++){if(tl[i].s<=t)k=i;}
+      box.querySelectorAll("span").forEach((sp,i)=>sp.classList.toggle("now",i===k));
+      const el=box.querySelector("span.now"); if(el&&!pl.paused){const r=el.getBoundingClientRect(); if(r.top<80||r.bottom>innerHeight-40) el.scrollIntoView({block:"center",behavior:"smooth"});}};
+  }else{
+    try{const txt=await (await fetch("audio/committees_teacher.txt")).text(); box.innerHTML=txt.split(/\n\n+/).map(p=>`<p>${esc(p)}</p>`).join("");}catch(e){box.textContent="대본을 불러오지 못했습니다.";}
+  }
+})();
 </script>
 </body>
 </html>

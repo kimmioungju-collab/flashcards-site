@@ -236,6 +236,7 @@ a.ch.goal::before{background:#C98A2B}
     <button id="ydayBtn" onclick="location.href='app.html?review=pick'">📅 날짜별 오답 풀기</button>
     <button id="mnBtn" onclick="location.href='mnemonics.html'" style="display:none">🔤 두문자 정리</button>
     <button id="rtBtn" onclick="location.href='rater.html'" style="display:none">🪜 평정자 한눈에</button>
+    <button id="cmBtn" onclick="location.href='committees.html'" style="display:none">🏛 위원회 한눈에</button>
   </div>
   <div class="list" id="list"></div>
 </div>
@@ -1332,6 +1333,7 @@ fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
   document.title = SUBJ_NAME+" OX 플래시카드";
   if(SUBJ==="admin") document.getElementById("mnBtn").style.display="";   // 행정법 과목에서만 두문자 정리 노출
   if(SUBJ==="fire") document.getElementById("rtBtn").style.display="";    // 소방공무원법 과목에서만 평정자 페이지 노출
+  if(SUBJ==="fire") document.getElementById("cmBtn").style.display="";    // 소방공무원법 과목에서만 위원회 페이지 노출
   drawList();                        // 목록부터 먼저 그린다 — 통신을 기다리다 갇히지 않게
 
   await capWait(pullAll(), 5000);    // 다른 기기 진도 반영 (최대 5초)

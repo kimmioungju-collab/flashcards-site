@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>위원회 한눈에</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<script>if(/Windows/i.test(navigator.userAgent))document.documentElement.classList.add('win');</script>
+<style>
+.win body,.win button,.win input,.win textarea,.win select{font-family:"Malgun Gothic","맑은 고딕","Pretendard","Noto Sans KR",sans-serif!important;letter-spacing:0!important}
+.win *{letter-spacing:0!important}
+</style>
+<script>
+(function(){
+  const H="f2061d07416d140f7a4f5047a7f85188d3a8adb1e36af376c56fb5d65a337a89";
+  const KEY="ox_gate_v2";
+  if(localStorage.getItem(KEY)===H) return;
+  document.documentElement.style.visibility="hidden";
+  async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+  window.addEventListener("DOMContentLoaded",async function(){
+    for(let i=0;i<3;i++){
+      const p=prompt("🔒 비밀번호를 입력하세요");
+      if(p===null) break;
+      if(await sha(p.trim())===H){ localStorage.setItem(KEY,H); document.documentElement.style.visibility=""; return; }
+    }
+    document.body.innerHTML="<div style='font-family:sans-serif;color:#fff;text-align:center;padding-top:40vh;font-size:18px'>🔒 접근 권한이 없습니다</div>";
+    document.documentElement.style.visibility="";
+  });
+})();
+</script>
+<style>
+:root{--desk:#2B3A4A;--desk-deep:#22303D;--paper:#FBFAF7;--ink:#1E242B;--hl:#FFE34D;--wrong:#D64550;--right:#2E75B6;--muted:#7A8694;--line:#E4E0D6;
+ --rA:#2E75B6;--rB:#3B9E6B;--rC:#E8A317;--rD:#D64550;--rE:#8E5BB8}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;background:linear-gradient(160deg,var(--desk),var(--desk-deep));min-height:100dvh;display:flex;justify-content:center;padding:18px 14px 60px;color:var(--ink)}
+.wrap{width:100%;max-width:600px}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.back{color:#8FA9BC;text-decoration:none;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 10px;white-space:nowrap}
+h1{color:#fff;font-size:20px;font-weight:800;letter-spacing:-.02em}
+.sub{color:#9FB2C2;font-size:12px;margin-bottom:12px;line-height:1.5}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{flex:1;padding:10px 4px;border:0;border-radius:10px;background:rgba(255,255,255,.1);color:#cfd8e0;font-weight:700;font-size:13px;cursor:pointer}
+.tabs button.on{background:var(--hl);color:#1E242B}
+.card{background:var(--paper);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.lbl{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px;letter-spacing:.02em}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:8px 11px;border:1.5px solid var(--line);border-radius:999px;background:#fff;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer}
+.chips button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.hide{display:none}
+/* 한눈에 카드 */
+.cm{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px 12px 10px;margin-bottom:10px;position:relative;overflow:hidden}
+.cm::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--rc)}
+.cm .hd{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.cm .nm{font-size:16px;font-weight:900;line-height:1.3}
+.cm .st{font-size:11px;color:#b8860b;font-weight:800}
+.cm .note{font-size:11.5px;color:var(--muted);font-weight:700;margin-top:2px;line-height:1.4}
+.cm .num{margin-left:auto;text-align:center;min-width:64px;background:#FFF1F2;border-radius:10px;padding:4px 8px}
+.cm .num b{display:block;font-size:20px;font-weight:900;color:#C0392B;line-height:1.1;white-space:nowrap}
+.cm .num small{font-size:10px;color:#9AA3AD;font-weight:800}
+.cm .row{display:grid;grid-template-columns:52px 1fr;gap:4px 8px;font-size:13px;line-height:1.55;padding:3px 0;border-top:1px dashed #EEE9DE}
+.cm .row .k{font-size:11px;font-weight:900;color:var(--muted);padding-top:2px}
+.cm .row.v .k{color:var(--rc)}
+.cm .row.v{background:color-mix(in srgb,var(--rc) 9%,#fff);margin:2px -4px;padding:5px 4px;border-radius:8px;border-top:0}
+.cm .trap{margin-top:6px;background:#FFF6E5;border-left:3px solid #E8A317;padding:6px 9px;border-radius:6px;font-size:12px;line-height:1.55}
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.legend span{font-size:11px;font-weight:800;color:#fff;padding:3px 8px;border-radius:999px}
+/* 항목별 비교 */
+.pv{border-collapse:collapse;width:100%;font-size:13.5px}
+.pv td{border-top:1px solid var(--line);padding:9px 6px;vertical-align:middle;line-height:1.45}
+.pv td:first-child{font-weight:900;white-space:nowrap;width:1%;padding-right:10px}
+.pv td:first-child small{display:block;font-weight:700;color:var(--muted);font-size:10.5px}
+.pv .big{font-size:18px;font-weight:900;color:#C0392B;white-space:nowrap}
+.pv .tag{display:inline-block;font-size:11px;font-weight:900;color:#fff;padding:2px 7px;border-radius:999px;margin-right:4px;vertical-align:1px}
+/* 퀴즈 */
+.q{font-size:16px;font-weight:800;line-height:1.5;margin-bottom:10px}
+.q em{font-style:normal;color:#C0392B}
+.opts{display:grid;grid-template-columns:1fr;gap:6px}
+.opts button{padding:11px 10px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-size:13.5px;font-weight:700;cursor:pointer;line-height:1.4;text-align:left}
+.opts button.ok{background:#E3F3E9;border-color:#3B9E6B;color:#1E5A38}
+.opts button.ng{background:#FDE8EA;border-color:var(--wrong);color:#8B1F27}
+.act{display:flex;gap:6px;margin-top:12px}
+.act button{flex:1;padding:12px;border:0;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer}
+.act .nxt{background:var(--hl);color:var(--ink)}
+.score{font-size:12px;color:var(--muted);font-weight:700;text-align:right;margin-bottom:6px}
+.fb{margin-top:10px;font-size:13.5px;line-height:1.7;padding:10px 12px;border-radius:10px;display:none}
+.fb.ok{display:block;background:#E3F3E9;color:#1E5A38}
+.fb.ng{display:block;background:#FDE8EA;color:#8B1F27}
+/* 함정 */
+.rule{font-size:13.5px;line-height:1.8}
+.rule h3{font-size:14px;font-weight:900;margin:0 0 6px}
+.rule li{margin-left:18px;margin-bottom:3px}
+.rule code{background:#fff;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-weight:800;font-size:12.5px}
+.ladder{display:flex;flex-direction:column;gap:4px}
+.ladder div{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
+.ladder b{display:inline-block;min-width:58px;text-align:center;background:#FFF1F2;color:#C0392B;border-radius:8px;padding:3px 6px;font-weight:900;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="back" href="index.html?s=fire">← 목차</a><h1>위원회 한눈에</h1></div>
+  <div class="sub">소방공무원법령 위원회 9개. 시험은 <b style="color:#F28B94">인원·의결·위원장·누가 정하나</b>를 서로 바꿔치기해서 냅니다. 색깔이 같으면 의결 규칙이 같습니다.</div>
+  <div class="tabs"><button class="on" data-tab="all">📇 카드</button><button data-tab="pv">📊 항목별</button><button data-tab="quiz">✏️ 퀴즈</button><button data-tab="rule">🧠 함정</button></div>
+
+  <div id="all">
+    <div class="legend" id="legend"></div>
+    <div class="card"><div class="lbl">위원회 고르기 (비우면 전부)</div><div class="chips" id="pick"></div></div>
+    <div id="cards"></div>
+  </div>
+
+  <div id="pv" class="hide">
+    <div class="card"><div class="lbl">무엇을 비교할까요</div><div class="chips" id="attrs"></div></div>
+    <div class="card"><table class="pv" id="pvt"></table></div>
+  </div>
+
+  <div id="quiz" class="hide">
+    <div class="card">
+      <div class="score" id="score">0 / 0</div>
+      <div class="q" id="qText"></div>
+      <div class="opts" id="opts"></div>
+      <div class="fb" id="fb"></div>
+      <div class="act"><button class="nxt" id="nxt">다음 문제 →</button></div>
+    </div>
+  </div>
+
+  <div id="rule" class="hide"></div>
+</div>
+
+<script>
+const RULES={
+  A:{n:"재적 2/3 출석 + 출석 과반 찬성",c:"var(--rA)"},
+  B:{n:"위원장 포함 과반 출석 + 출석 과반 찬성",c:"var(--rB)"},
+  C:{n:"위원 5명 이상 출석 + 출석 과반 합의",c:"var(--rC)"},
+  D:{n:"재적 과반 찬성",c:"var(--rD)"},
+  E:{n:"재적 2/3 출석 + 출석 과반 합의",c:"var(--rE)"},
+  N:{n:"— (의결 규정 없음·조정)",c:"#9AA3AD"}
+};
+// 출처: 소방공무원법·임용령·징계령·승진임용규정·공무원고충처리규정·국가공무원법 (fs08 챕터 기준)
+const C=[
+ {id:"인사",nm:"인사위원회",st:"⭐⭐⭐",note:"자문기관 — 의결권 없음",num:"5~7",numSub:"위원장 포함",
+  set:"소방청 / 시·도(시·도지사가 임용권 행사 시)",chair:"소방청 = 소방청 차장 / 시·도 = 소방본부장",
+  mem:"소속 소방정 이상 중 기관장이 임명 (임기 규정 없음)",rule:"A",law:"대통령령 (법 §4②) · 운영세칙은 인사위 의결 거쳐 위원장",
+  fn:"인사행정 방침·기준·기본계획, 인사 법령 제·개정·폐지, 회의에 부치는 사항 심의 → 위원장이 지체 없이 기관장에 보고",
+  trap:"5~9 아님(보통승진) · 위원 소방령 아님 · 재적 과반 출석 아님 · 행안부령 아님"},
+ {id:"중앙승진",nm:"중앙승진심사위원회",st:"⭐⭐⭐",note:"소방준감으로의 승진 전용",num:"5~7",numSub:"위원장 포함",
+  set:"소방청",chair:"위원장 선임 등 운영 = 당해 기관의 장이 정함",mem:"간사 1인 + 서기 약간인 (인사담당공무원 중 기관장 임명)",
+  rule:"A",law:"대통령령 (법 §16②)",fn:"소방준감 승진심사",trap:"인원 5~7 = 인사위와 동일 · 보통(5~9)과 바꿔 내는 낚시"},
+ {id:"보통승진",nm:"보통승진심사위원회",st:"⭐⭐⭐",note:"소방정 이하 승진",num:"5~9",numSub:"위원장 포함",
+  set:"소방청 · 시·도 · 중앙소방학교 · 중앙119구조본부 · 국립소방연구원 (5곳)",chair:"운영 = 당해 기관의 장 / 특별승진심사 시·도 위원회는 시·도지사가 민간위원 중 위촉",
+  mem:"간사 1인 + 서기 약간인",rule:"A",ruleEx:"특별승진심사 = 재적 과반 찬성",law:"대통령령 (법 §16②)",
+  fn:"소방정 이하 승진심사",trap:"소방서·지방소방학교에는 없음 · 특별승진심사만 재적 과반 찬성"},
+ {id:"임용심사",nm:"임용심사위원회",st:"⭐⭐",note:"25년 소방위 기출",num:"5~8",numSub:"위원장 포함",
+  set:"임용권자·임용제청권자 소속",chair:"위원 중에서 임용(제청)권자가 지명",mem:"심사대상자보다 상위 계급인 소속 소방공무원",
+  rule:"A",law:"행정안전부령 🚨 (임용령 §22의2②) — 위원회 중 유일한 부령",
+  fn:"시보 정규임용·면직, 채용후보자 자격상실 적부 심사",trap:"'대통령령으로 정한다' 지문은 X — 최중요 함정"},
+ {id:"징계",nm:"징계위원회",st:"⭐⭐⭐",note:"회의 = 위원장 + 회의마다 지정 4~6명",num:"17~33 / 9~15",numSub:"소방청 / 그 외",
+  set:"소방청·소속기관 / 시·도·소속기관",chair:"기관장의 차순위 계급자 (시·도 징계위는 소방정 이상 중 임명 가능 ’23.6)",
+  mem:"민간위원 ≥ 위원장 제외 위원 수의 1/2 · 특정 성별 ≤ 6/10 · 민간 임기 3년, 한 차례 연임",
+  rule:"B",law:"대통령령 (법 §28④) — 구성·관할·운영·의결요구절차·진술권",fn:"징계의결",
+  trap:"17~33은 소방청만(중앙소방학교는 9~15) · 민간 임기 2년 아님(고충이 2년) · 2/3 출석 아님"},
+ {id:"고충",nm:"고충심사위원회",st:"⭐⭐⭐",note:"소방경 이하 담당 · 회의 = 위원장 + 지정 5~7명",num:"7~15",numSub:"위원장 포함",
+  set:"소방청 · 시·도 · 대통령령 소방기관(중앙소방학교·중앙119·연구원·지방소방학교·서울종합방재센터·소방서·119특수대응단·소방체험관)",
+  chair:"설치기관 소속 인사·감사 담당 과장",mem:"민간위원 ≥ 위원장 제외 1/2 · 민간 임기 2년, 한 번 연임",
+  rule:"C",ruleEx:"중앙고충심사위(인사혁신처) = 재적 2/3 출석 + 과반 합의",law:"대통령령 (법 §27)",
+  fn:"소방경 이하 인사상담·고충 / 재심청구·소방령 이상은 중앙고충심사위",trap:"'찬성' 아니라 '합의' · 중앙고충은 소방령 이상(소방정 아님)"},
+ {id:"채용비위",nm:"채용비위심의위원회",st:"⭐⭐",note:"’24.8.13 신설 — 최신 출제 1순위",num:"5~8",numSub:"위원장 포함·성별 고려",
+  set:"시험실시권자·임용권자 소속",chair:"시험실시권자·임용권자 또는 그가 지명하는 소속 공무원",mem:"상위계급 지명 + 민간 위촉 (임기 규정 없음)",
+  rule:"D",law:"그 밖의 구성·운영 = 소방청장 (임용령 §51의3)",fn:"채용비위로 인한 합격·임용 취소 여부 심의",
+  trap:"의결은 '찬성'인데 출석 요건 없이 재적 과반 찬성 · 정하는 자는 소방청장"},
+ {id:"근평조정",nm:"근무성적평정조정위원회",st:"⭐⭐",note:"가장 작은 위원회",num:"3~5",numSub:"위원장 언급 없음",
+  set:"승진대상자명부 작성 단위기관별 (둘 수 있다)",chair:"분포비율 불일치 시 위원장이 소집·조정",mem:"피평정자의 상위직급 공무원 중 기관장 지정",
+  rule:"N",law:"승진임용규정 시행규칙 §9",fn:"1·2차 평정 결과가 분포비율과 맞지 않을 때 조정",trap:"'3~5인' — 위원장 포함/제외 표현 자체가 없음"},
+ {id:"소청",nm:"소청심사위원회",st:"⭐",note:"국가공무원법 — 징계 등 불복 구제",num:"상임 5~7",numSub:"+ 비상임(상임의 1/2 이상)",
+  set:"인사혁신처",chair:"위원장 1명 포함 상임 5~7",mem:"상임위원 + 비상임위원(상임 수의 1/2 이상)",
+  rule:"E",law:"국가공무원법 §9·§14",fn:"징계처분 등에 대한 소청 심사·결정",trap:"상임+비상임 구조는 소청위만"}
+];
+const ATTRS=[
+ {k:"num",n:"인원",big:true},{k:"rule",n:"의결"},{k:"chair",n:"위원장"},{k:"set",n:"설치"},{k:"mem",n:"위원·임기"},{k:"law",n:"누가 정하나"},{k:"fn",n:"하는 일"}
+];
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const ruleHtml=c=>`<span class="tag" style="background:${RULES[c.rule].c}">${RULES[c.rule].n}</span>${c.ruleEx?`<br><small style="color:#C0392B;font-weight:800">예외: ${esc(c.ruleEx)}</small>`:""}`;
+
+// ── 탭
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  ["all","pv","quiz","rule"].forEach(id=>document.getElementById(id).classList.toggle("hide",id!==b.dataset.tab));
+});
+
+// ── 카드
+document.getElementById("legend").innerHTML=Object.entries(RULES).filter(([k])=>k!=="N").map(([k,r])=>`<span style="background:${r.c}">${r.n}</span>`).join("");
+const picked=new Set();
+const pickEl=document.getElementById("pick");
+pickEl.innerHTML=C.map(c=>`<button data-id="${c.id}">${c.id}</button>`).join("");
+pickEl.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+  picked.has(b.dataset.id)?picked.delete(b.dataset.id):picked.add(b.dataset.id);
+  b.classList.toggle("on",picked.has(b.dataset.id)); renderCards();
+});
+function cardHtml(c){
+  const row=(k,v,cls="")=>`<div class="row ${cls}"><div class="k">${k}</div><div>${v}</div></div>`;
+  return `<div class="cm" style="--rc:${RULES[c.rule].c}">
+    <div class="hd"><div><div class="nm">${esc(c.nm)} <span class="st">${c.st}</span></div><div class="note">${esc(c.note)}</div></div>
+      <div class="num"><b>${esc(c.num)}</b><small>${esc(c.numSub)}</small></div></div>
+    ${row("의결",ruleHtml(c),"v")}${row("설치",esc(c.set))}${row("위원장",esc(c.chair))}${row("위원",esc(c.mem))}${row("정하나",esc(c.law))}${row("하는 일",esc(c.fn))}
+    <div class="trap">⚠️ ${esc(c.trap)}</div></div>`;
+}
+function renderCards(){
+  const list=picked.size?C.filter(c=>picked.has(c.id)):C;
+  document.getElementById("cards").innerHTML=list.map(cardHtml).join("");
+}
+renderCards();
+
+// ── 항목별
+let attr="num";
+const attrEl=document.getElementById("attrs");
+attrEl.innerHTML=ATTRS.map(a=>`<button data-k="${a.k}" class="${a.k===attr?"on":""}">${a.n}</button>`).join("");
+attrEl.querySelectorAll("button").forEach(b=>b.onclick=()=>{attr=b.dataset.k;attrEl.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));renderPv();});
+function renderPv(){
+  const a=ATTRS.find(x=>x.k===attr);
+  document.getElementById("pvt").innerHTML=C.map(c=>{
+    let v=attr==="rule"?ruleHtml(c):a.big?`<span class="big">${esc(c.num)}</span> <small style="color:#9AA3AD;font-weight:800">${esc(c.numSub)}</small>`:esc(c[attr]);
+    return `<tr><td style="border-left:4px solid ${RULES[c.rule].c};padding-left:8px">${esc(c.nm)}<small>${c.st}</small></td><td>${v}</td></tr>`;
+  }).join("");
+}
+renderPv();
+
+// ── 퀴즈: 같은 항목의 다른 위원회 값이 보기 → 실제 바꿔치기 함정 그대로
+const QA=[{k:"num",n:"인원"},{k:"rule",n:"의결정족수"},{k:"chair",n:"위원장"},{k:"set",n:"설치기관"},{k:"law",n:"구성·운영을 정하는 근거"}];
+const shuffle=a=>a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+const disp=(c,k)=>k==="rule"?RULES[c.rule].n:k==="num"?`${c.num} (${c.numSub})`:c[k];
+let right=0,total=0,cur=null;
+function newQ(){
+  const k=QA[Math.floor(Math.random()*QA.length)];
+  const pool=C.filter(c=>!(k.k==="rule"&&c.rule==="N")&&!(k.k==="law"&&(c.id==="근평조정"||c.id==="소청")));
+  const c=pool[Math.floor(Math.random()*pool.length)];
+  const ans=disp(c,k.k);
+  const others=[...new Set(C.filter(x=>x!==c&&!(k.k==="rule"&&x.rule==="N")).map(x=>disp(x,k.k)).filter(v=>v!==ans))];
+  const opts=shuffle([ans,...shuffle(others).slice(0,3)]);
+  cur={c,k,ans};
+  document.getElementById("qText").innerHTML=`<em>${esc(c.nm)}</em>의 <u>${k.n}</u>은?`;
+  document.getElementById("opts").innerHTML=opts.map(o=>`<button>${esc(o)}</button>`).join("");
+  document.getElementById("fb").className="fb";
+  document.getElementById("opts").querySelectorAll("button").forEach(b=>b.onclick=()=>grade(b));
+  document.getElementById("score").textContent=`${right} / ${total}`;
+}
+function grade(b){
+  if(!cur) return;
+  const ok=b.textContent===cur.ans; total++; if(ok) right++;
+  document.getElementById("opts").querySelectorAll("button").forEach(x=>{x.disabled=true;if(x.textContent===cur.ans)x.classList.add("ok");else if(x===b)x.classList.add("ng");});
+  const fb=document.getElementById("fb"); fb.className="fb "+(ok?"ok":"ng");
+  fb.innerHTML=`${ok?"✅ 정답":"❌ 오답"} — <b>${esc(cur.ans)}</b><br>⚠️ ${esc(cur.c.trap)}`;
+  document.getElementById("score").textContent=`${right} / ${total}`; cur=null;
+}
+document.getElementById("nxt").onclick=newQ; newQ();
+
+// ── 함정 정리
+document.getElementById("rule").innerHTML=`
+<div class="card rule"><h3>① 인원수 사다리 — "조3 인5 채5 보5 고7 징9 청17"</h3>
+<div class="ladder">
+<div><b>3~5</b> 근평조정위 (위원장 언급 없음)</div>
+<div><b>5~7</b> 인사위 · 중앙승진심사위 · 소청 상임</div>
+<div><b>5~8</b> 임용심사위 · 채용비위심의위</div>
+<div><b>5~9</b> 보통승진심사위</div>
+<div><b>7~15</b> 고충심사위</div>
+<div><b>9~15</b> 징계위 (소방청 외)</div>
+<div><b>17~33</b> 징계위 (소방청)</div></div></div>
+<div class="card rule"><h3>② 의결 — 색깔로 외우기</h3>
+<ul><li><span style="color:var(--rA);font-weight:900">■ 재적 2/3 출석 + 과반 찬성</span> = 인사 · 승진심사 · 임용심사 <b>(세쌍둥이)</b></li>
+<li><span style="color:var(--rB);font-weight:900">■ 과반 출석 + 과반 찬성</span> = 징계</li>
+<li><span style="color:var(--rC);font-weight:900">■ 5명 출석 + 과반 '합의'</span> = 고충 (찬성 아님!)</li>
+<li><span style="color:var(--rD);font-weight:900">■ 재적 과반 찬성</span> = 특별승진심사 · 채용비위</li>
+<li><span style="color:var(--rE);font-weight:900">■ 재적 2/3 출석 + 과반 합의</span> = 중앙고충 · 소청</li></ul></div>
+<div class="card rule"><h3>③ 민간위원 임기 — "징3 고2"</h3>
+<ul><li>징계위 <code>3년 · 한 차례 연임</code> / 고충위 <code>2년 · 한 번 연임</code></li>
+<li>인사·승진심사·임용심사·채용비위·조정위는 임기 규정 자체가 없다 → "인사위원 임기 2년" 지문은 무조건 X</li></ul></div>
+<div class="card rule"><h3>④ 위원장 "포함 vs 제외"</h3>
+<ul><li><b>사람 수는 전부 포함</b> (인사 5~7, 승진 5~7/5~9, 임용심사·채용비위 5~8, 고충 7~15, 징계 17~33/9~15)</li>
+<li><b>비율만 제외</b>: 징계·고충 민간위원 ≥ 위원장 제외 1/2, 징계 성비위 사건 피해자 성별 위원 ≥ 위원장 제외 1/3</li>
+<li>함정의 함정: 징계 <u>회의</u> 때 민간 1/2은 위원장 <b>포함</b>으로 뒤집힘 — "사람 수는 포함, 비율은 제외, 징계회의만 다시 포함"</li></ul></div>
+<div class="card rule"><h3>⑤ 전체 위원 ≠ 회의 참석 — "징4 고5"</h3>
+<ul><li>징계위 회의 = 위원장 + 회의마다 지정 <code>4~6명</code></li>
+<li>고충위 회의 = 위원장 + 지정 <code>5~7명</code> (성별 고려, 민간 1/3 이상)</li>
+<li>고충위 구성 특례(인사혁신처장 협의): 전체 5~7명, 회의 3~5명, 전원 출석 + 과반 합의</li></ul></div>
+<div class="card rule"><h3>⑥ "필요한 사항은 ○○로 정한다" — 法은 대통령, 令은 부령·청장</h3>
+<ul><li><b>대통령령</b> = 법에 직접 나오는 4대 위원회 (인사 §4 · 승진심사 §16 · 고충 §27 · 징계 §28)</li>
+<li><b>행정안전부령</b> = 임용심사위 <b>딱 하나</b> 🚨</li>
+<li><b>소방청장</b> = 채용비위심의위 · 시험 공동위원회 · 인사협의회</li>
+<li>인사위 운영세칙 = 인사위 의결 거쳐 위원장 / 승진심사위 위원장 선임 = 당해 기관의 장</li></ul></div>
+<div class="card rule"><h3>⑦ 위원장 두음 — "인차본 · 징차순 · 고과장 · 특민간"</h3>
+<ul><li>인사위: 소방청 = <b>차</b>장, 시·도 = 소방<b>본</b>부장</li>
+<li>징계위: 기관장의 <b>차순</b>위 계급자 (시·도는 소방정 이상 중 임명 가능)</li>
+<li>고충위: 인사·감사 담당 <b>과장</b></li>
+<li>채용비위: 시험실시권자·임용권자(또는 지명 공무원)</li>
+<li>특별승진심사 시·도 보통승진심사위: 시·도지사가 <b>민간</b>위원 중 위촉</li></ul></div>`;
+</script>
+</body>
+</html>

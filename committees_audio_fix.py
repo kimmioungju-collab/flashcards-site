@@ -24,6 +24,9 @@ def bitrate(p: Path) -> int:
 def main() -> None:
     use_edge = "edge" in sys.argv[1:]
     tl = json.loads(TL.read_text(encoding="utf-8"))
+    if not (TMP / "final.txt").exists():
+        LP.log("조각 목록 없음 → committees_audio.py 전체 재합성")
+        subprocess.run([sys.executable, str(BASE / "committees_audio.py")], check=True); return
     files = [Path(l.split("'")[1]) for l in (TMP / "final.txt").read_text().splitlines()]
     chunks = [f for f in files if f.name.startswith("s")]
     if len(chunks) != len(tl):

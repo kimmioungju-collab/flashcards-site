@@ -135,15 +135,61 @@ details .ln:last-child{border-bottom:0}
 .rule{font-size:13.5px;line-height:1.8}
 .rule h3{font-size:14px;font-weight:900;margin:0 0 6px}
 .rule li{margin-left:18px;margin-bottom:3px}
+/* 중앙·시도 */
+.lvb{display:flex;flex-wrap:wrap;gap:4px;padding:0 12px 8px;background:var(--rc)}
+.lvb span{font-size:10.5px;font-weight:900;background:rgba(255,255,255,.22);color:#fff;border-radius:999px;padding:2px 8px}
+.fl{border:1.5px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden;background:#fff}
+.fl .fh{padding:10px 14px;color:#fff;font-weight:900;font-size:15px;display:flex;align-items:center;gap:8px}
+.fl .fh .ic{font-size:20px}
+.fl .who{padding:7px 14px;font-size:12px;color:#51606F;line-height:1.5;border-bottom:1px dashed var(--line);background:#FBFAF7}
+.fl .it{padding:8px 14px;border-bottom:1px dashed #EEE9DE;font-size:13.5px;line-height:1.55}
+.fl .it:last-child{border-bottom:0}
+.fl .it b{display:block;font-size:13.5px;margin-bottom:1px}
+.fl .it small{font-weight:600;color:#3A4756;font-size:12.5px}
+.pc{border:1.5px solid var(--line);border-radius:14px;margin-bottom:14px;overflow:hidden;background:#fff}
+.pc .ph{padding:10px 14px;color:#fff}
+.pc .ph b{font-size:16px;font-weight:900;display:block}
+.pc .ph small{font-size:11.5px;opacity:.92;font-weight:700}
+.pt{border-collapse:collapse;width:100%;font-size:12.5px;line-height:1.5}
+.pt th{font-size:11.5px;font-weight:900;padding:7px 6px;background:#F3F0E8;border-bottom:1px solid var(--line);text-align:left;vertical-align:bottom}
+.pt td{padding:7px 6px;border-bottom:1px dashed #EEE9DE;vertical-align:top}
+.pt td:first-child,.pt th:first-child{font-weight:900;white-space:nowrap;color:var(--muted);font-size:11px;width:1%;padding-right:8px}
+.pt tr.same td:not(:first-child){color:#9AA3AD}
+.pt tr.same td:first-child::after{content:" (동일)";font-weight:700}
+.ld{display:grid;grid-template-columns:1fr;gap:8px}
+.ldc{border-radius:12px;border:1.5px solid var(--line);overflow:hidden;background:#fff}
+.ldc .rk{padding:8px 12px;color:#fff;font-weight:900;font-size:14px}
+.ldc .r{display:grid;grid-template-columns:92px 1fr;gap:6px;padding:6px 12px;font-size:13px;line-height:1.5;border-bottom:1px dashed #EEE9DE}
+.ldc .r:last-child{border-bottom:0}
+.ldc .r b{font-size:11.5px;color:var(--muted)}
+.ox{border:1.5px solid var(--line);border-radius:12px;margin-bottom:8px;background:#fff;overflow:hidden}
+.ox .qq{padding:10px 12px;font-size:13.5px;line-height:1.55;font-weight:700}
+.ox .bt{display:flex;gap:6px;padding:0 12px 10px}
+.ox .bt button{flex:1;padding:9px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:900;font-size:15px;cursor:pointer}
+.ox .bt button.ok{background:#E3F3E9;border-color:#3B9E6B;color:#1E5A38}
+.ox .bt button.ng{background:#FDE8EA;border-color:var(--wrong);color:#8B1F27}
+.ox .ex{display:none;padding:0 12px 10px;font-size:12.5px;line-height:1.55;font-weight:700}
+.ox.done .ex{display:block}
+.ox .ex.o{color:#1E5A38}.ox .ex.x{color:#8B1F27}
+.keyline{padding:10px 12px;background:#FFF6E5;border-radius:10px;font-size:13.5px;line-height:1.7;font-weight:700;color:#6B4A00;margin-bottom:12px}
+.keyline b{color:#C0392B}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top"><a class="back" href="index.html?s=fire">← 목차</a><h1>위원회 한눈에</h1></div>
-  <div class="sub">교재 챕터 순. 카드 위쪽 4칸(인원·의결·위원장·위원)이 기출의 80%입니다. <mark>노랑</mark> = 시험이 바꿔치는 자리.</div>
-  <div class="tabs"><button class="on" data-tab="all">📇 카드</button><button data-tab="qual">👤 위원자격</button><button data-tab="pv">📊 항목별</button><button data-tab="pred">📈 기출·예측</button><button data-tab="quiz">✏️ 퀴즈</button><button data-tab="audio">🎧 듣기</button><button data-tab="intro">📖 요약</button></div>
+  <div class="sub">같은 이름의 위원회가 <b>국가 · 소방청 · 시·도 · 소속기관</b> 어느 층에 있느냐에 따라 인원·위원장·관할이 달라집니다. 🏛 탭에서 층별로 먼저 가르고, 카드로 세부를 보세요. <mark>노랑</mark> = 시험이 바꿔치는 자리.</div>
+  <div class="tabs"><button class="on" data-tab="lv">🏛 중앙·시도</button><button data-tab="all">📇 카드</button><button data-tab="qual">👤 위원자격</button><button data-tab="pv">📊 항목별</button><button data-tab="pred">📈 기출·예측</button><button data-tab="quiz">✏️ 퀴즈</button><button data-tab="audio">🎧 듣기</button><button data-tab="intro">📖 요약</button></div>
 
-  <div id="all">
+  <div id="lv">
+    <div class="keyline">🔑 두 개의 경계선만 잡으면 끝 — 징계는 <b>소방준감</b>부터 중앙(국무총리), 고충은 <b>소방령</b>부터 중앙(인사혁신처). 승진은 <b>소방준감으로</b> 올라갈 때만 중앙승진심사위(소방청). 소청은 계급 상관없이 전부 인사혁신처.</div>
+    <div class="card"><div class="lbl">🏢 4층 건물 — 어느 층에 어떤 위원회가 있나</div><div id="floors"></div></div>
+    <div class="card"><div class="lbl">🔀 같은 이름, 다른 층 — 뭐가 다르고 뭐가 같은가 (회색 = 층이 달라도 동일)</div><div id="pairs"></div></div>
+    <div class="card"><div class="lbl">🪜 내 계급이면 어디로 가나</div><div class="ld" id="ladder"></div></div>
+    <div class="card"><div class="lbl">⭕❌ 중앙·시도 바꿔치기 OX — 탭해서 풀기</div><div class="score" id="oxScore">0 / 0</div><div id="oxList"></div></div>
+  </div>
+
+  <div id="all" class="hide">
     <div class="card"><div class="lbl">위원회 고르기 (비우면 전부)</div><div class="chips" id="pick"></div></div>
     <div id="cards"></div>
   </div>
@@ -187,11 +233,11 @@ details .ln:last-child{border-bottom:0}
 
   <div id="playerBar" class="hide">
     <div class="card" style="position:sticky;top:0;z-index:5">
-      <div class="lbl">🎧 유치원 선생님 강의 — 듣기 탭은 대본, 요약 탭은 챕터 요약 원문</div>
-      <audio id="player" controls preload="metadata" style="width:100%" src="audio/committees_teacher.mp3"></audio>
+      <div class="lbl">🎧 유치원 선생님 강의 (중앙·시·도 층별 정리판) — 듣기 탭은 대본, 요약 탭은 챕터 요약 원문</div>
+      <audio id="player" controls preload="metadata" style="width:100%" src="audio/committees_teacher.mp3?v=2"></audio>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
         <button class="spd" data-r="0.9">0.9×</button><button class="spd on" data-r="1">1.0×</button><button class="spd" data-r="1.2">1.2×</button><button class="spd" data-r="1.5">1.5×</button>
-        <a href="audio/committees_teacher.mp3" download="소방공무원법_위원회_선생님강의.mp3" class="spd" style="text-decoration:none;margin-left:auto">⬇ 저장</a>
+        <a href="audio/committees_teacher.mp3?v=2" download="소방공무원법_위원회_선생님강의.mp3" class="spd" style="text-decoration:none;margin-left:auto">⬇ 저장</a>
       </div>
     </div>
   </div>
@@ -219,6 +265,7 @@ details .ln:last-child{border-bottom:0}
 
 <script src="committees_data.js"></script>
 <script src="committees_intro.js"></script>
+<script src="committees_level.js"></script>
 <script>
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const hl=s=>esc(s).replace(/\*(.+?)\*/g,"<mark>$1</mark>").replace(/&lt;br&gt;/g,"<br>");
@@ -229,7 +276,7 @@ const rc=c=>RULES[c.rule].c;
 // ── 탭
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
-  ["all","qual","pv","pred","quiz","audio","intro"].forEach(id=>document.getElementById(id).classList.toggle("hide",id!==b.dataset.tab));
+  ["lv","all","qual","pv","pred","quiz","audio","intro"].forEach(id=>document.getElementById(id).classList.toggle("hide",id!==b.dataset.tab));
   document.getElementById("playerBar").classList.toggle("hide",!["audio","intro"].includes(b.dataset.tab));
 });
 
@@ -245,6 +292,7 @@ function cardHtml(c){
   const r=RULES[c.rule];
   return `<div class="cm" style="--rc:${r.c}">
     <div class="hd"><div class="nm">${esc(c.nm)} ${stars(c.st)}<small>📘 ${esc(c.ch)}</small></div><div class="yrs">기출<br>${esc(c.yrs)}</div></div>
+    <div class="lvb">${(LV[c.id]||[]).map(l=>`<span>${esc(l)}</span>`).join("")}</div>
     <div class="big">
       <div><div class="k">인원</div><div class="v">${esc(c.num)}<small>${esc(c.numSub)}</small></div></div>
       <div><div class="k">의결</div><div class="r">${esc(r.n)}${c.ruleEx?`<small>예외: ${esc(c.ruleEx)}</small>`:""}</div></div>
@@ -343,6 +391,27 @@ function grade(b){
 }
 document.getElementById("nxt").onclick=newQ; newQ();
 
+// ── 중앙·시도: 4층 건물 / 쌍 비교 / 계급 사다리 / OX (committees_level.js)
+document.getElementById("floors").innerHTML=LEVELS.map(L=>`<div class="fl" style="--rc:${L.c}">
+  <div class="fh" style="background:${L.c}"><span class="ic">${L.ic}</span>${esc(L.nm)}</div><div class="who">${hl(L.who)}</div>
+  ${L.items.map(it=>`<div class="it"><b>${esc(it.nm)}</b><small>${hl(it.sub)}</small></div>`).join("")}</div>`).join("");
+document.getElementById("pairs").innerHTML=PAIRS.map(P=>`<div class="pc">
+  <div class="ph" style="background:${P.c}"><b>${esc(P.nm)}</b><small>${esc(P.tag)}</small></div>
+  <div class="scroll"><table class="pt"><tr><th></th>${P.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr>
+  ${P.rows.map(r=>{const same=r.slice(1).every(v=>v===r[1])&&r.length>2;return `<tr class="${same?"same":""}"><td>${esc(r[0])}</td>${r.slice(1).map(v=>`<td>${hl(v)}</td>`).join("")}</tr>`;}).join("")}</table></div>
+  <div class="trap">⚠️ ${esc(P.trap).replace(/ X/g," <b>X</b>")}</div></div>`).join("");
+document.getElementById("ladder").innerHTML=LADDER.map(L=>`<div class="ldc"><div class="rk" style="background:${L.c}">${esc(L.rk)}</div>
+  ${L.rows.map(([k,v])=>`<div class="r"><b>${esc(k)}</b><div>${hl(v)}</div></div>`).join("")}</div>`).join("");
+(function(){
+  let r=0,t=0; const box=document.getElementById("oxList");
+  box.innerHTML=LVOX.map((q,i)=>`<div class="ox" data-i="${i}"><div class="qq">${i+1}. ${esc(q[0])}</div><div class="bt"><button data-a="O">O</button><button data-a="X">X</button></div><div class="ex ${q[1]==="O"?"o":"x"}">정답 ${q[1]}${q[2]?" — "+esc(q[2]):""}</div></div>`).join("");
+  box.querySelectorAll(".ox").forEach(el=>el.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    if(el.classList.contains("done")) return; const ans=LVOX[+el.dataset.i][1]; const ok=b.dataset.a===ans; t++; if(ok) r++;
+    el.classList.add("done"); el.querySelectorAll("button").forEach(x=>{x.disabled=true; if(x.dataset.a===ans) x.classList.add("ok"); else if(x===b) x.classList.add("ng");});
+    document.getElementById("oxScore").textContent=`${r} / ${t}`;
+  }));
+})();
+
 // ── 요약: 챕터 핵심요약에서 뽑은 위원회 블록 (committees_intro.js)
 document.getElementById("introBox").innerHTML=INTRO.map((x,i)=>`<div class="card icard" id="ic${i}">
   <div class="ihead"><h2>${esc(x.title)}</h2><a class="chl" href="app.html?ch=${x.ch}&summary=1" onclick="event.stopPropagation()">${esc(x.chTitle.replace(/^공무원법/,""))} 요약 →</a><span class="tg">▾</span></div>
@@ -354,7 +423,7 @@ document.querySelectorAll(".icard .ihead").forEach(h=>h.onclick=()=>h.parentElem
   const box=document.getElementById("scriptBox"), pl=document.getElementById("player");
   document.querySelectorAll(".spd[data-r]").forEach(b=>b.onclick=()=>{pl.playbackRate=+b.dataset.r;document.querySelectorAll(".spd[data-r]").forEach(x=>x.classList.toggle("on",x===b));});
   let tl=null;
-  try{tl=await (await fetch("audio/committees_teacher.json")).json();}catch(e){}
+  try{tl=await (await fetch("audio/committees_teacher.json?v=2")).json();}catch(e){}
   if(tl){
     box.innerHTML=tl.map((x,i)=>`<span data-i="${i}" data-s="${x.s}">${esc(x.t)}</span> `).join("");
     box.querySelectorAll("span").forEach(sp=>sp.onclick=()=>{pl.currentTime=+sp.dataset.s;pl.play();});
@@ -362,7 +431,7 @@ document.querySelectorAll(".icard .ihead").forEach(h=>h.onclick=()=>h.parentElem
       box.querySelectorAll("span").forEach((sp,i)=>sp.classList.toggle("now",i===k));
       const el=box.querySelector("span.now"); if(el&&!pl.paused){const r=el.getBoundingClientRect(); if(r.top<80||r.bottom>innerHeight-40) el.scrollIntoView({block:"center",behavior:"smooth"});}};
   }else{
-    try{const txt=await (await fetch("audio/committees_teacher.txt")).text(); box.innerHTML=txt.split(/\n\n+/).map(p=>`<p>${esc(p)}</p>`).join("");}catch(e){box.textContent="대본을 불러오지 못했습니다.";}
+    try{const txt=await (await fetch("audio/committees_teacher.txt?v=2")).text(); box.innerHTML=txt.split(/\n\n+/).map(p=>`<p>${esc(p)}</p>`).join("");}catch(e){box.textContent="대본을 불러오지 못했습니다.";}
   }
 })();
 </script>

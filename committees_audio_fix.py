@@ -9,7 +9,7 @@ import lecture_pod as LP
 from nlm_audio import telegram_send
 
 BASE = Path(__file__).resolve().parent
-TMP = Path("/tmp/committees_audio")
+TMP = Path("/tmp/committees_audio_teacher")
 OUT = BASE / "public" / "audio" / "committees_teacher.mp3"
 TL = BASE / "public" / "audio" / "committees_teacher.json"
 EDGE_VOICE = "ko-KR-SunHiNeural"

@@ -179,7 +179,7 @@ details .ln:last-child{border-bottom:0}
 <div class="wrap">
   <div class="top"><a class="back" href="index.html?s=fire">← 목차</a><h1>위원회 한눈에</h1></div>
   <div class="sub"><b>중앙 ↔ 일반</b> 쌍이 있는 위원회 셋(승진심사·징계·고충)을 ⚖️ 탭에서 먼저 가르고, 카드로 세부를 보세요. <mark>노랑</mark> = 시험이 바꿔치는 자리.</div>
-  <div class="tabs"><button class="on" data-tab="lv">⚖️ 중앙↔일반</button><button data-tab="all">📇 카드</button><button data-tab="qual">👤 위원자격</button><button data-tab="pv">📊 항목별</button><button data-tab="pred">📈 기출·예측</button><button data-tab="quiz">✏️ 퀴즈</button><button data-tab="audio">🎧 듣기</button><button data-tab="intro">📖 요약</button></div>
+  <div class="tabs"><button class="on" data-tab="lv">⚖️ 중앙↔일반</button><button data-tab="solo">🧩 단독 4개</button><button data-tab="all">📇 카드</button><button data-tab="qual">👤 위원자격</button><button data-tab="pv">📊 항목별</button><button data-tab="pred">📈 기출·예측</button><button data-tab="quiz">✏️ 퀴즈</button><button data-tab="audio">🎧 듣기</button><button data-tab="intro">📖 요약</button></div>
 
   <div id="lv">
     <div class="keyline">🔑 "중앙 ○○위원회"가 따로 있는 위원회는 <b>셋</b>뿐 — 승진심사·징계·고충. 경계 계급이 전부 다릅니다: 승진은 <b>소방준감으로</b> 갈 때만 중앙(소방청) · 징계는 <b>소방준감 이상</b>이 중앙(국무총리) · 고충은 <b>소방령 이상</b>이 중앙(인사혁신처). 나머지(인사·임용심사·채용비위·근평조정·소청)는 중앙/일반 구분이 없습니다.</div>
@@ -188,6 +188,12 @@ details .ln:last-child{border-bottom:0}
     <details class="card" style="padding:0"><summary style="padding:12px 14px;font-size:13px;font-weight:800;color:var(--muted);cursor:pointer">📎 참고 — 4층 지도(국가·소방청·시·도·소속기관) · 계급 사다리</summary>
       <div style="padding:0 14px 14px"><div class="lbl">🏢 어느 층에 어떤 위원회가 있나</div><div id="floors"></div><div class="lbl" style="margin-top:10px">🪜 내 계급이면 어디로 가나</div><div class="ld" id="ladder"></div></div>
     </details>
+  </div>
+
+  <div id="solo" class="hide">
+    <div class="keyline">🧩 "중앙 ○○" 짝이 <b>없는</b> 소방 단독 위원회 넷 — 교재 챕터 순. 자리가 정해져 있어 중앙이 필요 없습니다: 인사위 = 소방청·시·도 하나씩 / 채용비위·임용심사 = <b>임용권자 소속</b> / 근평조정 = 명부 작성기관별. <span id="soloNote"></span></div>
+    <div id="soloCards"></div>
+    <div class="card"><div class="lbl">⭕❌ 단독 4개 바꿔치기 OX — 탭해서 풀기</div><div class="score" id="soxScore">0 / 0</div><div id="soxList"></div></div>
   </div>
 
   <div id="all" class="hide">
@@ -234,11 +240,12 @@ details .ln:last-child{border-bottom:0}
 
   <div id="playerBar" class="hide">
     <div class="card" style="position:sticky;top:0;z-index:5">
-      <div class="lbl">🎧 유치원 선생님 강의 (중앙↔일반 세 쌍 정리판) — 듣기 탭은 대본, 요약 탭은 챕터 요약 원문</div>
+      <div class="lbl">🎧 유치원 선생님 강의 — 듣기 탭은 대본, 요약 탭은 챕터 요약 원문</div>
+      <div class="chips" style="margin-bottom:8px"><button class="on" data-a="teacher">⚖️ 중앙↔일반 세 쌍</button><button data-a="solo">🧩 소방 단독 넷</button></div>
       <audio id="player" controls preload="metadata" style="width:100%" src="audio/committees_teacher.mp3?v=3"></audio>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
         <button class="spd" data-r="0.9">0.9×</button><button class="spd on" data-r="1">1.0×</button><button class="spd" data-r="1.2">1.2×</button><button class="spd" data-r="1.5">1.5×</button>
-        <a href="audio/committees_teacher.mp3?v=3" download="소방공무원법_위원회_선생님강의.mp3" class="spd" style="text-decoration:none;margin-left:auto">⬇ 저장</a>
+        <a id="dl" href="audio/committees_teacher.mp3?v=3" download="소방공무원법_위원회_중앙일반_선생님강의.mp3" class="spd" style="text-decoration:none;margin-left:auto">⬇ 저장</a>
       </div>
     </div>
   </div>
@@ -267,6 +274,7 @@ details .ln:last-child{border-bottom:0}
 <script src="committees_data.js"></script>
 <script src="committees_intro.js"></script>
 <script src="committees_level.js"></script>
+<script src="committees_solo.js"></script>
 <script>
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const hl=s=>esc(s).replace(/\*(.+?)\*/g,"<mark>$1</mark>").replace(/&lt;br&gt;/g,"<br>");
@@ -277,7 +285,7 @@ const rc=c=>RULES[c.rule].c;
 // ── 탭
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
-  ["lv","all","qual","pv","pred","quiz","audio","intro"].forEach(id=>document.getElementById(id).classList.toggle("hide",id!==b.dataset.tab));
+  ["lv","solo","all","qual","pv","pred","quiz","audio","intro"].forEach(id=>document.getElementById(id).classList.toggle("hide",id!==b.dataset.tab));
   document.getElementById("playerBar").classList.toggle("hide",!["audio","intro"].includes(b.dataset.tab));
 });
 
@@ -403,15 +411,25 @@ document.getElementById("pairs").innerHTML=PAIRS.map(P=>`<div class="pc">
   <div class="trap">⚠️ ${esc(P.trap).replace(/ X/g," <b>X</b>")}</div></div>`).join("");
 document.getElementById("ladder").innerHTML=LADDER.map(L=>`<div class="ldc"><div class="rk" style="background:${L.c}">${esc(L.rk)}</div>
   ${L.rows.map(([k,v])=>`<div class="r"><b>${esc(k)}</b><div>${hl(v)}</div></div>`).join("")}</div>`).join("");
-(function(){
-  let r=0,t=0; const box=document.getElementById("oxList");
-  box.innerHTML=LVOX.map((q,i)=>`<div class="ox" data-i="${i}"><div class="qq">${i+1}. ${esc(q[0])}</div><div class="bt"><button data-a="O">O</button><button data-a="X">X</button></div><div class="ex ${q[1]==="O"?"o":"x"}">정답 ${q[1]}${q[2]?" — "+esc(q[2]):""}</div></div>`).join("");
+function oxQuiz(list,boxId,scoreId){
+  let r=0,t=0; const box=document.getElementById(boxId);
+  box.innerHTML=list.map((q,i)=>`<div class="ox" data-i="${i}"><div class="qq">${i+1}. ${esc(q[0])}</div><div class="bt"><button data-a="O">O</button><button data-a="X">X</button></div><div class="ex ${q[1]==="O"?"o":"x"}">정답 ${q[1]}${q[2]?" — "+esc(q[2]):""}</div></div>`).join("");
   box.querySelectorAll(".ox").forEach(el=>el.querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    if(el.classList.contains("done")) return; const ans=LVOX[+el.dataset.i][1]; const ok=b.dataset.a===ans; t++; if(ok) r++;
+    if(el.classList.contains("done")) return; const ans=list[+el.dataset.i][1]; const ok=b.dataset.a===ans; t++; if(ok) r++;
     el.classList.add("done"); el.querySelectorAll("button").forEach(x=>{x.disabled=true; if(x.dataset.a===ans) x.classList.add("ok"); else if(x===b) x.classList.add("ng");});
-    document.getElementById("oxScore").textContent=`${r} / ${t}`;
+    document.getElementById(scoreId).textContent=`${r} / ${t}`;
   }));
-})();
+}
+oxQuiz(LVOX,"oxList","oxScore");
+
+// ── 단독 4개 (committees_solo.js)
+document.getElementById("soloNote").innerHTML=hl(SOLO_NOTE);
+document.getElementById("soloCards").innerHTML=SOLO.map(S=>`<div class="pc">
+  <div class="ph" style="background:${S.c}"><b>${esc(S.nm)}</b><small>📘 공무원법 ${esc(S.ch)}</small></div>
+  <div class="who" style="padding:8px 14px;font-size:12.5px;color:#51606F;line-height:1.55;border-bottom:1px dashed var(--line);background:#FBFAF7">${hl(S.why)}</div>
+  <table class="pt">${S.rows.map(([k,v])=>`<tr><td>${esc(k)}</td><td>${hl(v)}</td></tr>`).join("")}</table>
+  <div class="trap">⚠️ ${esc(S.trap).replace(/ X/g," <b>X</b>")}</div></div>`).join("");
+oxQuiz(SOLO_OX,"soxList","soxScore");
 
 // ── 요약: 챕터 핵심요약에서 뽑은 위원회 블록 (committees_intro.js)
 document.getElementById("introBox").innerHTML=INTRO.map((x,i)=>`<div class="card icard" id="ic${i}">
@@ -423,8 +441,16 @@ document.querySelectorAll(".icard .ihead").forEach(h=>h.onclick=()=>h.parentElem
 (async function(){
   const box=document.getElementById("scriptBox"), pl=document.getElementById("player");
   document.querySelectorAll(".spd[data-r]").forEach(b=>b.onclick=()=>{pl.playbackRate=+b.dataset.r;document.querySelectorAll(".spd[data-r]").forEach(x=>x.classList.toggle("on",x===b));});
-  let tl=null;
-  try{tl=await (await fetch("audio/committees_teacher.json?v=3")).json();}catch(e){}
+  const NAMES={teacher:"중앙일반",solo:"단독넷"};
+  async function load(name){
+    pl.pause(); pl.src=`audio/committees_${name}.mp3?v=3`; pl.load();
+    const dl=document.getElementById("dl"); dl.href=pl.src; dl.download=`소방공무원법_위원회_${NAMES[name]}_선생님강의.mp3`;
+    let tl=null;
+    try{tl=await (await fetch(`audio/committees_${name}.json?v=3`)).json();}catch(e){}
+    render(tl,name);
+  }
+  document.querySelectorAll("#playerBar .chips button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#playerBar .chips button").forEach(x=>x.classList.toggle("on",x===b));load(b.dataset.a);});
+  async function render(tl,name){
   if(tl){
     box.innerHTML=tl.map((x,i)=>`<span data-i="${i}" data-s="${x.s}">${esc(x.t)}</span> `).join("");
     box.querySelectorAll("span").forEach(sp=>sp.onclick=()=>{pl.currentTime=+sp.dataset.s;pl.play();});
@@ -432,8 +458,10 @@ document.querySelectorAll(".icard .ihead").forEach(h=>h.onclick=()=>h.parentElem
       box.querySelectorAll("span").forEach((sp,i)=>sp.classList.toggle("now",i===k));
       const el=box.querySelector("span.now"); if(el&&!pl.paused){const r=el.getBoundingClientRect(); if(r.top<80||r.bottom>innerHeight-40) el.scrollIntoView({block:"center",behavior:"smooth"});}};
   }else{
-    try{const txt=await (await fetch("audio/committees_teacher.txt?v=3")).text(); box.innerHTML=txt.split(/\n\n+/).map(p=>`<p>${esc(p)}</p>`).join("");}catch(e){box.textContent="대본을 불러오지 못했습니다.";}
+    try{const txt=await (await fetch(`audio/committees_${name}.txt?v=3`)).text(); box.innerHTML=txt.split(/\n\n+/).map(p=>`<p>${esc(p)}</p>`).join("");}catch(e){box.textContent="대본을 불러오지 못했습니다.";}
   }
+  }
+  load("teacher");
 })();
 </script>
 </body>

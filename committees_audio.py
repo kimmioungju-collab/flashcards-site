@@ -7,10 +7,12 @@ import lecture_pod as LP
 from nlm_audio import telegram_send
 
 BASE = Path(__file__).resolve().parent
-SRC = BASE / "public" / "audio" / "committees_teacher_script.txt"   # 대본 원본 (concat 목록이 .txt를 덮어쓰지 않도록 이름 분리)
-OUT = BASE / "public" / "audio" / "committees_teacher.mp3"
-TL = BASE / "public" / "audio" / "committees_teacher.json"
-TMP = Path("/tmp/committees_audio"); TMP.mkdir(exist_ok=True)
+NAME = next((a for a in sys.argv[1:] if not a.startswith("-")), "teacher")   # teacher(중앙↔일반) | solo(소방 단독 4개)
+CAPTION = {"teacher": "중앙↔일반 세 쌍(승진심사·징계·고충)", "solo": "소방 단독 위원회 넷(인사·채용비위·임용심사·근평조정)"}
+SRC = BASE / "public" / "audio" / f"committees_{NAME}_script.txt"   # 대본 원본 (concat 목록이 .txt를 덮어쓰지 않도록 이름 분리)
+OUT = BASE / "public" / "audio" / f"committees_{NAME}.mp3"
+TL = BASE / "public" / "audio" / f"committees_{NAME}.json"
+TMP = Path(f"/tmp/committees_audio_{NAME}"); TMP.mkdir(exist_ok=True)
 MAX_CHARS = 180   # 한 번에 합성할 길이 (길면 중간 발음이 뭉개짐)
 
 
@@ -48,10 +50,10 @@ async def main() -> None:
     shutil.copy(SRC, OUT.with_suffix(".txt"))
     TL.write_text(json.dumps(tl, ensure_ascii=False), encoding="utf-8")
     dur = LP.duration(OUT)
-    dl = Path.home() / "Downloads" / "소방공무원법_위원회_선생님강의.mp3"
+    dl = Path.home() / "Downloads" / f"소방공무원법_위원회_{NAME}_선생님강의.mp3"
     shutil.copy(OUT, dl)
     LP.log(f"완료: {OUT} ({dur/60:.1f}분) → {dl}")
-    telegram_send(OUT, f"🎧 위원회 — 중앙·시·도 4층 건물로 다시 정리한 선생님 강의 ({dur/60:.0f}분). committees.html 🏛 탭 + 🎧 탭")
+    telegram_send(OUT, f"🎧 위원회 — {CAPTION.get(NAME, NAME)} 선생님 강의 ({dur/60:.0f}분). committees.html 🎧 탭")
 
 
 if __name__ == "__main__":

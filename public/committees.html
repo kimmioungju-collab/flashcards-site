@@ -125,6 +125,18 @@ details .ln:last-child{border-bottom:0}
 .spd.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 #scriptBox span{cursor:pointer;border-radius:3px}
 #scriptBox span.now{background:var(--hl)}
+#bookTracks{flex-wrap:nowrap;overflow-x:auto;margin-bottom:8px;padding-bottom:2px}
+#bookTracks button{white-space:nowrap;flex:none}
+.bk{padding:2px 4px;margin-bottom:5px;cursor:pointer;border-radius:3px}
+.bk.now{background:var(--hl)}
+.bk small{color:var(--muted);font-size:11px;font-weight:700}
+.bk-t{font-size:17px;font-weight:900;margin-bottom:10px}
+.bk-h1{font-size:15.5px;font-weight:900;margin-top:14px;padding:4px 8px;background:#EEF2F6;border-left:4px solid #2E75B6}
+.bk-h2{font-size:15px;font-weight:900;margin-top:12px}
+.bk-h3{font-weight:800;margin-top:8px;color:#2E75B6}
+.bk-n1{padding-left:6px}.bk-n2{padding-left:22px}.bk-n3{padding-left:38px}
+.bk-box{margin-left:6px;padding:6px 10px;border:1px dashed var(--line);background:#fff;font-size:13.5px}
+.bknote{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:8px}
 .ib{font-size:14.5px;line-height:1.85}
 .ib h4{font-size:15px;font-weight:900;margin:10px 0 6px;padding:5px 10px;background:#EEF2F6;border-left:4px solid #2E75B6;border-radius:3px}
 .ib ul{list-style:none;padding-left:0}.ib ul ul{padding-left:14px}.ib li{margin-bottom:6px;padding-left:12px;position:relative}.ib li::before{content:"•";position:absolute;left:0;color:#2E75B6}
@@ -240,8 +252,9 @@ details .ln:last-child{border-bottom:0}
 
   <div id="playerBar" class="hide">
     <div class="card" style="position:sticky;top:0;z-index:5">
-      <div class="lbl">🎧 유치원 선생님 강의 — 듣기 탭은 대본, 요약 탭은 챕터 요약 원문</div>
-      <div class="chips" style="margin-bottom:8px"><button class="on" data-a="teacher">⚖️ 중앙↔일반 세 쌍</button><button data-a="solo">🧩 소방 단독 넷</button></div>
+      <div class="lbl">🎧 교재 핵심요약 낭독(챕터순·위원회별, Airy) · 선생님 강의 — 듣기 탭은 대본, 요약 탭은 챕터 요약 원문</div>
+      <div class="chips" id="srcChips" style="margin-bottom:8px"><button class="on" data-a="book">📖 교재 핵심요약</button><button data-a="teacher">⚖️ 중앙↔일반 세 쌍</button><button data-a="solo">🧩 소방 단독 넷</button></div>
+      <div class="chips" id="bookTracks"></div>
       <audio id="player" controls preload="metadata" style="width:100%" src="audio/committees_teacher.mp3?v=3"></audio>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
         <button class="spd" data-r="0.9">0.9×</button><button class="spd on" data-r="1">1.0×</button><button class="spd" data-r="1.2">1.2×</button><button class="spd" data-r="1.5">1.5×</button>
@@ -437,31 +450,50 @@ document.getElementById("introBox").innerHTML=INTRO.map((x,i)=>`<div class="card
   <div class="ib">${x.html}</div></div>`).join("");
 document.querySelectorAll(".icard .ihead").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("fold"));
 
-// ── 듣기: 타임라인(json) 있으면 문장 하이라이트 + 탭 이동, 없으면 대본 텍스트만
+// ── 듣기: 교재 원문(위원회별 트랙, committees_book.json) + 선생님 강의. 줄을 탭하면 그 자리부터 재생
 (async function(){
-  const box=document.getElementById("scriptBox"), pl=document.getElementById("player");
+  const box=document.getElementById("scriptBox"), pl=document.getElementById("player"), trk=document.getElementById("bookTracks"), dl=document.getElementById("dl");
   document.querySelectorAll(".spd[data-r]").forEach(b=>b.onclick=()=>{pl.playbackRate=+b.dataset.r;document.querySelectorAll(".spd[data-r]").forEach(x=>x.classList.toggle("on",x===b));});
-  const NAMES={teacher:"중앙일반",solo:"단독넷"};
-  async function load(name){
-    pl.pause(); pl.src=`audio/committees_${name}.mp3?v=3`; pl.load();
-    const dl=document.getElementById("dl"); dl.href=pl.src; dl.download=`소방공무원법_위원회_${NAMES[name]}_선생님강의.mp3`;
+  const NAMES={teacher:"중앙일반",solo:"단독넷"}, BOOK_V=2;
+  const bkText=s=>esc(s).replace(/〔([^〕]*)〕/g,"<small>$1</small>");   // 〔조문·기출 표시〕는 작게
+  let book=null, cur=-1, last=0;   // cur: 재생 중인 교재 트랙(-1=선생님 강의)
+  function setSrc(src,file){const r=pl.playbackRate; pl.pause(); pl.src=src; pl.load(); pl.playbackRate=r; dl.href=src; dl.download=file;}
+  function follow(tl){
+    box.querySelectorAll("[data-s]").forEach(el=>el.onclick=()=>{pl.currentTime=+el.dataset.s;pl.play();});
+    pl.ontimeupdate=()=>{const t=pl.currentTime;let k=-1;for(let i=0;i<tl.length;i++){if(tl[i].s<=t)k=i;}
+      box.querySelectorAll("[data-s]").forEach((el,i)=>el.classList.toggle("now",i===k));
+      const el=box.querySelector(".now"); if(el&&!pl.paused){const r=el.getBoundingClientRect(); if(r.top<80||r.bottom>innerHeight-40) el.scrollIntoView({block:"center",behavior:"smooth"});}};
+  }
+  async function loadLecture(name){
+    cur=-1; trk.classList.add("hide");
+    setSrc(`audio/committees_${name}.mp3?v=3`,`소방공무원법_위원회_${NAMES[name]}_선생님강의.mp3`);
     let tl=null;
     try{tl=await (await fetch(`audio/committees_${name}.json?v=3`)).json();}catch(e){}
-    render(tl,name);
+    if(tl){box.innerHTML=tl.map((x,i)=>`<span data-i="${i}" data-s="${x.s}">${esc(x.t)}</span> `).join(""); follow(tl);}
+    else{pl.ontimeupdate=null;
+      try{const txt=await (await fetch(`audio/committees_${name}.txt?v=3`)).text(); box.innerHTML=txt.split(/\n\n+/).map(p=>`<p>${esc(p)}</p>`).join("");}catch(e){box.textContent="대본을 불러오지 못했습니다.";}}
   }
-  document.querySelectorAll("#playerBar .chips button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#playerBar .chips button").forEach(x=>x.classList.toggle("on",x===b));load(b.dataset.a);});
-  async function render(tl,name){
-  if(tl){
-    box.innerHTML=tl.map((x,i)=>`<span data-i="${i}" data-s="${x.s}">${esc(x.t)}</span> `).join("");
-    box.querySelectorAll("span").forEach(sp=>sp.onclick=()=>{pl.currentTime=+sp.dataset.s;pl.play();});
-    pl.ontimeupdate=()=>{const t=pl.currentTime;let k=-1;for(let i=0;i<tl.length;i++){if(tl[i].s<=t)k=i;}
-      box.querySelectorAll("span").forEach((sp,i)=>sp.classList.toggle("now",i===k));
-      const el=box.querySelector("span.now"); if(el&&!pl.paused){const r=el.getBoundingClientRect(); if(r.top<80||r.bottom>innerHeight-40) el.scrollIntoView({block:"center",behavior:"smooth"});}};
-  }else{
-    try{const txt=await (await fetch(`audio/committees_${name}.txt?v=3`)).text(); box.innerHTML=txt.split(/\n\n+/).map(p=>`<p>${esc(p)}</p>`).join("");}catch(e){box.textContent="대본을 불러오지 못했습니다.";}
+  async function loadBook(i,play){
+    trk.classList.remove("hide");
+    if(!book){
+      try{book=(await (await fetch(`audio/committees_book.json?v=${BOOK_V}`)).json()).tracks;}
+      catch(e){box.textContent="교재 핵심요약 목록을 불러오지 못했습니다.";return;}
+      trk.innerHTML=book.map((t,k)=>`<button data-k="${k}">${esc(t.no)} ${esc(t.title)}</button>`).join("");
+      trk.querySelectorAll("button").forEach(b=>b.onclick=()=>loadBook(+b.dataset.k,true));
+    }
+    cur=last=i; const t=book[i];
+    trk.querySelectorAll("button").forEach((b,k)=>b.classList.toggle("on",k===i));
+    setSrc(`audio/committees_book_${t.no}.mp3?v=${BOOK_V}`,`${t.no} ${t.title} (${t.ch}).mp3`);
+    box.innerHTML=`<div class="bknote">교재 ${esc(t.pages)} · ${Math.round(t.dur/60)}분 · 교재 본문 그대로 · 줄을 탭하면 그 자리부터 재생 · 끝나면 다음 위원회로 넘어감</div>`
+      +t.tl.map(x=>`<div class="bk bk-${x.k}" data-s="${x.s}">${bkText(x.t)}</div>`).join("");
+    follow(t.tl);
+    if(play){pl.play(); trk.querySelector("button.on").scrollIntoView({inline:"center",block:"nearest"});}
   }
-  }
-  load("teacher");
+  pl.onended=()=>{if(cur>=0&&book&&cur<book.length-1) loadBook(cur+1,true);};
+  document.querySelectorAll("#srcChips button").forEach(b=>b.onclick=()=>{
+    document.querySelectorAll("#srcChips button").forEach(x=>x.classList.toggle("on",x===b));
+    if(b.dataset.a==="book") loadBook(last,false); else loadLecture(b.dataset.a);});
+  loadBook(0,false);
 })();
 </script>
 </body>

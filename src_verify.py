@@ -11,7 +11,7 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent
 CH_DIR = BASE / "public" / "chapters"
 OUT = BASE / "audit" / "srcverify"
-OCR_TXT = Path("/tmp/admin_ocr.txt")
+OCR_TXT = Path(os.environ.get("SRCV_OCR", "/tmp/admin_ocr.txt"))
 ENV_FILE = Path.home() / "telegram-claude-bridge" / ".env"
 CLAUDE = "/opt/homebrew/bin/claude"
 MODEL = os.environ.get("SRCV_MODEL", "claude-fable-5-1")

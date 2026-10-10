@@ -3,7 +3,7 @@
   python3 src_verify.py judge [N]         # 의심 문항을 claude가 원문 복원·판정 (N=배치 수 제한, 테스트용)
   python3 src_verify.py apply [--deploy]  # 기계 검증 통과분만 적용 (+커밋·배포·텔레그램)
 복원 지문은 OCR 원문과 글자 대조로 재검증해 통과한 것만 반영한다(지어내기 방지)."""
-import difflib, json, re, shutil, subprocess, sys, time
+import difflib, json, os, re, shutil, subprocess, sys, time
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -14,7 +14,7 @@ OUT = BASE / "audit" / "srcverify"
 OCR_TXT = Path("/tmp/admin_ocr.txt")
 ENV_FILE = Path.home() / "telegram-claude-bridge" / ".env"
 CLAUDE = "/opt/homebrew/bin/claude"
-MODEL = "claude-fable-5-1"
+MODEL = os.environ.get("SRCV_MODEL", "claude-fable-5-1")
 FIREBASE_PROJECT = "work-schedule-dash-4ceb2"
 SKIP_CH = {"ch82"}          # 교재 밖 기출 회차
 GRAM, BUCKET = 8, 60
@@ -95,7 +95,12 @@ class Ocr:
 
 
 def load_chapters() -> dict:
-    files = sorted(p for p in CH_DIR.glob("ch*.json") if p.stem not in SKIP_CH)
+    only = {c.strip() for c in os.environ.get("SRCV_ONLY", "").split(",") if c.strip()}
+    files = sorted(
+        p
+        for p in CH_DIR.glob("ch*.json")
+        if p.stem not in SKIP_CH and (not only or p.stem in only)
+    )
     return {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in files}
 
 

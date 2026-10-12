@@ -1,0 +1,92 @@
+[
+ {
+  "id": "ch31:27",
+  "verdict": "same",
+  "orig_q": "",
+  "orig_src": "",
+  "ans": "",
+  "exp": "",
+  "note": "己는 乙의 OCR 오인식, 공통사례 지문·문항 전문 일치. src 17국회8 공통사례 태그와 동일"
+ },
+ {
+  "id": "ch31:36",
+  "verdict": "same",
+  "orig_q": "",
+  "orig_src": "",
+  "ans": "",
+  "exp": "",
+  "note": "'흔1다'→'한다' OCR 오타뿐, 23국회8 일치"
+ },
+ {
+  "id": "ch31:52",
+  "verdict": "same",
+  "orig_q": "",
+  "orig_src": "",
+  "ans": "",
+  "exp": "",
+  "note": "2단 분할된 조각 복원 시 전문 일치, 미기출 태그 동일"
+ },
+ {
+  "id": "ch31:68",
+  "verdict": "same",
+  "orig_q": "",
+  "orig_src": "",
+  "ans": "",
+  "exp": "",
+  "note": "'횐보된다'→'회복된다' OCR 오인식뿐, 17국가9 일치"
+ },
+ {
+  "id": "ch31:70",
+  "verdict": "notfound",
+  "orig_q": "",
+  "orig_src": "",
+  "ans": "",
+  "exp": "",
+  "note": "번호 문항 원문이 판서요약 조각('…한것은아니다. 11국가7')으로만 남아 전문 복원 불가"
+ },
+ {
+  "id": "ch31:85",
+  "verdict": "same",
+  "orig_q": "",
+  "orig_src": "",
+  "ans": "",
+  "exp": "",
+  "note": "江·己는 乙 OCR, 보기·①~⑤ 선택지 전문 일치, 16국회8 동일"
+ },
+ {
+  "id": "ch31:86",
+  "verdict": "same",
+  "orig_q": "",
+  "orig_src": "",
+  "ans": "",
+  "exp": "",
+  "note": "사례·①~⑤ 전문 일치, '11국가9+16국회8(변형)' 동일"
+ },
+ {
+  "id": "ch32:N4",
+  "verdict": "same",
+  "orig_q": "",
+  "orig_src": "",
+  "ans": "",
+  "exp": "",
+  "note": "발문은 OCR에서 누락되었으나 사례·①~④ 선택지 전문 일치하여 동일 문항"
+ },
+ {
+  "id": "ch32:61",
+  "verdict": "same",
+  "orig_q": "",
+  "orig_src": "",
+  "ans": "",
+  "exp": "",
+  "note": "앞부분 OCR 심하게 깨졌으나 사후변경 판례문구 표준형과 뒷부분 일치, 17(하)국가9 동일"
+ },
+ {
+  "id": "ch32:81",
+  "verdict": "same",
+  "orig_q": "",
+  "orig_src": "",
+  "ans": "",
+  "exp": "",
+  "note": "'⑤브'는 '조건인'의 OCR 깨짐, 나머지 문장과 결론 일치, 18지방9 동일"
+ }
+]

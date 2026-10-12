@@ -1,0 +1,235 @@
+10/09 18:18 [화재1 특이] 시도 1: python3 odd_scan.py --books 10 --workers 4
+  처리 168 / 오류 0
+10/09 18:45 음영 적용·전송 book 10
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3013, in __init__
+    doc = mupdf.fz_open_document_with_stream_and_dir(suffix, fz_stream, archive.this)
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/mupdf.py", line 53278, in fz_open_document_with_stream_and_dir
+    return _mupdf.fz_open_document_with_stream_and_dir(magic, stream, dir)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+pymupdf.mupdf.FzErrorFormat: code=7: no objects found
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 221, in <module>
+    main()
+    ~~~~^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 210, in main
+    out, stats, misses = apply_book(book, bm, pages, out_dir)
+                         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 137, in apply_book
+    doc = fitz.open(BOOK_DIR / BOOKS[book])
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3016, in __init__
+    raise FileDataError(f'Failed to open file {filename!r} as type {suffix}.') from e
+pymupdf.FileDataError: Failed to open file '/Users/kmj/Library/Mobile Documents/com~apple~CloudDocs/전술/10. 소방전술1(화재1).pdf' as type pdf.
+10/09 18:45 [화재2 특이] 시도 1: python3 odd_scan.py --books 11 --workers 4
+  처리 111 / 오류 0
+10/09 19:04 음영 적용·전송 book 11
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3013, in __init__
+    doc = mupdf.fz_open_document_with_stream_and_dir(suffix, fz_stream, archive.this)
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/mupdf.py", line 53278, in fz_open_document_with_stream_and_dir
+    return _mupdf.fz_open_document_with_stream_and_dir(magic, stream, dir)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+pymupdf.mupdf.FzErrorFormat: code=7: no objects found
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 221, in <module>
+    main()
+    ~~~~^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 210, in main
+    out, stats, misses = apply_book(book, bm, pages, out_dir)
+                         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 137, in apply_book
+    doc = fitz.open(BOOK_DIR / BOOKS[book])
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3016, in __init__
+    raise FileDataError(f'Failed to open file {filename!r} as type {suffix}.') from e
+pymupdf.FileDataError: Failed to open file '/Users/kmj/Library/Mobile Documents/com~apple~CloudDocs/전술/11. 소방전술1(화재2).pdf' as type pdf.
+10/09 19:04 [구조 기출] 시도 1: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 351 / 오류 269
+  한도 → 20분 대기
+10/09 19:32 [구조 기출] 시도 2: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 269 / 오류 269
+  한도 → 20분 대기
+10/09 19:56 [구조 기출] 시도 3: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 269 / 오류 235
+  한도 → 20분 대기
+10/09 20:19 [구조 기출] 시도 4: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 269 / 오류 269
+  한도 → 20분 대기
+10/09 20:43 [구조 기출] 시도 5: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 269 / 오류 269
+  한도 → 20분 대기
+10/09 21:07 [구조 기출] 시도 6: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 269 / 오류 269
+  한도 → 20분 대기
+10/09 21:31 [구조 기출] 시도 7: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 269 / 오류 269
+  한도 → 20분 대기
+10/09 21:54 [구조 기출] 시도 8: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 269 / 오류 269
+  한도 → 20분 대기
+10/09 22:18 [구조 기출] 시도 9: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 269 / 오류 269
+  한도 → 20분 대기
+10/09 22:42 [구조 기출] 시도 10: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 269 / 오류 269
+  한도 → 20분 대기
+10/09 23:05 [구조 기출] 시도 11: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 269 / 오류 269
+  한도 → 20분 대기
+10/09 23:29 [구조 기출] 시도 12: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 269 / 오류 227
+10/09 23:36 [구조 기출] 시도 13: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 227
+10/09 23:40 [구조 기출] 시도 14: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 227
+10/09 23:44 [구조 기출] 시도 15: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 227
+10/09 23:48 [구조 기출] 시도 16: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 227
+10/09 23:52 [구조 기출] 시도 17: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 227
+10/09 23:57 [구조 기출] 시도 18: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 227
+10/10 00:01 [구조 기출] 시도 19: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 227
+10/10 00:05 [구조 기출] 시도 20: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 227
+10/10 00:09 [구조 기출] 시도 21: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 227
+10/10 00:13 [구조 기출] 시도 22: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 227
+10/10 00:17 [구조 기출] 시도 23: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 227
+10/10 00:22 [화재1 특이] 시도 1: python3 odd_scan.py --books 10 --workers 4
+  처리 0 / 오류 0
+10/10 00:22 음영 적용·전송 book 10
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3013, in __init__
+    doc = mupdf.fz_open_document_with_stream_and_dir(suffix, fz_stream, archive.this)
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/mupdf.py", line 53278, in fz_open_document_with_stream_and_dir
+    return _mupdf.fz_open_document_with_stream_and_dir(magic, stream, dir)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+pymupdf.mupdf.FzErrorFormat: code=7: no objects found
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 221, in <module>
+    main()
+    ~~~~^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 210, in main
+    out, stats, misses = apply_book(book, bm, pages, out_dir)
+                         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 137, in apply_book
+    doc = fitz.open(BOOK_DIR / BOOKS[book])
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3016, in __init__
+    raise FileDataError(f'Failed to open file {filename!r} as type {suffix}.') from e
+pymupdf.FileDataError: Failed to open file '/Users/kmj/Library/Mobile Documents/com~apple~CloudDocs/전술/10. 소방전술1(화재1).pdf' as type pdf.
+10/10 00:22 [화재2 특이] 시도 1: python3 odd_scan.py --books 11 --workers 4
+  처리 0 / 오류 0
+10/10 00:22 음영 적용·전송 book 11
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3013, in __init__
+    doc = mupdf.fz_open_document_with_stream_and_dir(suffix, fz_stream, archive.this)
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/mupdf.py", line 53278, in fz_open_document_with_stream_and_dir
+    return _mupdf.fz_open_document_with_stream_and_dir(magic, stream, dir)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+pymupdf.mupdf.FzErrorFormat: code=7: no objects found
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 221, in <module>
+    main()
+    ~~~~^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 210, in main
+    out, stats, misses = apply_book(book, bm, pages, out_dir)
+                         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 137, in apply_book
+    doc = fitz.open(BOOK_DIR / BOOKS[book])
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3016, in __init__
+    raise FileDataError(f'Failed to open file {filename!r} as type {suffix}.') from e
+pymupdf.FileDataError: Failed to open file '/Users/kmj/Library/Mobile Documents/com~apple~CloudDocs/전술/11. 소방전술1(화재2).pdf' as type pdf.
+10/10 00:22 [구조 기출] 시도 1: python3 map_exam.py ts14 ts15 ts16 ts17 ts18 ts19 ts20 --workers 6
+  처리 227 / 오류 0
+10/10 00:44 [구조 특이] 시도 1: python3 odd_scan.py --books 12 --workers 4
+  처리 164 / 오류 1
+10/10 01:17 [구조 특이] 시도 2: python3 odd_scan.py --books 12 --workers 4
+  처리 1 / 오류 0
+10/10 01:18 음영 적용·전송 book 12
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3013, in __init__
+    doc = mupdf.fz_open_document_with_stream_and_dir(suffix, fz_stream, archive.this)
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/mupdf.py", line 53278, in fz_open_document_with_stream_and_dir
+    return _mupdf.fz_open_document_with_stream_and_dir(magic, stream, dir)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+pymupdf.mupdf.FzErrorFormat: code=7: no objects found
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 221, in <module>
+    main()
+    ~~~~^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 210, in main
+    out, stats, misses = apply_book(book, bm, pages, out_dir)
+                         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 137, in apply_book
+    doc = fitz.open(BOOK_DIR / BOOKS[book])
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3016, in __init__
+    raise FileDataError(f'Failed to open file {filename!r} as type {suffix}.') from e
+pymupdf.FileDataError: Failed to open file '/Users/kmj/Library/Mobile Documents/com~apple~CloudDocs/전술/12. 소방전술2(구조)-저용량.pdf' as type pdf.
+10/10 01:18 [구급 기출] 시도 1: python3 map_exam.py ts21 ts22 ts23 ts24 ts25 ts26 ts27 ts28 --workers 6
+  처리 358 / 오류 346
+  한도 → 20분 대기
+10/10 01:44 [구급 기출] 시도 2: python3 map_exam.py ts21 ts22 ts23 ts24 ts25 ts26 ts27 ts28 --workers 6
+  처리 346 / 오류 346
+  한도 → 20분 대기
+10/10 02:09 [구급 기출] 시도 3: python3 map_exam.py ts21 ts22 ts23 ts24 ts25 ts26 ts27 ts28 --workers 6
+  처리 346 / 오류 346
+  한도 → 20분 대기
+10/10 02:34 [구급 기출] 시도 4: python3 map_exam.py ts21 ts22 ts23 ts24 ts25 ts26 ts27 ts28 --workers 6
+  처리 346 / 오류 346
+  한도 → 20분 대기
+10/10 02:58 [구급 기출] 시도 5: python3 map_exam.py ts21 ts22 ts23 ts24 ts25 ts26 ts27 ts28 --workers 6
+  처리 346 / 오류 346
+  한도 → 20분 대기
+10/10 03:23 [구급 기출] 시도 6: python3 map_exam.py ts21 ts22 ts23 ts24 ts25 ts26 ts27 ts28 --workers 6
+  처리 346 / 오류 277
+  한도 → 20분 대기
+10/10 03:47 [구급 기출] 시도 7: python3 map_exam.py ts21 ts22 ts23 ts24 ts25 ts26 ts27 ts28 --workers 6
+  처리 346 / 오류 346
+  한도 → 20분 대기
+10/10 04:12 [구급 기출] 시도 8: python3 map_exam.py ts21 ts22 ts23 ts24 ts25 ts26 ts27 ts28 --workers 6
+  처리 346 / 오류 0
+10/10 04:38 [구급 특이] 시도 1: python3 odd_scan.py --books 13 --workers 4
+  처리 173 / 오류 0
+10/10 05:17 음영 적용·전송 book 13
+Traceback (most recent call last):
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3013, in __init__
+    doc = mupdf.fz_open_document_with_stream_and_dir(suffix, fz_stream, archive.this)
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/mupdf.py", line 53278, in fz_open_document_with_stream_and_dir
+    return _mupdf.fz_open_document_with_stream_and_dir(magic, stream, dir)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+pymupdf.mupdf.FzErrorFormat: code=7: no objects found
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 221, in <module>
+    main()
+    ~~~~^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 210, in main
+    out, stats, misses = apply_book(book, bm, pages, out_dir)
+                         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kmj/projects/flashcards-site/bookmark/apply_marks.py", line 137, in apply_book
+    doc = fitz.open(BOOK_DIR / BOOKS[book])
+  File "/opt/homebrew/lib/python3.14/site-packages/pymupdf/__init__.py", line 3016, in __init__
+    raise FileDataError(f'Failed to open file {filename!r} as type {suffix}.') from e
+pymupdf.FileDataError: Failed to open file '/Users/kmj/Library/Mobile Documents/com~apple~CloudDocs/전술/13. 소방전술3(구급)-저용량.pdf' as type pdf.
+10/10 05:17 전부 끝

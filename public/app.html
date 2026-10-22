@@ -870,6 +870,8 @@ function mergeQstat(a,b){
     const m={s:Math.max(x.s||0,y.s||0), w:Math.max(x.w||0,y.w||0)};
     const t=Math.max(x.t||0,y.t||0); if(t) m.t=t;   // ⏱ 시간초과 기록도 동기화 유지
     const at=Math.max(x.at||0,y.at||0); if(at) m.at=at; // 평균 풀이시간 — 느린 기록 우선 보존
+    const r=(x.w||0)>(y.w||0) ? (x.r||0) : (y.w||0)>(x.w||0) ? (y.r||0) : Math.max(x.r||0,y.r||0);
+    if(r) m.r=r;   // 연속정답 — 오답이 더 많은(최신) 쪽을 따른다
     if(x.m||y.m) m.m=1;
     out[k]=m;
   });
@@ -1180,13 +1182,15 @@ const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
    ch를 생략하면 지금 활성 기록(S) 기준 — 기존 호출부는 그대로 동작한다. */
 const qst=(no,ch)=>(recOf(ch).qstat||{})[no]||{};
 const qw=(no,ch)=>qst(no,ch).w||0;
+const qr=(no,ch)=>qst(no,ch).r||0;                        // 마지막 오답 이후 연속 정답 수
+const qeff=(no,ch)=>Math.max(0,qw(no,ch)-qr(no,ch));      // 유효 오답 = 틀린 횟수 − 연속 정답 (맞히면 줄어든다)
 const qt=(no,ch)=>qst(no,ch).t||0;                        // ⏱ 시간초과 횟수 (맞혔어도 기록)
 const qmark=(no,ch)=>!!qst(no,ch).m;                      // 사용자가 직접 체크한 문제
 const qat=(no,ch)=>qst(no,ch).at||0;                      // 평균 풀이시간(초) — 오래 걸림 = 헷갈림
-const isWeak=(no,ch)=>qw(no,ch)>0 || qmark(no,ch) || qt(no,ch)>0;   // 취약 = 틀렸거나 체크했거나 시간초과
+const isWeak=(no,ch)=>qeff(no,ch)>0 || qmark(no,ch) || qt(no,ch)>0;   // 취약 = 틀렸거나 체크했거나 시간초과
 const isSolved=(no,ch)=>!!(qst(no,ch).s>0);               // 한 번이라도 푼 문항
 // 취약 우선 정렬 가중치 — 오답 10/회 > 시간초과 7/회 > 체크 5 + 풀이시간(최대 10점, 30초=만점)
-const weakWeight=(no,ch)=>qw(no,ch)*10 + qt(no,ch)*7 + (qmark(no,ch)?5:0) + Math.min(qat(no,ch),30)/3;
+const weakWeight=(no,ch)=>qeff(no,ch)*10 + qt(no,ch)*7 + (qmark(no,ch)?5:0) + Math.min(qat(no,ch),30)/3;
 function toggleMark(no){
   const st = S.qstat[no] || (S.qstat[no]={s:0,w:0});
   st.m = st.m?0:1; save();
@@ -2020,7 +2024,7 @@ function answer(a){
   // 단, 연관문제(_rel)는 다른 챕터 문항이라 이 챕터 qstat에 쓰면 진도가 오염된다 — 건너뜀
   if(!q._rel){
     const st = S.qstat[q.no] || (S.qstat[q.no]={s:0,w:0});
-    st.s++; if(!correct) st.w++;
+    st.s++; if(!correct){ st.w++; st.r=0; } else st.r=(st.r||0)+1;   // r = 마지막 오답 이후 연속 정답 수 → 유효 오답 = w−r
     if(overtime) st.t=(st.t||0)+1;             // ⏱ 맞혀도 시간초과는 취약 기록으로 남긴다
     // 평균 풀이시간(at) — 최근 풀이에 40% 가중 EMA. 오래 걸린 문제 = 헷갈리는 문제로 기억
     if(sec>0) st.at = st.at ? Math.round((st.at*0.6 + sec*0.4)*10)/10 : sec;
@@ -3816,13 +3820,13 @@ async function rankBoot(wlog){
         for(const no in (wlog[d][id]||{})){ const m=(byCh[id]=byCh[id]||{}); m[String(no)]=(m[String(no)]||0)+1; }
       }
     });
-    for(const id in byCh){ for(const no in byCh[id]){ if(byCh[id][no]<RVMIN) delete byCh[id][no]; } if(!Object.keys(byCh[id]).length) delete byCh[id]; }
+    for(const id in byCh){ for(const no in byCh[id]){ byCh[id][no]=Math.max(0, byCh[id][no]-qr(no,id)); if(byCh[id][no]<RVMIN) delete byCh[id][no]; } if(!Object.keys(byCh[id]).length) delete byCh[id]; }
   }else{
     const ids=new Set(Object.keys(CLOUDCH||{}));
     for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && /^fc:[a-z]+\d/.test(k)) ids.add(k.slice(3)); }
     [...ids].filter(id=>/^[a-z]+\d/.test(id) && subs.has(subOf(id))).forEach(id=>{
       const st=recOf(id).qstat||{};
-      for(const no in st){ const w=(st[no]&&st[no].w)||0; if(w>=RVMIN) (byCh[id]=byCh[id]||{})[String(no)]=w; }
+      for(const no in st){ const w=qeff(no,id); if(w>=RVMIN) (byCh[id]=byCh[id]||{})[String(no)]=w; }
     });
   }
   if(!Object.keys(byCh).length){ reviewEmpty(`${label}에서 ${RVMIN}회 이상 틀린 문항이 없습니다.`); return; }
@@ -3834,7 +3838,7 @@ async function rankBoot(wlog){
     ((d&&d.questions)||[]).forEach(q=>{
       const w=byCh[id][String(q.no)];
       if(w) qs.push(Object.assign({}, q, {_ch:id, _w:w,
-        theme:`❌${w}회 · ${chLabel(id)} ${q.no}번`+(q.theme?" · "+q.theme:"")}));
+        theme:`❌${w}회${qr(q.no,id)?" (연속정답"+qr(q.no,id)+")":""} · ${chLabel(id)} ${q.no}번`+(q.theme?" · "+q.theme:"")}));
     });
   }));
   if(!qs.length){ reviewEmpty("오답순위 문항을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."); return; }

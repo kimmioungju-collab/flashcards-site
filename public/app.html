@@ -14,17 +14,26 @@
 <script>
 /* ── 접근 잠금 게이트 (비번 1회 입력 → 기기에 기억) ── */
 (function(){
-  const H="2d4dd6abff89d0689f210ce69d566fb8d2d4a1c7941f9e17e357c67bcf9d208c";
-  const KEY="ox_gate_v2";
-  if(localStorage.getItem(KEY)===H) return;
+  const H_MAIN="2d4dd6abff89d0689f210ce69d566fb8d2d4a1c7941f9e17e357c67bcf9d208c";   // kmj8854! (일반 접속 → 게스트)
+  const H_OWNER="e4a4aab8c43be193a25705e0c0062ade7022ca6b83e072c8ff29fa30dbf1e507";  // 0323 (소유자 코드 1111 접속)
+  const KEY="ox_gate_v4";   // 스킴 변경 — 전 기기 1회 재인증(역할 재적용)
+  if(localStorage.getItem(KEY)==="ok") return;
   document.documentElement.style.visibility="hidden";
   async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
   window.addEventListener("DOMContentLoaded",async function(){
     for(let i=0;i<3;i++){
       const p=prompt("🔒 비밀번호를 입력하세요");
       if(p===null) break;
-      if(await sha(p.trim())===H){
-        localStorage.setItem(KEY,H);
+      const h=await sha(p.trim());
+      if(h===H_MAIN||h===H_OWNER){
+        try{
+          const cur=(localStorage.getItem("fc:synccode")||"").trim();
+          let changed=false;
+          if(h===H_OWNER){ if(cur!=="1111"){ localStorage.setItem("fc:synccode","1111"); changed=true; } localStorage.removeItem("fc:syncoff"); }
+          else if(cur==="1111"){ localStorage.setItem("fc:synccode","guest"); changed=true; }   // 일반 접속인데 1111이면 게스트로 강등
+          localStorage.setItem(KEY,"ok");
+          if(changed){ location.reload(); return; }
+        }catch(e){ try{localStorage.setItem(KEY,"ok");}catch(_){} }
         document.documentElement.style.visibility="";
         return;
       }
@@ -38,6 +47,7 @@
 (function(){
   const qs=new URLSearchParams(location.search), s=qs.get("sync"); if(s===null) return;
   const code=s.trim(), cur=(localStorage.getItem("fc:synccode")||"").trim();
+  if(code==="1111") return;   // 소유자 코드는 URL(?sync=1111)로 설정 불가 — 게이트 0323으로만
   if(!code || (code===cur && qs.get("fresh")!=="1")) return;   // &fresh=1 이면 같은 코드라도 이 기기 로컬 진도를 비운다
   Object.keys(localStorage).filter(k=>k.startsWith("fc:")&&k!=="fc:synccode").forEach(k=>localStorage.removeItem(k));
   localStorage.setItem("fc:synccode",code); localStorage.removeItem("fc:syncoff");
@@ -429,6 +439,9 @@ body.review #aiSumBtn2,body.review #nextChBtn,
 body.review #histBox,body.review #wrongDayBtn{display:none!important}
 /* 날짜 오답 덱에서는 그날 취약 문항 기준 AI 정리본을 쓸 수 있다 */
 body.review.rvsum #aiSumBtn{display:inline-block!important}
+/* 🔒 공유받은 사람(비소유자) — AI 질문·정리본 버튼 전부 숨김 (리뷰 모드 예외보다 우선) */
+body.guest #askBtn,body.guest #aiSumBtn,body.guest #aiSumBtn2,
+body.guest.review #aiSumBtn,body.guest.review.rvsum #aiSumBtn{display:none!important}
 /* 📅 오답 날짜 고르기 */
 .rvpick{display:flex;flex-direction:column;gap:9px;margin-top:4px}
 .rvpick .rvday{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1.5px solid var(--line);
@@ -439,6 +452,13 @@ body.review.rvsum #aiSumBtn{display:inline-block!important}
 .rvpick .rvday .rvcnt{margin-left:auto;font-size:13px;font-weight:900;color:var(--wrong)}
 .rvpick .rvday.today .rvlbl{background:var(--right)}
 .rvpick .rvday.yday .rvlbl{background:#2E75B6}
+/* 날짜별 오답 — 챕터·문항번호 한눈에 (날짜 아래 두 번째 줄) */
+.rvpick .rvday.rvwrap{flex-direction:column;align-items:stretch;gap:7px}
+.rvpick .rvday.rvwrap .rvtop{display:flex;align-items:center;gap:10px;width:100%}
+.rvpick .rvbreak{font-size:12px;font-weight:700;color:#5A7285;line-height:1.7;text-align:left;word-break:keep-all}
+.rvpick .rvbreak .rvseg{display:inline}
+.rvpick .rvbreak .rvch{color:#2E75B6;font-weight:900}
+.rvpick .rvbreak .rvsep{color:#C3CCD6;margin:0 6px}
 .rvsubs{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 4px}
 .rvsubs button{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:7px 13px;
   font-size:13px;font-weight:800;color:#5B6672;cursor:pointer}
@@ -715,7 +735,10 @@ function subsQS(){ return RVSUB.size ? "&rsub="+[...RVSUB].join(",") : ""; }
 function subsLabel(){
   return RVSUB.size ? SUBJS.filter(s=>RVSUB.has(s.k)).map(s=>s.n).join("·") : "전 과목";
 }
-const REVIEW = RVPARAM === "prev" || RVPARAM === "pick" || !!RVDATE;
+/* 🏆 오답순위 모드 — ?review=rank&min=3 : 누적 오답이 min회 이상인 문항만 많이 틀린 순으로 (기본 행정법) */
+const RVRANK = RVPARAM === "rank";
+const RVMIN = Math.max(1, parseInt(new URLSearchParams(location.search).get("min")||"3",10) || 3);
+const REVIEW = RVPARAM === "prev" || RVPARAM === "pick" || !!RVDATE || RVRANK;
 let RVTARGET = "";   // 실제로 푸는 오답 날짜(YYYY-MM-DD) — AI 정리본을 이 날짜 기준으로 만든다
 if(REVIEW) document.body.classList.add("review");
 /* 🎯 등급 회독 — 목차 플랜에서 등급(S/A/…)을 고르면 그 등급만 전 챕터를 돌린다.
@@ -760,7 +783,7 @@ window.addEventListener("unhandledrejection", e => {
    진도·회독·오답은 클라우드에 있으므로, 로컬만 비우고 다시 받아오면 그대로 복구된다. */
 if(new URLSearchParams(location.search).get("wipe") === "1"){
   try{
-    const code = (localStorage.getItem("fc:synccode") || "1111").trim();
+    const code = (localStorage.getItem("fc:synccode") || "guest").trim();  // 코드 없으면 게스트 (소유자 1111 아님)
     const n = localStorage.length;
     localStorage.clear();
     localStorage.setItem("fc:synccode", code);
@@ -782,7 +805,7 @@ if(FRESH && CH){
       if(k && (k.indexOf("fcAns:"+CH+":")===0 || k.indexOf("fcPend:"+CH+":")===0)) kill.push(k);
     }
     kill.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
-    fetch(_RTDB + "/flashcards/" + encodeURIComponent((localStorage.getItem("fc:synccode")||"1111").trim())
+    fetch(_RTDB + "/flashcards/" + encodeURIComponent((localStorage.getItem("fc:synccode")||"guest").trim())
           + "/ch/" + CH + "/prog.json", {method:"DELETE"}).catch(()=>{});
     report("fresh", {killed:kill.length});
   }catch(e){}
@@ -820,15 +843,19 @@ setTimeout(()=>{ rescue("last"); }, 9000);
 
 /* ── 클라우드 동기화 (기기 간 진도 공유) ── */
 const DBURL = "https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com";
-const DEFAULT_SYNC = "1111";  // 코드 미설정 기기는 자동으로 이 코드 사용 (index.html과 동일)
-const LEGACY_SYNC = "kmj";    // 예전 기본값 — 실제 진도는 1111에 있으므로 자동으로 옮겨준다
+const OWNER_SYNC = "1111";    // 소유자(나) 코드 — 실제 진도 + AI 기능 (index.html과 동일)
+const DEFAULT_SYNC = "guest"; // 코드 미설정 기기(공유받은 사람)의 기본값 — 소유자 1111 데이터와 분리
+const LEGACY_SYNC = "kmj";    // 예전 테스트 코드 — 소유자 1111로 자동 이전
 const SYNC = (function(){
   const c = (localStorage.getItem("fc:synccode") || "").trim();
-  if(c && c !== LEGACY_SYNC) return c;
-  if(!c && localStorage.getItem("fc:syncoff") === "1") return "";
+  if(c === LEGACY_SYNC){ try{ localStorage.setItem("fc:synccode", OWNER_SYNC); }catch(e){} return OWNER_SYNC; }
+  if(c) return c;                                    // 이미 설정된 코드 유지
+  if(localStorage.getItem("fc:syncoff") === "1") return "";
   try{ localStorage.setItem("fc:synccode", DEFAULT_SYNC); }catch(e){}
-  return DEFAULT_SYNC;
+  return DEFAULT_SYNC;                               // 신규 기기 = 게스트 (소유자 아님)
 })();
+/* 앱 소유자(1111 코드) 여부 — 공유받은 사람(게스트·그 외 코드)은 AI 질문·정리본 등 소통 기능을 못 쓴다 */
+const IS_OWNER = (SYNC === OWNER_SYNC);
 function cloudUrl(p){ return `${DBURL}/flashcards/${encodeURIComponent(SYNC)}/${p}.json`; }
 /* 빈(사실상 기록 없는) 레코드 판별 — 빈 기록이 실기록을 덮어쓰는 사고 방지용
    (2026-08-05 ch01·02 진도 소실 원인) */
@@ -1387,6 +1414,7 @@ window.addEventListener("focus", () => sweepPending());
 function renderAskBtn(q){
   const b=$("askBtn");
   clearInterval(ansTimer);
+  if(!IS_OWNER){ b.style.display="none"; showAns(q,"hide"); return; }  // 공유받은 사람은 질문 불가
   b.disabled=false; b.style.display="";
   b.textContent="💬 이 문제 질문하기 (답변은 여기에 표시)";
 
@@ -1871,7 +1899,14 @@ function show(){
       if(canRel){ rb.disabled=false; rb.textContent=`🔗 이 문항의 연관문제 ${q.slinks.length}개 먼저 풀기`; }
     }
   }
-  document.querySelector(".qscroll").scrollTop=0;
+  resetQScroll();
+}
+/* 문제 전환 시 본문 스크롤을 맨 위로 — 레이아웃/브라우저 스크롤 복원 이후에도 확실히 고정 */
+function resetQScroll(){
+  const el=document.querySelector(".qscroll");
+  if(!el) return;
+  el.scrollTop=0;
+  requestAnimationFrame(()=>{ el.scrollTop=0; requestAnimationFrame(()=>{ el.scrollTop=0; }); });
 }
 /* 링크 이동 URL — 돌아올 지점(back)을 함께 실어보낸다 */
 function jumpUrl(l, fromQno){
@@ -2330,6 +2365,7 @@ function aiSumRequest(){
     .catch(()=>{ $("aiSumStat").textContent="요청 실패 — 다시 시도해 주세요."; $("aiSumMake").disabled=false; });
 }
 async function openAiSum(){
+  if(!IS_OWNER){ toast("앱 소유자만 AI 정리본을 쓸 수 있어요"); return; }  // 공유받은 사람 차단
   $("aiSumWrap").classList.add("show");
   $("aiSumWrap").querySelector(".sheet").scrollTop=0;
   $("aiSumStat").textContent="상태 확인 중…";
@@ -3433,6 +3469,8 @@ $("reviewBtn2").addEventListener("click",openReview);
 $("reviewClose").addEventListener("click",()=>$("reviewWrap").classList.remove("show"));
 $("reviewWrap").addEventListener("click",e=>{if(e.target===$("reviewWrap"))$("reviewWrap").classList.remove("show");});
 $("reviewSolveBtn").addEventListener("click",()=>{ $("reviewWrap").classList.remove("show"); startWeakDeck(); });
+/* 공유받은 사람은 AI 소통 버튼을 숨긴다 (CSS body.guest) */
+if(!IS_OWNER) document.body.classList.add("guest");
 $("aiSumBtn").addEventListener("click",openAiSum);
 $("aiSumBtn2").addEventListener("click",openAiSum);
 $("aiSumClose").addEventListener("click",closeAiSum);
@@ -3608,6 +3646,22 @@ function chLabel(id){
         : /^hz/.test(id)?"위험물"+id.replace(/^hz0?/,"")
         : id.replace(/^ch0?/,"")) + "장";
 }
+/* 챕터 정렬 키: 과목(ch→fs→ts→hz→rv) → 챕터번호 순 */
+function chSortKey(id){
+  const order={ch:0,fs:1,ts:2,hz:3,rv:4};
+  const m=String(id).match(/^([a-z]+)(\d+)/)||[];
+  return (order[m[1]]!=null?order[m[1]]:9)*1000 + (parseInt(m[2],10)||0);
+}
+/* 그 날짜의 오답을 '챕터 몇번·몇번' 형태로 한눈에 — 날짜 고르기 화면 두 번째 줄 */
+function rvDayBreak(byCh){
+  const segs=Object.keys(byCh||{}).sort((a,b)=>chSortKey(a)-chSortKey(b)).map(id=>{
+    const nos=Object.keys(byCh[id]||{}).map(n=>parseInt(n,10)).filter(n=>!isNaN(n)).sort((x,y)=>x-y);
+    if(!nos.length) return "";
+    const list=nos.map(n=>String(n).padStart(2,"0")).join("·");
+    return `<span class="rvseg"><span class="rvch">${esc(chLabel(id))}</span> ${list}</span>`;
+  }).filter(Boolean);
+  return segs.join('<span class="rvsep">·</span>');
+}
 /* 한 챕터만 남긴 오답 로그 (rch 지정 시) */
 function onlyCh(wlog, ch){
   const m={};
@@ -3675,9 +3729,10 @@ function reviewPick(wlogAll){
   const rows = days.length ? days.map(d=>{
     const cls = d===today ? "today" : d===yday ? "yday" : "";
     const lbl = d===today ? "오늘" : d===yday ? "어제" : rvWd(d)+"요일";
-    return `<button class="rvday ${cls}" onclick="location.href='${rvQS(d)}'">`
-      + `<span class="rvmd">${rvMD(d)}</span><span class="rvlbl">${lbl}</span>`
-      + `<span class="rvcnt">오답 ${wlogCount(wlog[d])}문항</span></button>`;
+    return `<button class="rvday rvwrap ${cls}" onclick="location.href='${rvQS(d)}'">`
+      + `<span class="rvtop"><span class="rvmd">${rvMD(d)}</span><span class="rvlbl">${lbl}</span>`
+      + `<span class="rvcnt">오답 ${wlogCount(wlog[d])}문항</span></span>`
+      + `<span class="rvbreak">${rvDayBreak(wlog[d])}</span></button>`;
   }).join("")
   : `<div style="padding:14px 4px;color:#8B97A3;font-weight:700">${esc(subsLabel())} 오답 기록이 없습니다.</div>`;
   const scope = RVCH ? chLabel(RVCH) : subsLabel();
@@ -3701,6 +3756,7 @@ async function reviewBoot(){
   // 복습 덱은 필터를 타지 않는다 (화면 세션에만 적용 — 전역 설정은 건드리지 않음)
   selThemes=new Set(); selGrades=new Set(); weakOnlyOn=false; weakFirstOn=false; unsolvedOnlyOn=false;
   let wlog=await collectWlog();
+  if(RVRANK){ await rankBoot(); return; }   // 🏆 오답순위 — CLOUDCH 확보 후 누적 오답 횟수로 덱 구성
   if(RVCH) wlog=onlyCh(wlog, RVCH);      // 이 챕터의 오답만
   if(RVPARAM==="pick"){ reviewPick(wlog); return; }   // 과목 체크는 고르기 화면에서 처리
   if(!RVCH) wlog=onlySubs(wlog, RVSUB);  // 고른 과목의 오답만
@@ -3739,6 +3795,42 @@ async function reviewBoot(){
   $("keyTitle").textContent="📋 답안 확인 — "+label+" 오답 복습";
   deck=[...qs]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
   if(shuffleOn){ for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; } }
+  REDO_SESSION=true;   // 전부 이미 푼 문항 — "과거 풀이 인정" 규칙 끔
+  $("doneBox").style.display="none"; $("card").style.display="flex";
+  show();
+}
+/* 🏆 오답순위 — 전 챕터 누적 오답(qstat.w)이 RVMIN회 이상인 문항을 모아 많이 틀린 순으로 푼다.
+   과목은 ?rsub= 로 지정 (없으면 행정법만). 순위가 핵심이므로 섞기는 적용하지 않는다. */
+async function rankBoot(){
+  $("chTitle").textContent="오답순위 집계 중…";
+  const subs = (_rsubParam!==null && RVSUB.size) ? RVSUB : new Set(["ch"]);
+  const label = SUBJS.filter(x=>subs.has(x.k)).map(x=>x.n).join("·");
+  const ids=new Set(Object.keys(CLOUDCH||{}));
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && /^fc:[a-z]+\d/.test(k)) ids.add(k.slice(3)); }
+  const byCh={};   // { ch13: { "32": 10 } }
+  [...ids].filter(id=>/^[a-z]+\d/.test(id) && subs.has(subOf(id))).forEach(id=>{
+    const st=recOf(id).qstat||{};
+    for(const no in st){ const w=(st[no]&&st[no].w)||0; if(w>=RVMIN) (byCh[id]=byCh[id]||{})[String(no)]=w; }
+  });
+  if(!Object.keys(byCh).length){ reviewEmpty(`${label}에서 ${RVMIN}회 이상 틀린 문항이 없습니다.`); return; }
+  const qs=[];
+  await Promise.all(Object.keys(byCh).map(async id=>{
+    const r=await fetchCap(`chapters/${id}.json`, 8000);
+    if(!r||!r.ok) return;
+    let d=null; try{ d=await r.json(); }catch(e){ return; }
+    ((d&&d.questions)||[]).forEach(q=>{
+      const w=byCh[id][String(q.no)];
+      if(w) qs.push(Object.assign({}, q, {_ch:id, _w:w,
+        theme:`❌${w}회 · ${chLabel(id)} ${q.no}번`+(q.theme?" · "+q.theme:"")}));
+    });
+  }));
+  if(!qs.length){ reviewEmpty("오답순위 문항을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."); return; }
+  qs.sort((a,b)=> (b._w-a._w) || (a._ch<b._ch?-1:a._ch>b._ch?1:0) || (numNo(a.no)-numNo(b.no)));
+  QUESTIONS=qs;
+  document.title=`오답순위 ${RVMIN}회+`;
+  $("chTitle").textContent=`🏆 ${label} 오답순위 — ${RVMIN}회 이상 (${qs.length}문항)`;
+  $("keyTitle").textContent=`📋 답안 확인 — 오답순위 ${RVMIN}회+`;
+  deck=[...qs]; idx=0; ok=0; no=0; wrongs=[]; answers=[];
   REDO_SESSION=true;   // 전부 이미 푼 문항 — "과거 풀이 인정" 규칙 끔
   $("doneBox").style.display="none"; $("card").style.display="flex";
   show();

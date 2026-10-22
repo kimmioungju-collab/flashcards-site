@@ -738,6 +738,7 @@ function subsLabel(){
 /* 🏆 오답순위 모드 — ?review=rank&min=3 : 누적 오답이 min회 이상인 문항만 많이 틀린 순으로 (기본 행정법) */
 const RVRANK = RVPARAM === "rank";
 const RVMIN = Math.max(1, parseInt(new URLSearchParams(location.search).get("min")||"3",10) || 3);
+const RVDAYS = Math.max(0, parseInt(new URLSearchParams(location.search).get("days")||"0",10) || 0);   // &days=14 : 최근 N일 오답 로그 기준
 const REVIEW = RVPARAM === "prev" || RVPARAM === "pick" || !!RVDATE || RVRANK;
 let RVTARGET = "";   // 실제로 푸는 오답 날짜(YYYY-MM-DD) — AI 정리본을 이 날짜 기준으로 만든다
 if(REVIEW) document.body.classList.add("review");
@@ -3756,7 +3757,7 @@ async function reviewBoot(){
   // 복습 덱은 필터를 타지 않는다 (화면 세션에만 적용 — 전역 설정은 건드리지 않음)
   selThemes=new Set(); selGrades=new Set(); weakOnlyOn=false; weakFirstOn=false; unsolvedOnlyOn=false;
   let wlog=await collectWlog();
-  if(RVRANK){ await rankBoot(); return; }   // 🏆 오답순위 — CLOUDCH 확보 후 누적 오답 횟수로 덱 구성
+  if(RVRANK){ await rankBoot(wlog); return; }   // 🏆 오답순위 — CLOUDCH 확보 후 누적 오답 횟수로 덱 구성
   if(RVCH) wlog=onlyCh(wlog, RVCH);      // 이 챕터의 오답만
   if(RVPARAM==="pick"){ reviewPick(wlog); return; }   // 과목 체크는 고르기 화면에서 처리
   if(!RVCH) wlog=onlySubs(wlog, RVSUB);  // 고른 과목의 오답만
@@ -3801,17 +3802,29 @@ async function reviewBoot(){
 }
 /* 🏆 오답순위 — 전 챕터 누적 오답(qstat.w)이 RVMIN회 이상인 문항을 모아 많이 틀린 순으로 푼다.
    과목은 ?rsub= 로 지정 (없으면 행정법만). 순위가 핵심이므로 섞기는 적용하지 않는다. */
-async function rankBoot(){
+async function rankBoot(wlog){
   $("chTitle").textContent="오답순위 집계 중…";
   const subs = (_rsubParam!==null && RVSUB.size) ? RVSUB : new Set(["ch"]);
-  const label = SUBJS.filter(x=>subs.has(x.k)).map(x=>x.n).join("·");
-  const ids=new Set(Object.keys(CLOUDCH||{}));
-  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && /^fc:[a-z]+\d/.test(k)) ids.add(k.slice(3)); }
+  const label = SUBJS.filter(x=>subs.has(x.k)).map(x=>x.n).join("·") + (RVDAYS ? ` 최근 ${RVDAYS}일` : "");
   const byCh={};   // { ch13: { "32": 10 } }
-  [...ids].filter(id=>/^[a-z]+\d/.test(id) && subs.has(subOf(id))).forEach(id=>{
-    const st=recOf(id).qstat||{};
-    for(const no in st){ const w=(st[no]&&st[no].w)||0; if(w>=RVMIN) (byCh[id]=byCh[id]||{})[String(no)]=w; }
-  });
+  if(RVDAYS){
+    // 최근 N일 — 날짜별 오답 로그에서 틀린 날 수를 센다 (누적 qstat.w 아님)
+    const from=wlogDay(Date.now()-(RVDAYS-1)*86400000);
+    Object.keys(wlog||{}).filter(d=>d>=from).forEach(d=>{
+      for(const id in wlog[d]){
+        if(!subs.has(subOf(id))) continue;
+        for(const no in (wlog[d][id]||{})){ const m=(byCh[id]=byCh[id]||{}); m[String(no)]=(m[String(no)]||0)+1; }
+      }
+    });
+    for(const id in byCh){ for(const no in byCh[id]){ if(byCh[id][no]<RVMIN) delete byCh[id][no]; } if(!Object.keys(byCh[id]).length) delete byCh[id]; }
+  }else{
+    const ids=new Set(Object.keys(CLOUDCH||{}));
+    for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && /^fc:[a-z]+\d/.test(k)) ids.add(k.slice(3)); }
+    [...ids].filter(id=>/^[a-z]+\d/.test(id) && subs.has(subOf(id))).forEach(id=>{
+      const st=recOf(id).qstat||{};
+      for(const no in st){ const w=(st[no]&&st[no].w)||0; if(w>=RVMIN) (byCh[id]=byCh[id]||{})[String(no)]=w; }
+    });
+  }
   if(!Object.keys(byCh).length){ reviewEmpty(`${label}에서 ${RVMIN}회 이상 틀린 문항이 없습니다.`); return; }
   const qs=[];
   await Promise.all(Object.keys(byCh).map(async id=>{

@@ -158,6 +158,20 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .exp .trap{color:var(--wrong);font-weight:800}
 .exp .trap mark{background:linear-gradient(transparent 40%,var(--hl) 40%);padding:0 2px;border-radius:2px;color:var(--wrong)}
 .exp .fix{color:var(--right)} .exp .fix b{font-weight:900}
+/* 📖 해설 자리에 요약 근거 섹션 — 교재 원문 해설은 아래 '📘 교재 해설'로 접어 둔다 */
+.exp .sumexp{white-space:normal;line-height:1.75}
+.exp .sumexp .sxh{font-size:12.5px;font-weight:900;color:#2E75B6;margin-bottom:6px}
+.exp .sumexp ul{margin:0;padding-left:4px;list-style:none}
+.exp .sumexp li{position:relative;padding-left:16px;margin-bottom:8px}
+.exp .sumexp li::before{content:"•";position:absolute;left:2px;top:0;color:#2E75B6;font-weight:900}
+.exp .sumexp p{margin:0 0 8px}
+.exp .sumexp b{color:#1A2B45;font-weight:800;background:#FFF1A8;padding:1px 0;border-radius:3px;box-shadow:2px 0 0 #FFF1A8,-2px 0 0 #FFF1A8;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.exp .sumexp .sxhit{background:#FFF3C4;border-radius:6px;box-shadow:0 0 0 4px #FFF3C4}
+.exp details.bookexp{margin-top:10px}
+.exp details.bookexp summary{cursor:pointer;font-size:12.5px;font-weight:900;color:var(--muted);list-style:none}
+.exp details.bookexp summary::-webkit-details-marker{display:none}
+.exp details.bookexp summary::before{content:"▸ "} .exp details.bookexp[open] summary::before{content:"▾ "}
+.exp details.bookexp .bx{margin-top:6px}
 .linkbox{margin-top:14px;padding:12px 13px;border:1.5px solid var(--line);border-radius:12px;background:#F4F8FF}
 .linklabel{font-size:12px;font-weight:900;color:#2B5D8A;margin-bottom:8px}
 .linkrow{display:flex;flex-wrap:wrap;gap:8px}
@@ -2460,10 +2474,13 @@ function renderSumBtn(q){
   const m=INTRO_MAP[q.no];
   b.style.display = (m && INTRO_HTML) ? "" : "none";
   b.onclick = m ? ()=>showInSummary(m, q.no) : null;
+  // 📖 해설 칸에 요약 근거 섹션을 통째로 (교재 해설은 접힘). 섹션을 찾았으면 아래 인용 박스는 중복이라 숨긴다
+  const easy=(INTRO_MODE==="easy" && !!INTRO_HTML_EASY && !!(m && m.es));
+  const secShown=renderExpWithSum(q, easy?INTRO_HTML_EASY:INTRO_HTML, m, easy);
   // 해설과 함께 요약 근거 인용을 바로 보여준다 (탭하면 요약 해당 위치로)
   const sq=$("sumQuote");
   if(sq){
-    if(m && INTRO_HTML && (m.q || m.s)){
+    if(!secShown && m && INTRO_HTML && (m.q || m.s)){
       const w=qw(q.no);
       sq.innerHTML =
         `<span class="sqsec">📖 요약 근거${m.s?" — "+esc(m.s):""}`
@@ -2505,16 +2522,19 @@ async function renderMnQuote(q, ch){
   box.style.display="";
 }
 /* ── 📅 복습 덱: 출신 챕터의 요약 근거를 불러와 보여주고, 탭하면 그 챕터 요약의 해당 위치를 새 탭으로 연다 ── */
-const INTRO_MAPS={};
+const INTRO_MAPS={}, INTRO_JSON={};   // INTRO_JSON[ch] = intros/chNN.json 원본 (해설 칸에 요약 섹션을 넣을 때 intro/introEasy 사용)
 async function introMapOf(ch){
   if(ch in INTRO_MAPS) return INTRO_MAPS[ch];
   try{
     const r=await fetch(`intros/${ch}.json`, {cache:"no-store"});
     const j=r.ok ? await r.json() : null;
+    INTRO_JSON[ch]=j||{};
     INTRO_MAPS[ch]=(j && j.map) ? j.map : null;
-  }catch(e){ INTRO_MAPS[ch]=null; }
+  }catch(e){ INTRO_MAPS[ch]=null; INTRO_JSON[ch]={}; }
   return INTRO_MAPS[ch];
 }
+/* 복습 덱은 loadIntro가 안 돌아 INTRO_MODE가 비어 있으므로 저장된 선택(기본 쉬운말)을 본다 */
+function wantEasyOther(){ try{ return (localStorage.getItem(introModeKey)||"easy")==="easy"; }catch(e){ return false; } }
 /* 복습 덱에서 열 때는 back=현재 복습 URL(쿼리)을 같이 넘겨, 요약 탭의 ↩ 버튼이 오답 풀기로 돌아갈 수 있게 한다 */
 const sumHref=(ch,no)=>`app.html?ch=${encodeURIComponent(ch)}&q=${encodeURIComponent(no)}&summary=1&sq=${encodeURIComponent(no)}`
   + (REVIEW ? `&back=${encodeURIComponent(location.search)}` : "");
@@ -2529,13 +2549,42 @@ async function renderSumBtnOther(q, ch){
   const go=()=>window.open(sumHref(ch,q.no), "_blank");
   b.textContent=`📖 ${ch} 요약에서 이 내용 보기`;
   b.style.display=""; b.onclick=go;
-  if(sq && (m.q || m.s)){
+  const j=INTRO_JSON[ch]||{}, easy=(wantEasyOther() && !!j.introEasy && !!m.es);
+  const secShown=renderExpWithSum(q, easy?j.introEasy:j.intro, m, easy);
+  if(sq && !secShown && (m.q || m.s)){
     const w=qw(q.no);
     sq.innerHTML = `<span class="sqsec">📖 ${esc(ch)} 요약 근거${m.s?" — "+esc(m.s):""}`
       + (w?`<span class="sqweak">누적 오답 ${w}회</span>`:"") + `</span>`
       + (m.q ? "\u201C"+esc(m.q)+"\u201D" : "탭하면 그 챕터 요약의 근거 위치가 새 탭으로 열립니다.");
     sq.style.display=""; sq.onclick=go;
   }
+}
+/* ── 📖 해설 칸에 요약 근거 섹션 (2026-10-23 사용자 요청: 전 문항 해설 → 요약 근거) ──
+   요약(intros/chNN.json)에서 이 문항의 근거 섹션(h4 + 다음 h4 전까지)을 통째로 떼어 해설 칸에 넣고,
+   근거 문장(m.q)은 연노랑으로 표시. 교재 원문 해설(exp)은 '📘 교재 해설'로 접어 둔다(데이터는 그대로).
+   요약이 없거나 섹션을 못 찾으면 교재 해설이 그대로 보인다. 반환: 섹션을 넣었는지 */
+function sumSectionHtml(html, m, useEasy){
+  if(!html || !m) return "";
+  const title=normTxt(useEasy ? m.es : m.s), quote=normTxt(useEasy ? m.eq : m.q);
+  if(!title) return "";
+  const root=document.createElement("div"); root.innerHTML=html;
+  const h4=[...root.querySelectorAll("h4")].find(h=>normTxt(h.textContent)===title);
+  if(!h4) return "";
+  const els=sectionEls(h4).slice(1);           // 제목(h4)은 머리줄로 따로 쓴다
+  if(!els.length) return "";
+  if(quote){
+    const cands=els.flatMap(e=>[e, ...e.querySelectorAll("li,p")]).filter(e=>/^(LI|P|DIV)$/.test(e.tagName));
+    const hit=cands.filter(e=>normTxt(e.textContent).includes(quote)).sort((a,b)=>a.textContent.length-b.textContent.length)[0];
+    if(hit) hit.classList.add("sxhit");
+  }
+  return `<div class="sumexp"><div class="sxh">📖 요약 근거 — ${esc(h4.textContent)}</div>${els.map(e=>e.outerHTML).join("")}</div>`;
+}
+function renderExpWithSum(q, html, m, useEasy){
+  const box=$("expBox"); if(!box || deck[idx]!==q) return false;
+  let sec=""; try{ sec=sumSectionHtml(html, m, useEasy); }catch(e){ sec=""; }
+  if(!sec) return false;
+  box.innerHTML = sec + `<details class="bookexp"><summary>📘 교재 해설</summary><div class="bx">${renderExp(q.exp, q.kw2||q.kw)}</div></details>`;
+  return true;
 }
 function sectionEls(h4){                     // h4 + 다음 h4 전까지의 형제 요소
   const els=[h4]; let n=h4.nextElementSibling;

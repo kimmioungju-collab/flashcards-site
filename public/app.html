@@ -2515,7 +2515,9 @@ async function introMapOf(ch){
   }catch(e){ INTRO_MAPS[ch]=null; }
   return INTRO_MAPS[ch];
 }
-const sumHref=(ch,no)=>`app.html?ch=${encodeURIComponent(ch)}&q=${encodeURIComponent(no)}&summary=1&sq=${encodeURIComponent(no)}`;
+/* 복습 덱에서 열 때는 back=현재 복습 URL(쿼리)을 같이 넘겨, 요약 탭의 ↩ 버튼이 오답 풀기로 돌아갈 수 있게 한다 */
+const sumHref=(ch,no)=>`app.html?ch=${encodeURIComponent(ch)}&q=${encodeURIComponent(no)}&summary=1&sq=${encodeURIComponent(no)}`
+  + (REVIEW ? `&back=${encodeURIComponent(location.search)}` : "");
 async function renderSumBtnOther(q, ch){
   const b=$("sumBtn"), sq=$("sumQuote");
   b.style.display="none"; b.onclick=null;
@@ -2564,13 +2566,23 @@ function showInSummary(m, fromNo){
 }
 /* ── ↩ 요약 근거 → 원래 문항으로 복귀 ── */
 let SUM_FROM_NO=null;
+/* ?back=?review=… : 오답 풀기(복습 덱)에서 요약 근거를 보러 새 탭으로 온 경우 — ↩는 문항이 아니라 그 오답 풀기로 돌아간다 */
+const SUM_BACK_QS=(()=>{ const v=new URLSearchParams(location.search).get("back")||""; return /^\?review=/.test(v) ? v : ""; })();
 function showSumBack(no){
   const b=$("sumBack"); if(!b) return;
   SUM_FROM_NO = no || null;
   b.style.display = SUM_FROM_NO ? "" : "none";
-  b.textContent = SUM_FROM_NO ? ("↩ "+SUM_FROM_NO+"번 문항으로 돌아가기") : "↩ 문항으로 돌아가기";
+  b.textContent = SUM_BACK_QS ? "↩ 오답 풀기로 돌아가기"
+    : SUM_FROM_NO ? ("↩ "+SUM_FROM_NO+"번 문항으로 돌아가기") : "↩ 문항으로 돌아가기";
+}
+/* 오답 풀기 탭이 살아 있으면 이 요약 탭을 닫아 풀던 위치로 그대로 복귀, 탭이 안 닫히면(직접 연 경우 등) 복습 URL로 이동 */
+function backToReview(){
+  const href="app.html"+SUM_BACK_QS;
+  window.close();
+  setTimeout(()=>{ location.href=href; }, 400);
 }
 function backToQuestion(){
+  if(SUM_BACK_QS){ backToReview(); return; }
   closeIntro();
   const card=$("card"); if(!card) return;
   card.scrollIntoView({block:"start", behavior:"smooth"});

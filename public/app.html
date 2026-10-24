@@ -2039,7 +2039,7 @@ function answer(a){
   // 단, 연관문제(_rel)는 다른 챕터 문항이라 이 챕터 qstat에 쓰면 진도가 오염된다 — 건너뜀
   if(!q._rel){
     const st = S.qstat[q.no] || (S.qstat[q.no]={s:0,w:0});
-    st.s++; if(!correct){ st.w++; st.r=0; } else st.r=(st.r||0)+1;   // r = 마지막 오답 이후 연속 정답 수 → 유효 오답 = w−r
+    st.s++; if(!correct){ st.w++; st.r=Math.max(0,(st.r||0)-1); } else st.r=(st.r||0)+1;   // r = 연속 정답 수 → 유효 오답 = w−r. 틀리면 r을 0으로 안 날리고 1만 깎아 유효 오답이 +2까지만 오른다 (2026-10-25 사용자 요청)
     if(overtime) st.t=(st.t||0)+1;             // ⏱ 맞혀도 시간초과는 취약 기록으로 남긴다
     // 평균 풀이시간(at) — 최근 풀이에 40% 가중 EMA. 오래 걸린 문제 = 헷갈리는 문제로 기억
     if(sec>0) st.at = st.at ? Math.round((st.at*0.6 + sec*0.4)*10)/10 : sec;

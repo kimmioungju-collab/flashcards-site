@@ -172,6 +172,7 @@ button.iconbtn{background:rgba(255,255,255,.12);border:none;color:#DDE5EC;border
 .exp details.bookexp summary::-webkit-details-marker{display:none}
 .exp details.bookexp summary::before{content:"▸ "} .exp details.bookexp[open] summary::before{content:"▾ "}
 .exp details.bookexp .bx{margin-top:6px}
+.exp .sumexp details.sxrest{margin-top:4px} .exp .sumexp details.sxrest .bx .sxhit{background:none;box-shadow:none}
 .linkbox{margin-top:14px;padding:12px 13px;border:1.5px solid var(--line);border-radius:12px;background:#F4F8FF}
 .linklabel{font-size:12px;font-weight:900;color:#2B5D8A;margin-bottom:8px}
 .linkrow{display:flex;flex-wrap:wrap;gap:8px}
@@ -2575,7 +2576,14 @@ function sumSectionHtml(html, m, useEasy){
   if(quote){
     const cands=els.flatMap(e=>[e, ...e.querySelectorAll("li,p")]).filter(e=>/^(LI|P|DIV)$/.test(e.tagName));
     const hit=cands.filter(e=>normTxt(e.textContent).includes(quote)).sort((a,b)=>a.textContent.length-b.textContent.length)[0];
-    if(hit) hit.classList.add("sxhit");
+    if(hit){
+      hit.classList.add("sxhit");
+      // 해당 근거 문장(항목)만 먼저 보이고, 섹션의 나머지 항목은 '▸ 섹션 전체 보기'로 접어 둔다 (2026-10-24 사용자 요청)
+      const only = hit.tagName==="LI" ? `<ul>${hit.outerHTML}</ul>` : hit.outerHTML;
+      const rest = els.map(e=>e.outerHTML).join("");
+      return `<div class="sumexp"><div class="sxh">📖 요약 근거 — ${esc(h4.textContent)}</div>${only}`
+        + `<details class="bookexp sxrest"><summary>섹션 전체 보기</summary><div class="bx">${rest}</div></details></div>`;
+    }
   }
   return `<div class="sumexp"><div class="sxh">📖 요약 근거 — ${esc(h4.textContent)}</div>${els.map(e=>e.outerHTML).join("")}</div>`;
 }

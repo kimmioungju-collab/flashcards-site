@@ -1,0 +1,30 @@
+{
+ "rounds": [
+  {
+   "round": 5,
+   "date": "2026-10-24",
+   "subjects": {
+    "admin": {
+     "name": "행정법",
+     "total": 19,
+     "wrong": 7
+    },
+    "fire": {
+     "name": "소방공무원법",
+     "total": 7,
+     "wrong": 1
+    },
+    "tactic": {
+     "name": "소방전술",
+     "total": 10,
+     "wrong": 0
+    },
+    "hazmat": {
+     "name": "위험물",
+     "total": 12,
+     "wrong": 3
+    }
+   }
+  }
+ ]
+}

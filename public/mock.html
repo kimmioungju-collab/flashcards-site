@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모의고사 오답노트</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<script>
+/* 접근 게이트: 목차(index.html)에서 1회 인증한 기기만 통과 */
+if(localStorage.getItem("ox_gate_v4")!=="ok") location.replace("index.html");
+</script>
+<style>
+:root{--desk:#2B3A4A;--desk-deep:#22303D;--paper:#FBFAF7;--ink:#1E242B;--wrong:#D64550;--right:#2E75B6;--muted:#7A8694;--line:#E4E0D6}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;
+  background:linear-gradient(160deg,var(--desk),var(--desk-deep));min-height:100dvh;color:var(--ink);
+  display:flex;justify-content:center;padding:22px 14px 60px}
+.wrap{width:100%;max-width:560px}
+h1{color:#fff;font-size:21px;font-weight:800;letter-spacing:-.02em;margin-bottom:5px}
+.sub{color:#8497A8;font-size:12.5px;font-weight:500;margin-bottom:14px}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tabs button,.tools button{border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;
+  background:rgba(255,255,255,.07);color:#C9D3DD;cursor:pointer}
+.tabs button.on,.tools button.on{background:var(--paper);border-color:var(--paper);color:var(--ink);font-weight:700}
+.tools{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.tools .back{margin-left:auto}
+.score{background:var(--paper);border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 8px 20px rgba(0,0,0,.22);
+  display:flex;gap:18px;align-items:baseline;flex-wrap:wrap}
+.score .big{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+.score .lbl{font-size:12px;font-weight:600;color:#8A9099}
+.score .w{color:var(--wrong)}
+.list{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--paper);border-radius:14px;padding:14px 16px 13px;box-shadow:0 8px 20px rgba(0,0,0,.22);position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#DCD5C4}
+.card.wrong::before{background:var(--wrong)}
+.card.right{background:#E9E4D6;box-shadow:0 3px 9px rgba(0,0,0,.15)}
+.card.right::before{background:#2F7F63}
+.qh{display:flex;gap:8px;align-items:baseline;margin-bottom:6px}
+.qno{font-size:11px;font-weight:800;color:#B5BAC2;letter-spacing:.06em}
+.qtype{font-size:11px;font-weight:700;color:#8A9099;border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.qtype.x{color:var(--wrong);border-color:#EBC9CC}
+.q{font-size:14.5px;font-weight:700;line-height:1.55;word-break:keep-all;margin-bottom:8px;white-space:pre-line}
+.opt{font-size:13.5px;line-height:1.6;padding:5px 8px;border-radius:8px;margin-bottom:3px;word-break:keep-all;white-space:pre-line}
+.opt.ans{background:#E3EEF8;color:var(--right);font-weight:700}
+.opt.my{background:#FBE5E7;color:var(--wrong);text-decoration:line-through;text-decoration-thickness:1px}
+.opt.ans.my{background:#E3EEF8;color:var(--right);text-decoration:none}
+.tag{display:inline-block;font-size:11px;font-weight:800;margin-left:6px;vertical-align:middle}
+.res{display:flex;gap:12px;margin:8px 0 4px;font-size:12.5px;font-weight:700}
+.res .m{color:var(--wrong)}.res .a{color:var(--right)}
+.res .c{color:#A2A7AF;font-weight:600}
+details{margin-top:6px;border-top:1px dashed var(--line);padding-top:8px}
+summary{font-size:12.5px;font-weight:700;color:#5A616B;cursor:pointer;list-style:none}
+summary::before{content:"▸ ";color:#A2A7AF}
+details[open] summary::before{content:"▾ "}
+.exp{font-size:13.5px;line-height:1.7;margin-top:6px;word-break:keep-all;white-space:pre-line}
+.basis{margin-top:8px;padding:9px 11px;background:#F3F0E8;border-left:3px solid #CFC6AE;border-radius:6px;
+  font-size:13px;line-height:1.65;color:#4A5059;white-space:pre-line;word-break:keep-all}
+.src{margin-top:6px;font-size:11.5px;color:#8A9099;font-weight:600}
+.empty{color:#C9D3DD;text-align:center;padding:40px 0;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📝 모의고사 오답노트</h1>
+  <div class="sub" id="sub">불러오는 중…</div>
+  <div class="tabs" id="rounds"></div>
+  <div class="tabs" id="subjects"></div>
+  <div class="tools">
+    <button id="onlyWrong" class="on">틀린 것만</button>
+    <button id="openAll">해설 모두 펴기</button>
+    <button class="back" onclick="location.href='index.html'">← 목차</button>
+  </div>
+  <div class="score" id="score" style="display:none"></div>
+  <div class="list" id="list"></div>
+</div>
+<script>
+const qs=new URLSearchParams(location.search);
+const state={ round:qs.get("r")||"", subj:qs.get("s")||"", onlyWrong:true, allOpen:false, index:null, data:null };
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num=o=>String(o||"").trim().charAt(0);   // "① ..." → "①"
+
+async function loadIndex(){
+  const r=await fetch("data/mock/index.json",{cache:"no-store"});
+  if(!r.ok) throw new Error("index.json 없음");
+  state.index=await r.json();
+}
+async function loadRound(){
+  const r=await fetch(`data/mock/r${String(state.round).padStart(2,"0")}.json`,{cache:"no-store"});
+  if(!r.ok) throw new Error(`${state.round}회차 데이터 없음`);
+  state.data=await r.json();
+}
+function syncURL(){
+  const u=new URL(location.href);
+  u.searchParams.set("r",state.round); u.searchParams.set("s",state.subj);
+  history.replaceState(null,"",u);
+}
+function drawTabs(){
+  const rounds=(state.index.rounds||[]).slice().sort((a,b)=>b.round-a.round);
+  document.getElementById("rounds").innerHTML=rounds.map(r=>
+    `<button data-r="${r.round}" class="${String(r.round)===String(state.round)?"on":""}">${r.round}회차${r.date?` · ${r.date}`:""}</button>`).join("");
+  const subs=Object.entries(state.data.subjects||{});
+  document.getElementById("subjects").innerHTML=subs.map(([k,v])=>{
+    const w=v.items.filter(i=>i.wrong).length;
+    return `<button data-s="${k}" class="${k===state.subj?"on":""}">${esc(v.name)} <span style="opacity:.7">${w}/${v.items.length}</span></button>`;
+  }).join("");
+}
+function drawScore(items){
+  const total=items.length, wrong=items.filter(i=>i.wrong).length, low=items.filter(i=>i.wrong&&i.confidence==="low").length;
+  const s=document.getElementById("score"); s.style.display="";
+  s.innerHTML=`<div><div class="big">${total-wrong}<span style="font-size:14px;color:#8A9099">/${total}</span></div><div class="lbl">맞은 문항</div></div>
+    <div><div class="big w">${wrong}</div><div class="lbl">오답</div></div>
+    <div><div class="big">${total?Math.round((total-wrong)/total*100):0}<span style="font-size:14px;color:#8A9099">%</span></div><div class="lbl">정답률</div></div>
+    ${low?`<div class="lbl" style="align-self:center">⚠️ 정답 판정 불확실 ${low}문항</div>`:""}`;
+}
+function card(it){
+  const my=String(it.my||"").trim(), ans=String(it.ans||"").trim();
+  const opts=(it.opts||[]).map(o=>{
+    const n=num(o), isA=ans.includes(n), isM=my.includes(n);
+    return `<div class="opt${isA?" ans":""}${isM?" my":""}">${esc(o)}${isA?'<span class="tag">✅ 정답</span>':""}${isM&&!isA?'<span class="tag">❌ 내 답</span>':""}</div>`;
+  }).join("");
+  const conf=it.confidence==="low"?"판정 불확실":it.confidence==="mid"?"판정 보통":"";
+  const typeX=/않은|아닌|틀린|X/.test(it.type||"");
+  return `<div class="card ${it.wrong?"wrong":"right"}">
+    <div class="qh"><span class="qno">문 ${esc(it.no)}</span>${it.type?`<span class="qtype${typeX?" x":""}">${esc(it.type)}</span>`:""}${it.partial?`<span class="qtype">일부 판독</span>`:""}</div>
+    <div class="q">${esc(it.q)}</div>
+    ${opts}
+    <div class="res"><span class="m">내 답 ${esc(my||"-")}</span><span class="a">정답 ${esc(ans||"-")}</span>${conf?`<span class="c">${conf}</span>`:""}</div>
+    <details${state.allOpen?" open":""}><summary>해설 · 교재 근거</summary>
+      <div class="exp">${esc(it.exp)}</div>
+      ${it.basis?`<div class="basis">📘 ${esc(it.basis)}</div>`:""}
+      ${it.src?`<div class="src">출처: ${esc(it.src)}</div>`:""}
+    </details></div>`;
+}
+function render(){
+  const sub=state.data.subjects[state.subj];
+  if(!sub){ document.getElementById("list").innerHTML=`<div class="empty">이 회차에 ${esc(state.subj)} 과목 데이터가 없습니다</div>`; return; }
+  document.getElementById("sub").textContent=`제${state.round}회 · ${sub.name}${state.data.date?` · ${state.data.date}`:""}`;
+  document.title=`${state.round}회차 ${sub.name} 오답노트`;
+  drawScore(sub.items);
+  const items=sub.items.filter(i=>!state.onlyWrong||i.wrong);
+  document.getElementById("list").innerHTML=items.length?items.map(card).join(""):`<div class="empty">🎉 틀린 문항이 없습니다</div>`;
+}
+document.getElementById("rounds").addEventListener("click",async e=>{
+  const b=e.target.closest("button[data-r]"); if(!b) return;
+  state.round=b.dataset.r; await loadRound();
+  if(!state.data.subjects[state.subj]) state.subj=Object.keys(state.data.subjects)[0];
+  syncURL(); drawTabs(); render();
+});
+document.getElementById("subjects").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-s]"); if(!b) return;
+  state.subj=b.dataset.s; syncURL(); drawTabs(); render();
+});
+document.getElementById("onlyWrong").addEventListener("click",e=>{
+  state.onlyWrong=!state.onlyWrong; e.target.classList.toggle("on",state.onlyWrong);
+  e.target.textContent=state.onlyWrong?"틀린 것만":"전체 문항"; render();
+});
+document.getElementById("openAll").addEventListener("click",e=>{
+  state.allOpen=!state.allOpen; e.target.classList.toggle("on",state.allOpen);
+  e.target.textContent=state.allOpen?"해설 모두 접기":"해설 모두 펴기"; render();
+});
+(async()=>{
+  try{
+    await loadIndex();
+    const rounds=(state.index.rounds||[]).map(r=>String(r.round));
+    if(!rounds.includes(String(state.round))) state.round=rounds.sort((a,b)=>b-a)[0];
+    if(!state.round) throw new Error("등록된 회차 없음");
+    await loadRound();
+    if(!state.data.subjects[state.subj]) state.subj=Object.keys(state.data.subjects)[0];
+    syncURL(); drawTabs(); render();
+  }catch(err){
+    document.getElementById("sub").textContent="";
+    document.getElementById("list").innerHTML=`<div class="empty">${esc(err.message)}</div>`;
+  }
+})();
+</script>
+</body>
+</html>

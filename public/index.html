@@ -246,6 +246,7 @@ a.ch.goal::before{background:#C98A2B}
     <button id="ydayBtn" onclick="location.href='app.html?review=pick'">📅 날짜별 오답 풀기</button>
     <button id="rankBtn" onclick="location.href='app.html?review=rank&min=3'">🏆 3회+ 오답순위 풀기</button>
     <button id="rank2wBtn" onclick="location.href='app.html?review=rank&days=14&min=2'">🏆 최근 2주 오답순위</button>
+    <button id="mockBtn" onclick="location.href='mock.html?s='+(new URLSearchParams(location.search).get('s')||'admin')">📝 모의고사 오답</button>
     <button id="mnBtn" onclick="location.href='mnemonics.html'" style="display:none">🔤 두문자 정리</button>
     <button id="rtBtn" onclick="location.href='rater.html'" style="display:none">🪜 평정자 한눈에</button>
     <button id="cmBtn" onclick="location.href='committees.html'" style="display:none">🏛 위원회 한눈에</button>
@@ -1334,7 +1335,9 @@ function drawSubjectSelect(){
       <div class="spbar"><i style="width:${p.pct}%"></i></div></a>`;
   };
   document.getElementById("list").innerHTML =
-    mk("admin","⚖️ 행정법","") + mk("fire","🚒 소방공무원법","fire") + mk("tactic","🧯 소방전술","fire") + mk("hazmat","☢️ 위험물","fire") + mk("review","📚 복습 노트","rev");
+    mk("admin","⚖️ 행정법","") + mk("fire","🚒 소방공무원법","fire") + mk("tactic","🧯 소방전술","fire") + mk("hazmat","☢️ 위험물","fire") + mk("review","📚 복습 노트","rev")
+    + `<a class="ch subj rev" href="mock.html"><div class="row1"><span class="ctitle">📝 모의고사 오답노트</span></div>
+      <div class="row2"><span class="stat">회차·과목별 오답 + 교재 근거 해설</span></div></a>`;
 }
 
 fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{

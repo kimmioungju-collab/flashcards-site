@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>근무성적 평정자 한눈에</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
@@ -13,16 +14,29 @@
 </style>
 <script>
 (function(){
-  const H="2d4dd6abff89d0689f210ce69d566fb8d2d4a1c7941f9e17e357c67bcf9d208c";
-  const KEY="ox_gate_v2";
-  if(localStorage.getItem(KEY)===H) return;
+  const H_MAIN="2d4dd6abff89d0689f210ce69d566fb8d2d4a1c7941f9e17e357c67bcf9d208c";   // kmj8854! (일반 접속 → 게스트)
+  const H_OWNER="e4a4aab8c43be193a25705e0c0062ade7022ca6b83e072c8ff29fa30dbf1e507";  // 0323 (소유자 코드 1111 접속)
+  const KEY="ox_gate_v4";   // 스킴 변경 — 전 기기 1회 재인증(역할 재적용)
+  if(localStorage.getItem(KEY)==="ok") return;
   document.documentElement.style.visibility="hidden";
   async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
   window.addEventListener("DOMContentLoaded",async function(){
     for(let i=0;i<3;i++){
       const p=prompt("🔒 비밀번호를 입력하세요");
       if(p===null) break;
-      if(await sha(p.trim())===H){ localStorage.setItem(KEY,H); document.documentElement.style.visibility=""; return; }
+      const h=await sha(p.trim());
+      if(h===H_MAIN||h===H_OWNER){
+        try{
+          const cur=(localStorage.getItem("fc:synccode")||"").trim();
+          let changed=false;
+          if(h===H_OWNER){ if(cur!=="1111"){ localStorage.setItem("fc:synccode","1111"); changed=true; } localStorage.removeItem("fc:syncoff"); }
+          else if(cur==="1111"){ localStorage.setItem("fc:synccode","guest"); changed=true; }   // 일반 접속인데 1111이면 게스트로 강등
+          localStorage.setItem(KEY,"ok");
+          if(changed){ location.reload(); return; }
+        }catch(e){ try{localStorage.setItem(KEY,"ok");}catch(_){} }
+        document.documentElement.style.visibility="";
+        return;
+      }
     }
     document.body.innerHTML="<div style='font-family:sans-serif;color:#fff;text-align:center;padding-top:40vh;font-size:18px'>🔒 접근 권한이 없습니다</div>";
     document.documentElement.style.visibility="";

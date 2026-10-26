@@ -771,40 +771,16 @@ function planGrades(){
 const GROUND = CH ? planGrades() : null;   // null = 등급 회독 꺼짐(전체)
 const GC = {"S":"#C00000","A":"#ED7D31","B":"#D9A400","C":"#2E75B6","기":"#70AD47","인":"#7030A0","소":"#D64550","Z":"#7F7F7F","위":"#C00000","장":"#ED7D31","교":"#2E75B6"};
 
-/* ── 화면이 안 뜨는 사고를 막는 최소 안전장치 ──
-   어떤 오류가 나든 (1) 원인이 기록되고 (2) 화면은 반드시 무언가를 보여준다.
-   아래 두 블록은 다른 어떤 코드보다 먼저 등록되어야 의미가 있다. */
+/* ── 화면이 안 뜨는 사고를 막는 최소 안전장치 — 화면은 반드시 무언가를 보여준다 ── */
 const _RTDB = "https://work-schedule-dash-4ceb2-default-rtdb.firebaseio.com";
-function report(k, extra){
-  try{
-    const b = Object.assign({k:k, ch:CH, ua:navigator.userAgent.slice(0,90), at:Date.now()}, extra||{});
-    fetch(_RTDB + "/flashcards/taplog.json", {method:"POST", body:JSON.stringify(b)}).catch(()=>{});
-  }catch(e){}
-}
-window.addEventListener("error", e => {
-  report("err", {msg:String((e && e.message) || "").slice(0,160),
-                 src:String((e && e.filename) || "").slice(-40), line:(e && e.lineno) || 0});
-});
-window.addEventListener("unhandledrejection", e => {
-  const r = e && e.reason;
-  report("rej", {msg:String((r && r.message) || r || "").slice(0,160)});
-});
-
-/* 스크립트가 시작됐다는 사실 자체를 남긴다 — 화면이 완성되기 전에 페이지가 죽는지 알아내기 위함 */
-(function(){
-  let nav="?"; try{ const e0=(performance.getEntriesByType("navigation")||[])[0]; if(e0) nav=e0.type; }catch(e){}
-  report("boot", {nav:nav, items:(function(){try{return localStorage.length;}catch(e){return -1;}})()});
-})();
 
 /* 이 기기의 저장값이 꼬였을 때를 위한 전체 초기화 — ?wipe=1
    진도·회독·오답은 클라우드에 있으므로, 로컬만 비우고 다시 받아오면 그대로 복구된다. */
 if(new URLSearchParams(location.search).get("wipe") === "1"){
   try{
     const code = (localStorage.getItem("fc:synccode") || "guest").trim();  // 코드 없으면 게스트 (소유자 1111 아님)
-    const n = localStorage.length;
     localStorage.clear();
     localStorage.setItem("fc:synccode", code);
-    report("wipe", {cleared:n});
   }catch(e){}
 }
 
@@ -824,7 +800,6 @@ if(FRESH && CH){
     kill.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
     fetch(_RTDB + "/flashcards/" + encodeURIComponent((localStorage.getItem("fc:synccode")||"guest").trim())
           + "/ch/" + CH + "/prog.json", {method:"DELETE"}).catch(()=>{});
-    report("fresh", {killed:kill.length});
   }catch(e){}
 }
 
@@ -833,10 +808,7 @@ if(FRESH && CH){
 function rescue(stage){
   const q = document.getElementById("qText"), t = document.getElementById("chTitle");
   const qlen = ((q && q.textContent) || "").trim().length;
-  report("screen", {stage:stage, title:((t&&t.textContent)||"").slice(0,24), qlen:qlen,
-                    qs:(QUESTIONS||[]).length, deck:(typeof deck!=="undefined"&&deck)?deck.length:-1});
   if(qlen > 3) return true;                       // 정상 표시 중
-  if(stage === "t1.5") return false;              // 이 시점은 아직 준비 중 — 기록만 하고 손대지 않는다
   try{ if(typeof deck!=="undefined" && deck && deck.length && typeof show==="function") show(); }catch(e){}
   if(((document.getElementById("qText").textContent)||"").trim().length > 3) return true;
   try{                                            // 진행 기록을 버리고 처음부터라도 띄운다
@@ -854,7 +826,6 @@ function rescue(stage){
   }
   return false;
 }
-setTimeout(()=>{ rescue("t1.5"); }, 1500);   // 페이지가 언제 죽는지 알기 위해 이른 시점도 기록
 setTimeout(()=>{ rescue("mid"); }, 4000);
 setTimeout(()=>{ rescue("last"); }, 9000);
 
@@ -1764,31 +1735,6 @@ document.addEventListener("click", e => {
 });
 /* 아이폰 사파리에서 click이 끝내 발생하지 않는 경우가 있어, 손을 뗀 시점에 바로 처리한다 */
 $("resumeFresh").addEventListener("touchend", e => { e.preventDefault(); doFresh(); }, {passive:false});
-
-/* ---- 실기기 진단 로그 ----
-   특정 기기에서만 터치가 먹지 않는 경우를 눈으로 확인할 방법이 없어서,
-   버튼 근처를 눌렀을 때 무슨 일이 있었는지 짧게 남긴다. 개인정보는 담지 않는다. */
-function tapLog(kind, e, t){
-  try{
-    const x = t ? t.clientX : e.clientX, y = t ? t.clientY : e.clientY;
-    const el = (x!=null && y!=null) ? document.elementFromPoint(x,y) : null;
-    const tg = e.target;
-    fetch(`${DBURL}/flashcards/taplog.json`, {method:"POST", body:JSON.stringify({
-      k:kind, ch:CH, x:Math.round(x||0), y:Math.round(y||0),
-      target:(tg&&(tg.id||tg.tagName+"."+String(tg.className).slice(0,30)))||"",
-      hit:(el&&(el.id||el.tagName+"."+String(el.className).slice(0,30)))||"",
-      bar:$("resumeBar")?$("resumeBar").style.display:"?",
-      sheets:document.querySelectorAll(".sheetwrap.show").length,
-      sy:Math.round(window.scrollY), ua:navigator.userAgent.slice(0,90), at:Date.now()
-    })}).catch(()=>{});
-  }catch(_){}
-}
-document.addEventListener("touchend", e => {
-  const t = e.changedTouches && e.changedTouches[0];
-  if(!t) return;
-  const near = e.target && e.target.closest && e.target.closest("#resumeFresh, .controls button, .tbtns button");
-  if(near || $("resumeBar").style.display === "flex") tapLog("touchend", e, t);
-}, {passive:true});
 
 async function resumeSession(p){
   mode = p.mode || "quiz";
@@ -4012,18 +3958,6 @@ setTimeout(()=>{
       }
     }
     // 실기기 상태 1건 기록 — 무엇이 잘못됐는지 눈으로 볼 방법이 없어 남긴다 (개인정보 없음)
-    try{
-      let bytes=0, pend=0;
-      for(let i=0;i<localStorage.length;i++){
-        const k=localStorage.key(i); bytes += k.length + (localStorage.getItem(k)||"").length;
-        if(k && k.indexOf("fcPend:")===0) pend++;
-      }
-      // nav = navigate(직접 이동) / reload(새로고침·사파리 강제 재시작) / back_forward(뒤로가기)
-      let nav = "?";
-      try{ const e0=(performance.getEntriesByType("navigation")||[])[0]; if(e0) nav = e0.type; }catch(_){}
-      report("load", {kb:Math.round(bytes/1024), items:localStorage.length, pend:pend, nav:nav,
-        done:((S.prog&&S.prog.ans)||[]).length, total:((S.prog&&S.prog.nos)||[]).length});
-    }catch(e){}
     // 진행중 세션이 있으면 묻지 않고 바로 이어서 시작한다.
     // 이어하기 복원이 어떤 이유로든 실패해도 화면이 비어 있으면 안 되므로 처음부터라도 띄운다.
     if(S.prog && S.prog.nos && S.prog.nos.length && (S.prog.ans||[]).length < S.prog.nos.length){
@@ -4033,11 +3967,10 @@ setTimeout(()=>{
         await resumeSession(S.prog);
         showResumeBar(done, total);         // 되돌리고 싶을 때만 쓰는 안내 띠 (12초 후 사라짐)
       }catch(e){
-        report("resumefail", {msg:String((e&&e.message)||e).slice(0,160)});
         try{ clearProg(); buildDeck(); }catch(_){}   // 복원이 안 되면 처음부터라도 반드시 띄운다
       }
     } else {
-      try{ buildDeck(); }catch(e){ report("buildfail", {msg:String((e&&e.message)||e).slice(0,160)}); }
+      try{ buildDeck(); }catch(e){}
     }
 
   } catch(e) {

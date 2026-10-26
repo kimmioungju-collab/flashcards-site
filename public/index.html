@@ -672,6 +672,7 @@ async function pushAll(){
     const local=stat(ch.id); if(!local) continue;
     const cl=cloud[ch.id];
     if(emptyRec(local) && !emptyRec(cl)) continue;   // 빈 로컬이 클라우드 실기록을 덮어쓰지 않게 차단
+    if(cl && (cl.sreset||0) > (local.sreset||0)) continue;   // 다른 기기의 '새 회독'이 더 최신 → 이 기기의 옛 기록으로 덮지 않음
     if(local._at==null){
       if(cl) continue;                                // 시각 없는 로컬은 클라우드에 기록이 있으면 밀지 않는다
       local._at=Date.now(); try{ localStorage.setItem("fc:"+ch.id, JSON.stringify(local)); }catch(e){}

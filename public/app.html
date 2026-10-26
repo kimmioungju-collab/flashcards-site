@@ -979,6 +979,11 @@ let ACH = CH;            // 지금 기록을 쓰는 챕터 (일반 모드에서�
 const _recs = {};        // 출신 챕터별 기록 캐시
 let CLOUDCH = null;      // 복습 부팅 때 한 번 받아둔 전 챕터 클라우드 기록
 const blankRec = () => ({rounds:0,best:0,last:0,wrongNos:[],history:[],qstat:{},prog:null});
+/* 푼표시(s)만 0으로 만든 사본 — 오답(w)·체크(m) 등은 그대로 */
+function clearSolved(q){
+  const out={}; for(const k in (q||{})) out[k]=Object.assign({}, q[k], {s:0});
+  return out;
+}
 function recOf(ch){
   if(!ch || ch===CH) return S;
   if(_recs[ch]) return _recs[ch];
@@ -986,9 +991,11 @@ function recOf(ch){
   try{ const raw=JSON.parse(localStorage.getItem("fc:"+ch)||"null"); if(raw) r=Object.assign(r,raw); }catch(e){}
   const c = CLOUDCH && CLOUDCH[ch];
   if(c && typeof c==="object"){
-    const localQ = r.qstat||{};
+    // 다른 기기에서 '새 회독'(sreset)을 했으면 이 기기의 예전 푼표시(s)는 되살리지 않는다 (오답·체크는 보존)
+    const cloudReset = (c.sreset||0) > (r.sreset||0);
+    const localQ = cloudReset ? clearSolved(r.qstat) : (r.qstat||{});
     // 빈 클라우드 기록이 이 기기의 실기록을 덮어쓰지 않게 한다 (pullCloud와 같은 규칙)
-    if((c._at||0) > (r._at||0) && !(emptyRec(c) && !emptyRec(r))) r = Object.assign(blankRec(), c);
+    if(cloudReset || ((c._at||0) > (r._at||0) && !(emptyRec(c) && !emptyRec(r)))) r = Object.assign(blankRec(), c);
     r.qstat = mergeQstat(localQ, c.qstat||{});
   }
   if(!r.qstat) r.qstat={};

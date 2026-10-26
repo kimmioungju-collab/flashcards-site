@@ -614,6 +614,7 @@ function mergeQstat(a,b){
     const x=(a||{})[k]||{}, y=(b||{})[k]||{};
     const m={s:Math.max(x.s||0,y.s||0), w:Math.max(x.w||0,y.w||0)};
     if(x.m||y.m) m.m=1;
+    const ds=[x,y].filter(o=>o.s>0&&o.d).map(o=>o.d).sort(); if(ds.length) m.d=ds[0];   // 이번 회독 첫 풀이 날짜
     out[k]=m;
   });
   return out;
@@ -777,6 +778,7 @@ function dqCount(dayKey, gset, live){
       if(no==="N1") continue;
       if(gset && !gset.has(gm[no])) continue;
       if(live && !(qs[no] && (qs[no].s||0)>0)) continue;
+      if(live && qs[no].d && qs[no].d!==dayKey) continue;   // 다른 날 처음 푼 문항을 그날 복습한 것 → 진도 아님
       n++;
     }
   }

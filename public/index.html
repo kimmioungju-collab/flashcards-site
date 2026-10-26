@@ -358,10 +358,29 @@ function chDoneP(c,gset){ const t=chCountP(c,gset); return t>0 && chSeenP(c,gset
    챕터를 순서대로 누적해 "여기까지 하면 오늘 분량 완료"인 경계 챕터를 찾는다. */
 /* 누적 목표 = 전체 문항을 기간으로 균등 분할. (N일 1회독 = 전체 ÷ N일)
    진행률 바(푼 문항/전체)와 같은 분모를 쓰므로 목표선과 막대가 항상 같은 축에서 읽힌다. */
-function planTargetAt(p, dn, totalQ){
+/* 플랜 시작 시점에 이미 풀어 둔 문항수(기준선).
+   회독 도중에 플랜을 시작/재설정하면 그 전에 푼 몫까지 목표 배분에 넣는 바람에
+   "오늘 한 문제도 안 풀었는데 오늘 몫 완료"로 보였다. 기준선 위로만 N일 분할한다. */
+let PBASE={k:"",v:0};
+function planBaseSeen(p, gset, seenQ){
+  const key=`${p.start}|${p.days}|${(p.grades||[]).join("")}|${seenQ}|${todayStr()}|${SUBJ||"admin"}`;
+  if(PBASE.k===key) return PBASE.v;
+  const start=new Date(p.start+"T00:00:00");
+  const today=new Date(); today.setHours(0,0,0,0);
+  let since=0;
+  for(let t=start.getTime(); t<=today.getTime(); t+=86400000){
+    since+=dqCount(dayKeyOf(new Date(t)), gset, true);
+  }
+  const base=Math.max(0, Math.min(seenQ, seenQ-since));
+  PBASE={k:key, v:base};
+  return base;
+}
+/* 기준선(base) 위의 남은 몫만 기간으로 균등 분할해 누적 목표를 만든다 */
+function planTargetAt(p, dn, totalQ, base){
   const days=Math.max(1,p.days);
   const d=Math.min(Math.max(dn,0),days);
-  return Math.min(totalQ, Math.ceil(d/days*totalQ));
+  const b=Math.max(0, Math.min(base||0, totalQ));
+  return Math.min(totalQ, b+Math.ceil(d/days*(totalQ-b)));
 }
 function computeDailyTarget(){
   const p=loadPlan(); if(!p) return null;
@@ -373,10 +392,10 @@ function computeDailyTarget(){
   const today=new Date(); today.setHours(0,0,0,0);
   const dayNum=Math.floor((today-start)/86400000)+1;
   const days=Math.max(1,p.days);
-  const targetQ=planTargetAt(p, Math.max(dayNum,1), totalQ);
   // 순서와 무관하게 이미 푼 문항은 건너뛰고, "앞으로 더 풀어야 할 몫"만큼만 목표선을 긋는다
   // (뒤쪽 챕터를 먼저 푼 경우 '앞섬'인데도 목표선이 계속 남던 모순 해결)
   const seenAll=planChs.reduce((s,c)=>s+chSeenP(c,gset),0);
+  const targetQ=planTargetAt(p, Math.max(dayNum,1), totalQ, planBaseSeen(p,gset,seenAll));
   let need=Math.max(0, targetQ-seenAll);
   let boundaryId=null, boundaryQno=0;
   const dueSet=new Set();
@@ -727,6 +746,9 @@ function savePlan(p){ p._at=Date.now(); localStorage.setItem(planKey(), JSON.str
 function todayStr(){ const d=new Date(); d.setHours(0,0,0,0);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 
+/* 날짜 → "YYYY-MM-DD" */
+function dayKeyOf(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+
 /* 오늘 푼 문항수 — app.html에서 답변마다 fc:daily에 날짜별로 누적 기록 */
 function solvedToday(){
   try{ const d=JSON.parse(localStorage.getItem("fc:daily")||"{}"); return d[todayStr()]||0; }
@@ -889,12 +911,13 @@ function computeTimeTarget(){
   const dayNum=Math.floor((today-start)/86400000)+1;
   const days=Math.max(1,p.days);
   const dn=Math.min(Math.max(dayNum,1),days);
-  const targetToday=planTargetAt(p, dn, totalQ);
-  const targetPrev=planTargetAt(p, dn-1, totalQ);
+  const seenQ=planChs.reduce((s,c)=>s+chSeenP(c,gset),0);
+  const baseQ=planBaseSeen(p, gset, seenQ);
+  const targetToday=planTargetAt(p, dn, totalQ, baseQ);
+  const targetPrev=planTargetAt(p, dn-1, totalQ, baseQ);
   const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
   let frac = nowMin<=p.tstart ? 0 : nowMin>=p.tend ? 1 : (nowMin-p.tstart)/(p.tend-p.tstart);
   const intra=Math.min(totalQ, Math.round(targetPrev + frac*(targetToday-targetPrev)));
-  const seenQ=planChs.reduce((s,c)=>s+chSeenP(c,gset),0);
   // 이미 푼 문항은 건너뛰고, 지금 시각까지 "더 풀어야 할 몫"만큼만 경계선을 긋는다
   let need=Math.max(0, intra-seenQ);
   let boundaryId=null, boundaryQno=0;
@@ -1004,8 +1027,9 @@ function renderPlan(){
   const daysLeft=Math.max(0, days-(dayNum-1));          // 오늘 포함 남은 일수
   const end=new Date(start.getTime()+(days-1)*86400000);
   const endStr=`${end.getMonth()+1}/${end.getDate()}`;
-  const targetQ=planTargetAt(p, Math.max(dayNum,1), totalQ);        // 오늘까지 누적 목표
-  const targetPrev=planTargetAt(p, Math.max(dayNum-1,0), totalQ);   // 어제까지 누적 목표
+  const baseQ=planBaseSeen(p, gset, seenQ);                                // 플랜 시작 전에 이미 푼 몫
+  const targetQ=planTargetAt(p, Math.max(dayNum,1), totalQ, baseQ);        // 오늘까지 누적 목표
+  const targetPrev=planTargetAt(p, Math.max(dayNum-1,0), totalQ, baseQ);   // 어제까지 누적 목표
   // '뒤처짐'은 어제까지 끝냈어야 할 몫 기준. 오늘 몫은 아직 진행 중이므로 뒤처짐이 아니다.
   const behindQ=Math.max(0, targetPrev-seenQ);
   const aheadQ=Math.max(0, seenQ-targetQ);

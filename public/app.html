@@ -1076,6 +1076,7 @@ function bumpDaily(q){
     dq[key][ch]=Object.assign({}, dq[key][ch]||{}); dq[key][ch][no]=1;
     const dks=Object.keys(dq).sort(); while(dks.length>60){ delete dq[dks.shift()]; }   // 두 달치 보관
     localStorage.setItem("fc:dq", JSON.stringify(dq));
+    queueLogPatch("dq", key, ch, no);
     const d=JSON.parse(localStorage.getItem("fc:daily")||"{}");
     d[key]=dailyValue(key, d[key], dq[key]);
     const keys=Object.keys(d).sort(); while(keys.length>1200){ delete d[keys.shift()]; } // 약 3년치 날짜 누적 보관
@@ -1086,20 +1087,10 @@ function bumpDaily(q){
 }
 /* 고유 문항 로그를 클라우드와 합집합 병합 (기기 간 같은 문제 이중 카운트 방지) */
 let _dqTimer=null;
-function pushDq(local){
+function pushDq(){
   if(!SYNC) return;
   clearTimeout(_dqTimer);
-  _dqTimer=setTimeout(async ()=>{
-    try{
-      let cloud={};
-      const r=await fetch(cloudUrl("dq"),{cache:"no-store"});
-      if(r.ok){ cloud=(await r.json())||{}; }
-      let fresh=local; try{ fresh=JSON.parse(localStorage.getItem("fc:dq")||"{}"); }catch(e){}
-      const merged=mergeWlog(cloud, fresh);
-      try{ localStorage.setItem("fc:dq", JSON.stringify(merged)); }catch(e){}
-      await fetch(cloudUrl("dq"),{method:"PUT",body:JSON.stringify(merged)});
-    }catch(e){}
-  }, 1500);
+  _dqTimer=setTimeout(()=>{ flushLogPatch("dq"); }, 1500);
 }
 async function pullDq(){
   if(!SYNC) return;
@@ -1158,23 +1149,38 @@ function bumpWrong(ch, qno){
     d[key][ch][String(qno)]=1;
     const keys=Object.keys(d).sort(); while(keys.length>60){ delete d[keys.shift()]; }  // 두 달치 보관
     localStorage.setItem("fc:wlog", JSON.stringify(d));
-    pushWlog(d);
+    queueLogPatch("wlog", key, ch, qno);
+    pushWlog();
   }catch(e){}
 }
 let _wlogTimer=null;
-function pushWlog(local){
+function pushWlog(){
   if(!SYNC) return;
   clearTimeout(_wlogTimer);
-  _wlogTimer=setTimeout(async ()=>{
-    try{
-      let cloud={};
-      const r=await fetch(cloudUrl("wlog"),{cache:"no-store"});
-      if(r.ok){ cloud=(await r.json())||{}; }
-      const merged=mergeWlog(cloud, local);
-      try{ localStorage.setItem("fc:wlog", JSON.stringify(merged)); }catch(e){}
-      await fetch(cloudUrl("wlog"),{method:"PUT",body:JSON.stringify(merged)});
-    }catch(e){}
-  }, 1500);
+  _wlogTimer=setTimeout(()=>{ flushLogPatch("wlog"); }, 1500);
+}
+/* 날짜별 로그(dq·wlog)는 새로 생긴 항목만 PATCH로 올린다 (클라우드에서 자동 합집합).
+   예전엔 답할 때마다 로그 전체(dq ~90KB)를 내려받아 합친 뒤 통째로 다시 올려서 풀이가 무거웠다.
+   못 올린 항목은 fc:<로그>pend 에 남아 다음 답변 때 같이 올라간다. */
+function queueLogPatch(name, day, ch, no){
+  try{
+    const k="fc:"+name+"pend";
+    const p=JSON.parse(localStorage.getItem(k)||"{}");
+    localStorage.setItem(k, JSON.stringify(Object.assign({}, p, {[`${day}/${ch}/${no}`]:1})));
+  }catch(e){}
+}
+async function flushLogPatch(name){
+  if(!SYNC) return;
+  const k="fc:"+name+"pend";
+  let sent={}; try{ sent=JSON.parse(localStorage.getItem(k)||"{}"); }catch(e){}
+  const keys=Object.keys(sent); if(!keys.length) return;
+  try{
+    const r=await fetch(cloudUrl(name),{method:"PATCH",body:JSON.stringify(sent)});
+    if(!r.ok) return;
+    let cur={}; try{ cur=JSON.parse(localStorage.getItem(k)||"{}"); }catch(e){}
+    const left=Object.fromEntries(Object.entries(cur).filter(([x])=>!(x in sent)));   // 보내는 사이 새로 쌓인 것만 남긴다
+    localStorage.setItem(k, JSON.stringify(left));
+  }catch(e){}
 }
 
 /* 필터 옵션 전역 저장 (챕터 간 유지) */
@@ -3958,9 +3964,11 @@ setTimeout(()=>{
   try {
     if(REVIEW){ await reviewBoot(); return; }   // 📅 전날 오답 복습 모드 — 챕터 로딩 없이 별도 부팅
     // 통신이 응답 없이 매달리면 "불러오는 중…"에서 영영 멈춘다 → 모든 대기에 시간 제한을 둔다
+    const chReq = fetchCap(`chapters/${CH}.json`, 8000);   // 문제 파일은 진도 동기화와 동시에 받는다 (예전엔 동기화가 끝난 뒤에야 받기 시작)
     await capWait(Promise.all([pullCloud(), pullOpts(), pullDq()]), 3500);  // 다른 기기의 진도·필터 반영(최대 3.5초)
+    flushLogPatch("dq"); flushLogPatch("wlog");   // 지난번에 못 올린 기록이 있으면 올린다
     if(FRESH) delete S.prog;   // 초기화 요청 — 클라우드에서 되돌아온 중간 세션도 쓰지 않는다
-    let r = await fetchCap(`chapters/${CH}.json`, 8000);
+    let r = await chReq;
     if(!r || !r.ok) r = await fetchCap(`chapters/${CH}.json?v=${Date.now()}`, 8000); // 1회 자동 재시도(캐시 우회)
     if(!r) throw new Error("네트워크가 응답하지 않습니다");
     if(!r.ok) throw new Error(`챕터 파일 로드 실패 (HTTP ${r.status})`);

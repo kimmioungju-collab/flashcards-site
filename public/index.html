@@ -632,43 +632,51 @@ async function remoteWipeCheck(){
     location.reload();
   }catch(e){}
 }
+/* pullAll이 방금 받은 클라우드 진도 원문 — 바로 뒤 pushAll이 같은 파일(~200KB)을 또 받지 않게 재사용 */
+let CLOUD_CH_SNAP=null;   // {at, txt}
 async function pullAll(){
   const c=syncCode(); if(!c) return;
-  try{
-    const r=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/ch.json`,{cache:"no-store"});
-    if(!r.ok) return;
-    const cloud=await r.json(); if(!cloud) return;
-    for(const id of Object.keys(cloud)){
-      const rec=cloud[id]; if(!rec) continue;
-      const local=stat(id);
-      const newer = !local || (rec._at||0) > (local._at||0);
-      const adopt = (newer && !(emptyRec(rec) && !emptyRec(local)))   // 빈 클라우드는 실기록을 못 지움
-                 || (emptyRec(local) && !emptyRec(rec));              // 빈 로컬은 시각 무관 실기록 수용
-      if(adopt){
-        // 완전 초기화(sreset)가 더 최신인 경우가 아니면, 로컬의 푼표시·오답·체크를 합쳐 보존
-        if(local && !((rec.sreset||0) > (local.sreset||0))) rec.qstat = mergeQstat(rec.qstat, local.qstat);
-        try{ localStorage.setItem("fc:"+id, JSON.stringify(rec)); }catch(e){}
+  const base=`${DBURL}/flashcards/${encodeURIComponent(c)}`;
+  // 진도·플랜·회독 카운터는 서로 무관하므로 동시에 받는다 (예전엔 하나씩 차례로 받아 느렸음)
+  await Promise.all([
+    (async()=>{ try{
+      const r=await fetch(`${base}/ch.json`,{cache:"no-store"});
+      if(!r.ok) return;
+      const txt=await r.text(); CLOUD_CH_SNAP={at:Date.now(), txt};
+      const cloud=JSON.parse(txt); if(!cloud) return;
+      for(const id of Object.keys(cloud)){
+        const rec=cloud[id]; if(!rec) continue;
+        const local=stat(id);
+        const newer = !local || (rec._at||0) > (local._at||0);
+        const adopt = (newer && !(emptyRec(rec) && !emptyRec(local)))   // 빈 클라우드는 실기록을 못 지움
+                   || (emptyRec(local) && !emptyRec(rec));              // 빈 로컬은 시각 무관 실기록 수용
+        if(adopt){
+          // 완전 초기화(sreset)가 더 최신인 경우가 아니면, 로컬의 푼표시·오답·체크를 합쳐 보존
+          if(local && !((rec.sreset||0) > (local.sreset||0))) rec.qstat = mergeQstat(rec.qstat, local.qstat);
+          try{ localStorage.setItem("fc:"+id, JSON.stringify(rec)); }catch(e){}
+        }
       }
-    }
-  }catch(e){}
-  // 학습 플랜도 내려받기
-  try{
-    const rp=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/${planPath()}.json`,{cache:"no-store"});
-    if(rp.ok){ const cp=await rp.json(); const lp=loadPlan();
-      if(cp && (cp._at||0) > ((lp&&lp._at)||0)) localStorage.setItem(planKey(), JSON.stringify(cp)); }
-  }catch(e){}
-  // 회독 카운터 내려받기 (큰 쪽 채택 — 다른 기기에서 새 회독 시작했을 수 있음)
-  try{
-    const rr=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/meta/roundN.json`,{cache:"no-store"});
-    if(rr.ok){ const rn=parseInt(await rr.json(),10)||0;
-      const lv=parseInt(localStorage.getItem("fc:roundN:admin")||"0",10);
-      if(rn>lv) localStorage.setItem("fc:roundN:admin", String(rn)); }
-  }catch(e){}
+    }catch(e){} })(),
+    // 학습 플랜도 내려받기
+    (async()=>{ try{
+      const rp=await fetch(`${base}/${planPath()}.json`,{cache:"no-store"});
+      if(rp.ok){ const cp=await rp.json(); const lp=loadPlan();
+        if(cp && (cp._at||0) > ((lp&&lp._at)||0)) localStorage.setItem(planKey(), JSON.stringify(cp)); }
+    }catch(e){} })(),
+    // 회독 카운터 내려받기 (큰 쪽 채택 — 다른 기기에서 새 회독 시작했을 수 있음)
+    (async()=>{ try{
+      const rr=await fetch(`${base}/meta/roundN.json`,{cache:"no-store"});
+      if(rr.ok){ const rn=parseInt(await rr.json(),10)||0;
+        const lv=parseInt(localStorage.getItem("fc:roundN:admin")||"0",10);
+        if(rn>lv) localStorage.setItem("fc:roundN:admin", String(rn)); }
+    }catch(e){} })(),
+  ]);
 }
 async function pushAll(){
   const c=syncCode(); if(!c) return;
   let cloud={};
-  try{ const r=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/ch.json`,{cache:"no-store"}); if(r.ok) cloud=(await r.json())||{}; }catch(e){}
+  if(CLOUD_CH_SNAP && Date.now()-CLOUD_CH_SNAP.at < 20000){ try{ cloud=JSON.parse(CLOUD_CH_SNAP.txt)||{}; }catch(e){} }   // 20초 안에 받은 것 재사용
+  else{ try{ const r=await fetch(`${DBURL}/flashcards/${encodeURIComponent(c)}/ch.json`,{cache:"no-store"}); if(r.ok) cloud=(await r.json())||{}; }catch(e){} }
   for(const ch of (allChapters.length?allChapters:chapters)){   // 과목 화면과 무관하게 전체 동기화
     const local=stat(ch.id); if(!local) continue;
     const cl=cloud[ch.id];
@@ -1368,11 +1376,12 @@ function drawSubjectSelect(){
       <div class="row2"><span class="stat">회차·과목별 오답 + 교재 근거 해설</span></div></a>`;
 }
 
+const WIPE_CHECK = capWait(remoteWipeCheck(), 4000);   // 관리자 초기화 표식 확인 — 목록 파일과 동시에 받는다
 fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
   allChapters=d.chapters;
   chapters=d.chapters.filter(inSubj);
   updateSyncUI();
-  await capWait(remoteWipeCheck(), 4000);   // 관리자가 이 코드에 초기화 표식을 남겼으면 기기 진도를 비우고 다시 시작
+  await WIPE_CHECK;   // 관리자가 이 코드에 초기화 표식을 남겼으면 기기 진도를 비우고 다시 시작
 
   if(!SUBJ){                          // 과목 선택 화면
     document.body.classList.add("choose");
@@ -1391,13 +1400,14 @@ fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
   if(SUBJ==="fire") document.getElementById("cmBtn").style.display="";    // 소방공무원법 과목에서만 위원회 페이지 노출
   drawList();                        // 목록부터 먼저 그린다 — 통신을 기다리다 갇히지 않게
 
-  await capWait(pullAll(), 5000);    // 다른 기기 진도 반영 (최대 5초)
-  await capWait(pullDaily(), 4000);  // 학습 날짜 기록 병합 (최대 4초)
-  if(planGradeSet()) await capWait(ensureQGrades(), 6000);
+  const podSum = capWait(Promise.all([podLoad(), sumLoad()]), 6000);  // AI 음성 상태 + 핵심요약 목록 — 미리 받아둔다
+  // 다른 기기 진도·학습 날짜·문항 등급은 서로 무관하므로 동시에 받는다 (예전엔 차례로 기다려 느렸음)
+  await capWait(Promise.all([pullAll(), pullDaily(), planGradeSet() ? ensureQGrades() : null]), 5000);
+  if(planGradeSet()) await capWait(ensureQGrades(), 6000);   // 클라우드에서 플랜이 새로 왔을 수도
   drawList();                        // 받아온 내용으로 다시 그린다
   capWait(pushAll(), 15000);         // 이 기기 진도 올리기 — 화면과 무관하므로 기다리지 않는다
 
-  await capWait(Promise.all([podLoad(), sumLoad()]), 6000);  // AI 음성 상태 + 핵심요약 목록 반영
+  await podSum;
   render(podFilterVal());
   podPoll();
 }).catch(()=>{

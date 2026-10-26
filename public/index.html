@@ -613,6 +613,12 @@ function mergeQstat(a,b){
   ks.forEach(k=>{
     const x=(a||{})[k]||{}, y=(b||{})[k]||{};
     const m={s:Math.max(x.s||0,y.s||0), w:Math.max(x.w||0,y.w||0)};
+    // 연속정답(r)·시간초과(t)·풀이시간(at)도 app.html mergeQstat과 똑같이 보존한다
+    // (빠뜨리면 목차 동기화 때 r이 지워져, 맞혀서 줄었던 오답순위 횟수가 다시 늘어난다 — 2026-10-26)
+    const t=Math.max(x.t||0,y.t||0); if(t) m.t=t;
+    const at=Math.max(x.at||0,y.at||0); if(at) m.at=at;
+    const r=(x.w||0)>(y.w||0) ? (x.r||0) : (y.w||0)>(x.w||0) ? (y.r||0) : Math.max(x.r||0,y.r||0);
+    if(r) m.r=r;
     if(x.m||y.m) m.m=1;
     const ds=[x,y].filter(o=>o.s>0&&o.d).map(o=>o.d).sort(); if(ds.length) m.d=ds[0];   // 이번 회독 첫 풀이 날짜
     out[k]=m;

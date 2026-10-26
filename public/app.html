@@ -1197,12 +1197,12 @@ function toggleMark(no){
   st.m = st.m?0:1; save();
 }
 function renderWeakChip(q){
-  const el=$("weakChip"), w=qw(q.no), m=qmark(q.no), t=qt(q.no);
+  const el=$("weakChip"), w=qeff(q.no), m=qmark(q.no), t=qt(q.no);   // 오답순위와 같은 '유효 오답'(틀린 횟수−연속정답)으로 표시 (2026-10-26)
   const parts=[];                       // 한 줄에 들어가도록 짧게 — 오답/시간초과/체크
   if(w>0) parts.push(`오답${w}`);
   if(t>0) parts.push(`⏱${t}`);
   if(m) parts.push("⭐");
-  if(parts.length){ el.style.display=""; el.textContent=parts.join(" "); el.title=`누적 오답 ${w}회 · 시간초과 ${t}회${m?" · ⭐체크":""}`; }
+  if(parts.length){ el.style.display=""; el.textContent=parts.join(" "); el.title=`유효 오답 ${w}회(누적 ${qw(q.no)}회 − 연속정답 ${qr(q.no)}) · 시간초과 ${t}회${m?" · ⭐체크":""}`; }
   else el.style.display="none";
 }
 function renderMarkBtn(q){

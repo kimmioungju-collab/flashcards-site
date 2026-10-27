@@ -2407,6 +2407,12 @@ async function loadIntro(title){
     // 목차의 📖 요약 칩에서 넘어온 경우 무조건 요약 시트 표시
     else if(new URLSearchParams(location.search).get("summary")){ openIntro(); }
     // 첫 방문 자동 표시는 끔 (2026-10-26 사용자 요청) — 요약은 상단 📖 버튼으로 연다
+    // 요약 칩·근거 링크로 한 번 열었으면 주소에서 표시를 지운다 — 새로고침·폰 탭 재로드 때 요약이 또 뜨지 않게
+    const _u=new URL(location.href);
+    if(_u.searchParams.has("summary")||_u.searchParams.has("sq")){
+      _u.searchParams.delete("summary"); _u.searchParams.delete("sq");
+      history.replaceState(history.state,"",_u.pathname+_u.search+_u.hash);
+    }
   }catch(e){}
 }
 /* 📏 요약 읽기 진도: 시트 스크롤 비율 + 현재 섹션/전체 섹션 */

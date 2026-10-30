@@ -382,6 +382,9 @@ function planTargetAt(p, dn, totalQ, base){
   const b=Math.max(0, Math.min(base||0, totalQ));
   return Math.min(totalQ, b+Math.ceil(d/days*(totalQ-b)));
 }
+/* 하루 연장(off): 아프거나 못 푼 날만큼 일정 전체를 뒤로 미룬다.
+   일차 계산에서 off일을 빼므로 하루 페이스는 그대로, 종료일만 off일 늦춰진다. */
+function planDayNum(p, start, today){ return Math.floor((today-start)/86400000)+1-(p.off||0); }
 function computeDailyTarget(){
   const p=loadPlan(); if(!p) return null;
   const gset=planGradeSet();
@@ -390,7 +393,7 @@ function computeDailyTarget(){
   if(!totalQ) return null;
   const start=new Date(p.start+"T00:00:00");
   const today=new Date(); today.setHours(0,0,0,0);
-  const dayNum=Math.floor((today-start)/86400000)+1;
+  const dayNum=planDayNum(p, start, today);
   const days=Math.max(1,p.days);
   // 순서와 무관하게 이미 푼 문항은 건너뛰고, "앞으로 더 풀어야 할 몫"만큼만 목표선을 긋는다
   // (뒤쪽 챕터를 먼저 푼 경우 '앞섬'인데도 목표선이 계속 남던 모순 해결)
@@ -925,7 +928,7 @@ function computeTimeTarget(){
   if(!totalQ) return null;
   const start=new Date(p.start+"T00:00:00");
   const today=new Date(); today.setHours(0,0,0,0);
-  const dayNum=Math.floor((today-start)/86400000)+1;
+  const dayNum=planDayNum(p, start, today);
   const days=Math.max(1,p.days);
   const dn=Math.min(Math.max(dayNum,1),days);
   const seenQ=planChs.reduce((s,c)=>s+chSeenP(c,gset),0);
@@ -956,7 +959,15 @@ function setupPlan(){
   if(dv===null) return;
   const days=Math.max(1, parseInt(dv)||10);
   const start=(cur&&cur.start)?cur.start:todayStr();
-  savePlan({start, days, grades: cur?cur.grades:undefined});
+  savePlan({start, days, grades: cur?cur.grades:undefined, off: (cur&&cur.off)||undefined});
+  renderPlan(); render(document.getElementById("q").value);
+}
+/* 하루 연장 — 못 푼 날만큼 일정을 하루 뒤로 미룬다 (하루 페이스는 그대로) */
+function extendPlanDay(){
+  const p=loadPlan(); if(!p) return;
+  const off=(p.off||0)+1;
+  if(!confirm(`일정을 하루 뒤로 미룰까요?\n(하루 분량은 그대로, 종료일만 하루 늦춰집니다 · 누적 연장 ${off}일)`)) return;
+  savePlan({...p, off});
   renderPlan(); render(document.getElementById("q").value);
 }
 function resetPlanStart(){
@@ -973,7 +984,7 @@ async function togglePlanGrade(g){
   else if(gs.includes(g)){ gs=gs.filter(x=>x!==g); }
   else { gs.push(g); }
   if(gs.length) await ensureQGrades();
-  savePlan({start:p.start, days:p.days, grades: gs.length?gs:undefined});
+  savePlan({start:p.start, days:p.days, grades: gs.length?gs:undefined, off: p.off||undefined});
   syncQuizGrades(gs);   // 🎯 문제 풀이 화면의 등급 필터도 같은 범위로 맞춘다
   renderPlan();
   render(document.getElementById("q").value);
@@ -1038,11 +1049,11 @@ function renderPlan(){
   const pct=totalQ?Math.round(seenQ/totalQ*100):0;
   const start=new Date(p.start+"T00:00:00");
   const today=new Date(); today.setHours(0,0,0,0);
-  const dayNum=Math.floor((today-start)/86400000)+1;   // 1일차부터
+  const dayNum=planDayNum(p, start, today);   // 1일차부터 (하루 연장분 제외)
   const days=p.days;
   const dayShown=Math.min(Math.max(dayNum,1),days);
   const daysLeft=Math.max(0, days-(dayNum-1));          // 오늘 포함 남은 일수
-  const end=new Date(start.getTime()+(days-1)*86400000);
+  const end=new Date(start.getTime()+(days-1+(p.off||0))*86400000);
   const endStr=`${end.getMonth()+1}/${end.getDate()}`;
   const baseQ=planBaseSeen(p, gset, seenQ);                                // 플랜 시작 전에 이미 푼 몫
   const targetQ=planTargetAt(p, Math.max(dayNum,1), totalQ, baseQ);        // 오늘까지 누적 목표
@@ -1110,7 +1121,7 @@ function renderPlan(){
     <div class="ph">
       <span class="lab">학습 플랜</span>
       <span class="day">${overdue?`기한 초과 · 목표 ${days}일`
-        :`<b>${dayShown}</b>일차 / ${days}일 · D-${daysLeft}`}</span>
+        :`<b>${dayShown}</b>일차 / ${days}일 · D-${daysLeft}${p.off?` · +${p.off}일 연장`:""}`}</span>
     </div>
     <div class="hero">
       <span class="big">${pct}<i>%</i></span>
@@ -1134,11 +1145,13 @@ function renderPlan(){
     <div class="foot">
       <div class="gr"><span class="gl">등급</span>${gchips}</div>
       <div class="acts">
+        <button id="planExtend">+1일</button>
         <button id="planTime">시간대</button>
         <button id="planEdit">설정</button>
         <button id="planReset">오늘부터</button>
       </div>
     </div>`;
+  document.getElementById("planExtend").onclick=extendPlanDay;
   document.getElementById("planTime").onclick=setupTimeWindow;
   document.getElementById("planEdit").onclick=setupPlan;
   document.getElementById("planReset").onclick=resetPlanStart;
@@ -1217,7 +1230,7 @@ async function startNewRound(){
     if(code){ try{ await fetch(`${DBURL}/flashcards/${encodeURIComponent(code)}/ch/${c.id}.json`,{method:"PUT",body:JSON.stringify(s)}); }catch(e){} }
   }
   const p=loadPlan();
-  if(p && confirm("학습 플랜(N일 1회독)도 오늘부터 다시 시작할까요?")){ p.start=todayStr(); savePlan(p); }
+  if(p && confirm("학습 플랜(N일 1회독)도 오늘부터 다시 시작할까요?")){ p.start=todayStr(); delete p.off; savePlan(p); }
   alert("새 회독 시작! 진도가 0%부터 다시 집계됩니다.\n(오답·체크·회독 기록은 유지)");
   renderPlan();
   render(document.getElementById("q").value);

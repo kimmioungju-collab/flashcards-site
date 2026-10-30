@@ -249,6 +249,7 @@ a.ch.goal::before{background:#C98A2B}
     <button id="rank2wBtn" onclick="location.href='app.html?review=rank&days=14&min=2'">🏆 최근 2주 오답순위</button>
     <button id="mockBtn" onclick="location.href='mock.html?s='+(new URLSearchParams(location.search).get('s')||'admin')">📝 모의고사 오답</button>
     <button id="mnBtn" onclick="location.href='mnemonics.html'" style="display:none">🔤 두문자 정리</button>
+    <button id="rvBtn" onclick="location.href='review.html'" style="display:none">📒 복습자료</button>
     <button id="rtBtn" onclick="location.href='rater.html'" style="display:none">🪜 평정자 한눈에</button>
     <button id="cmBtn" onclick="location.href='committees.html'" style="display:none">🏛 위원회 한눈에</button>
   </div>
@@ -1415,6 +1416,7 @@ fetch("data/manifest.json",{cache:"no-store"}).then(r=>r.json()).then(async d=>{
   document.querySelector("h1").textContent = SUBJ==="fire" ? "🚒 소방공무원법 OX" : SUBJ==="tactic" ? "🧯 소방전술 기출" : SUBJ==="review" ? "📚 복습 노트" : SUBJ==="hazmat" ? "☢️ 위험물 OX" : "⚖️ 행정법 OX";
   document.title = SUBJ_NAME+" OX 플래시카드";
   if(SUBJ==="admin") document.getElementById("mnBtn").style.display="";   // 행정법 과목에서만 두문자 정리 노출
+  if(SUBJ==="admin" && isOwner()) document.getElementById("rvBtn").style.display="";   // 복습자료: 행정법 + 소유자(1111)만 노출
   if(SUBJ==="fire") document.getElementById("rtBtn").style.display="";    // 소방공무원법 과목에서만 평정자 페이지 노출
   if(SUBJ==="fire") document.getElementById("cmBtn").style.display="";    // 소방공무원법 과목에서만 위원회 페이지 노출
   drawList();                        // 목록부터 먼저 그린다 — 통신을 기다리다 갇히지 않게

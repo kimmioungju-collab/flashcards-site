@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>복습자료</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<script>if(/Windows/i.test(navigator.userAgent))document.documentElement.classList.add('win');</script>
+<style>
+.win body,.win button,.win input{font-family:"Malgun Gothic","맑은 고딕","Pretendard","Noto Sans KR",sans-serif!important;letter-spacing:0!important}
+.win *{letter-spacing:0!important}
+</style>
+<script>
+/* ── 접근 잠금 게이트 (index.html과 동일 — 비번 1회 입력 → 기기에 기억) ── */
+(function(){
+  const H_MAIN="2d4dd6abff89d0689f210ce69d566fb8d2d4a1c7941f9e17e357c67bcf9d208c";
+  const H_OWNER="e4a4aab8c43be193a25705e0c0062ade7022ca6b83e072c8ff29fa30dbf1e507";
+  const KEY="ox_gate_v4";
+  if(localStorage.getItem(KEY)==="ok") return;
+  document.documentElement.style.visibility="hidden";
+  async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+  window.addEventListener("DOMContentLoaded",async function(){
+    for(let i=0;i<3;i++){
+      const p=prompt("🔒 비밀번호를 입력하세요");
+      if(p===null) break;
+      const h=await sha(p.trim());
+      if(h===H_MAIN||h===H_OWNER){
+        try{
+          const cur=(localStorage.getItem("fc:synccode")||"").trim();
+          let changed=false;
+          if(h===H_OWNER){ if(cur!=="1111"){ localStorage.setItem("fc:synccode","1111"); changed=true; } localStorage.removeItem("fc:syncoff"); }
+          else if(cur==="1111"){ localStorage.setItem("fc:synccode","guest"); changed=true; }
+          localStorage.setItem(KEY,"ok");
+          if(changed){ location.reload(); return; }
+        }catch(e){ try{localStorage.setItem(KEY,"ok");}catch(_){} }
+        document.documentElement.style.visibility="";
+        return;
+      }
+    }
+    document.body.innerHTML="<div style='font-family:sans-serif;color:#fff;text-align:center;padding-top:40vh;font-size:18px'>🔒 접근 권한이 없습니다</div>";
+    document.documentElement.style.visibility="";
+  });
+})();
+</script>
+<style>
+:root{--desk:#2B3A4A;--desk-deep:#22303D;--paper:#FBFAF7;--ink:#1E242B;--hl:#FFE34D;--wrong:#D64550;--right:#2E75B6;--muted:#7A8694;--line:#E4E0D6}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+  background:linear-gradient(160deg,var(--desk),var(--desk-deep));min-height:100dvh;
+  display:flex;justify-content:center;padding:18px 14px 60px;color:var(--ink)}
+.wrap{width:100%;max-width:560px}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.back{color:#8FA9BC;text-decoration:none;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 10px;white-space:nowrap}
+h1{color:#fff;font-size:21px;font-weight:800;letter-spacing:-.02em}
+.sub{color:#8497A8;font-size:12.5px;font-weight:500;margin-bottom:14px;line-height:1.5}
+.card{background:var(--paper);border-radius:16px;padding:16px 17px 14px;margin-bottom:14px;box-shadow:0 10px 28px rgba(0,0,0,.24)}
+.card .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+.card .meta a,.card .meta span{font-size:11.5px;font-weight:700;border-radius:8px;padding:4px 8px;text-decoration:none;line-height:1.4}
+.card .meta .ch{background:#EEF3EA;color:#3E6B2A}
+.card .meta .date{background:#EAF1F8;color:#2E5A8A}
+.card .title{font-size:18px;font-weight:900;line-height:1.35;letter-spacing:-.01em;margin:2px 0 6px}
+.card .intro{font-size:13.5px;line-height:1.55;color:#3C4753;margin-bottom:10px}
+.sec{border-top:1px dashed var(--line);padding-top:11px;margin-top:11px}
+.sec .h{font-size:14.5px;font-weight:800;margin-bottom:6px}
+.sec .rule{font-size:12.5px;line-height:1.5;color:#2E5A8A;background:#EAF1F8;border-radius:9px;padding:7px 10px;margin-bottom:8px}
+.sec .label{font-size:11.5px;font-weight:800;color:#B4252B;letter-spacing:.04em;margin:4px 0 5px}
+.sec ol{padding-left:22px;font-size:13.5px;line-height:1.6}
+.sec ol li{margin-bottom:3px}
+.sec li b{background:linear-gradient(transparent 60%,var(--hl) 60%);font-weight:800}
+.tip{font-size:12.5px;line-height:1.55;color:#7A5A00;background:#FFF6CC;border-radius:9px;padding:7px 10px;margin-top:8px}
+.sum{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;font-size:13.5px;line-height:1.65;font-weight:700}
+.sum div:last-child{color:var(--right);font-weight:900}
+.empty{color:#8FA9BC;text-align:center;padding:40px 0;font-size:14px;line-height:1.7}
+.foot{color:#6E8296;font-size:11.5px;line-height:1.6;margin-top:24px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="index.html?s=admin">← 목차</a>
+    <h1>📒 복습자료</h1>
+  </div>
+  <div class="sub" id="sub">불러오는 중…</div>
+  <div id="list"></div>
+  <div class="foot">질문하다 나온 정리 글을 모아둔 소유자 전용 페이지입니다.</div>
+</div>
+<script>
+const OWNER_SYNC="1111";
+const NOTES_URL="review/notes.json";
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const md=s=>esc(s).replace(/\*([^*]+)\*/g,"<b>$1</b>");   // *강조* → 음영
+function isOwner(){ return (localStorage.getItem("fc:synccode")||"").trim()===OWNER_SYNC; }
+
+function secHtml(s){
+  const items=(s.items||[]).map(x=>`<li>${md(x)}</li>`).join("");
+  return `<div class="sec">
+    <div class="h">${esc(s.h)}</div>
+    ${s.rule?`<div class="rule">${md(s.rule)}</div>`:""}
+    ${s.label?`<div class="label">${esc(s.label)}</div>`:""}
+    ${items?`<ol>${items}</ol>`:""}
+    ${s.tip?`<div class="tip">💡 ${md(s.tip)}</div>`:""}
+  </div>`;
+}
+function noteHtml(n){
+  const chN=(n.ch||"").replace(/\D/g,"");
+  const chLink=n.ch?`<a class="ch" href="app.html?ch=${esc(n.ch)}">📖 ch${chN} ${esc(n.chTitle||"")}</a>`:"";
+  const sum=(n.summary||[]).map(x=>`<div>${md(x)}</div>`).join("");
+  return `<div class="card" id="${esc(n.id)}">
+    <div class="meta">${chLink}<span class="date">${esc(n.date||"")}</span></div>
+    <div class="title">${md(n.title)}</div>
+    ${n.intro?`<div class="intro">${md(n.intro)}</div>`:""}
+    ${(n.sections||[]).map(secHtml).join("")}
+    ${sum?`<div class="sum">${sum}</div>`:""}
+  </div>`;
+}
+async function main(){
+  const sub=document.getElementById("sub"), list=document.getElementById("list");
+  if(!isOwner()){
+    sub.textContent="소유자 전용";
+    list.innerHTML=`<div class="empty">🔒 이 페이지는 소유자 코드(1111)로 접속한 기기에서만 볼 수 있습니다.</div>`;
+    return;
+  }
+  let data;
+  try{
+    const r=await fetch(NOTES_URL+"?v="+Date.now());
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    data=await r.json();
+  }catch(e){
+    sub.textContent="불러오기 실패";
+    list.innerHTML=`<div class="empty">복습자료를 불러오지 못했습니다.<br>${esc(e.message)}</div>`;
+    return;
+  }
+  const notes=[...(data.notes||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  sub.textContent=`${notes.length}개 · 최신순`;
+  list.innerHTML=notes.length?notes.map(noteHtml).join(""):`<div class="empty">아직 저장된 복습자료가 없습니다.</div>`;
+}
+main();
+</script>
+</body>
+</html>

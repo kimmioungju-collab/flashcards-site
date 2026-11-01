@@ -89,16 +89,19 @@ button.on{background:var(--red);border-color:var(--red)}
 
 <script>
 const OWNER_SYNC="1111";
-const DATA_URL="data/blank/haeng.json";
+const SUBJECTS={admin:{file:"haeng",name:"행정법"}, tactic:{file:"tactic",name:"소방전술"}};
+const SUBJ=(new URLSearchParams(location.search).get("s")||"admin");
+const SUBJ_INFO=SUBJECTS[SUBJ]||SUBJECTS.admin;
+const DATA_URL=`data/blank/${SUBJ_INFO.file}.json`;
 const IV_OPTIONS=[1,2,3,5];
 const PAGE_W=1200, PAGE_H=1600;
-const LS_IV="fc:blank:iv", LS_POS="fc:blank:pos";
+const LS_IV="fc:blank:iv", LS_POS="fc:blank:pos:"+SUBJ_INFO.file;
 const INNER_CSS=`
 .mode{display:none!important}
 .quiz .b{color:transparent;cursor:default}
-.quiz .b.on{color:#c0392b!important;background:#fff!important;font-weight:700;animation:pop .35s ease-out}
+.quiz .b.on{color:#c0392b!important;background-color:#fff!important;font-weight:700;animation:pop .35s ease-out}
 .quiz .b.cur{box-shadow:0 0 0 3px #c0392b;border-radius:4px}
-@keyframes pop{0%{background:#ffd54a;transform:scale(1.08)}100%{background:#fff;transform:scale(1)}}
+@keyframes pop{0%{background-color:#ffd54a;transform:scale(1.08)}100%{background-color:#fff;transform:scale(1)}}
 `;
 function isOwner(){ return (localStorage.getItem("fc:synccode")||"").trim()===OWNER_SYNC; }
 const $=id=>document.getElementById(id);
@@ -217,6 +220,7 @@ async function init(){
     document.body.innerHTML=`<div class="lock">빈칸 데이터를 불러오지 못했습니다.<br><small>${e.message}</small></div>`;
     return;
   }
+  document.querySelector(".top a.back").href = SUBJ==="admin" ? "index.html" : "index.html?s="+SUBJ;
   loadPos(); drawParts(); drawIv(); fit(); loadPage();
   $("play").onclick=()=>auto?stopAuto():startAuto();
   $("prevBtn").onclick=prevPage;

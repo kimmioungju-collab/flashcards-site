@@ -170,11 +170,18 @@ function scrollToBlank(el){
   window.scrollTo({top:Math.max(0,target), behavior:"smooth"});
 }
 
+/* 이미지 장은 다 공개되면 배경을 정답 이미지로 바꿔 빈칸 장에서 가려둔 '함정' 줄까지 보이게 */
+function finishPage(){
+  const first=blanks[0]; if(!first||!first.classList.contains("img")) return;
+  const pg=first.ownerDocument.querySelector(".pg"); const a=getComputedStyle(first).getPropertyValue("--a").trim();
+  if(a) pg.style.backgroundImage=a;
+}
+
 /* 다음 빈칸 하나 공개. 끝났으면 (수동일 때만) 다음 장 */
 function revealNext(manual){
   if(ri>=blanks.length){ if(manual) nextPage(); return; }
   const el=blanks[ri]; el.classList.remove("cur"); el.classList.add("on"); ri++;
-  if(blanks[ri]) blanks[ri].classList.add("cur");
+  if(blanks[ri]) blanks[ri].classList.add("cur"); else finishPage();
   scrollToBlank(el);
   updateLabels();
 }
@@ -206,7 +213,7 @@ function prevPage(){
   else return;
   savePos(); loadPage();
 }
-function revealAll(){ blanks.forEach(b=>{ b.classList.remove("cur"); b.classList.add("on"); }); ri=blanks.length; updateLabels(); clearTimeout(timer); if(auto) schedule(); }
+function revealAll(){ blanks.forEach(b=>{ b.classList.remove("cur"); b.classList.add("on"); }); ri=blanks.length; finishPage(); updateLabels(); clearTimeout(timer); if(auto) schedule(); }
 
 async function init(){
   if(!isOwner()){

@@ -46,7 +46,7 @@ body{font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothi
 .top{position:sticky;top:0;z-index:5;background:var(--desk-deep);padding:8px 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 10px rgba(0,0,0,.25)}
 .top a.back{color:#8FA9BC;text-decoration:none;font-size:12.5px;font-weight:700;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:6px 9px;white-space:nowrap}
 select,button{font:inherit;color:#fff;background:#2F4054;border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:6px 10px;font-size:13px;font-weight:700;cursor:pointer}
-select{max-width:46vw}
+select{max-width:46vw} #subjSel{max-width:34vw}
 button:active{transform:scale(.97)}
 button.on{background:var(--red);border-color:var(--red)}
 .pg-nav{display:flex;align-items:center;gap:4px;margin-left:auto}
@@ -69,6 +69,7 @@ button.on{background:var(--red);border-color:var(--red)}
 <body>
 <div class="top">
   <a class="back" href="index.html">← 목차</a>
+  <select id="subjSel" aria-label="과목"></select>
   <select id="partSel" aria-label="파트"></select>
   <div class="pg-nav">
     <button id="prevBtn" title="이전 장">◀</button>
@@ -89,7 +90,7 @@ button.on{background:var(--red);border-color:var(--red)}
 
 <script>
 const OWNER_SYNC="1111";
-const SUBJECTS={admin:{file:"haeng",name:"행정법"}, tactic:{file:"tactic",name:"소방전술"}};
+const SUBJECTS={admin:{file:"haeng",name:"⚖️ 행정법"}, tactic:{file:"tactic",name:"🧯 소방전술"}, hazmat:{file:"hazmat",name:"☢️ 위험물"}};
 const SUBJ=(new URLSearchParams(location.search).get("s")||"admin");
 const SUBJ_INFO=SUBJECTS[SUBJ]||SUBJECTS.admin;
 const DATA_URL=`data/blank/${SUBJ_INFO.file}.json`;
@@ -221,6 +222,10 @@ async function init(){
     return;
   }
   document.querySelector(".top a.back").href = SUBJ==="admin" ? "index.html" : "index.html?s="+SUBJ;
+  const ss=$("subjSel");
+  Object.entries(SUBJECTS).forEach(([k,v])=>{ const o=document.createElement("option"); o.value=k; o.textContent=v.name; ss.appendChild(o); });
+  ss.value=SUBJECTS[SUBJ]?SUBJ:"admin";
+  ss.onchange=()=>{ location.href="blank.html?s="+ss.value; };   // 과목 전환 (1111 기기에서는 세 과목 모두 여기서 바로 전환)
   loadPos(); drawParts(); drawIv(); fit(); loadPage();
   $("play").onclick=()=>auto?stopAuto():startAuto();
   $("prevBtn").onclick=prevPage;

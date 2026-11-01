@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>빈칸 자동재생</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<script>
+/* ── 접근 잠금 게이트 (index.html과 동일 — 비번 1회 입력 → 기기에 기억) ── */
+(function(){
+  const H_MAIN="2d4dd6abff89d0689f210ce69d566fb8d2d4a1c7941f9e17e357c67bcf9d208c";
+  const H_OWNER="e4a4aab8c43be193a25705e0c0062ade7022ca6b83e072c8ff29fa30dbf1e507";
+  const KEY="ox_gate_v4";
+  if(localStorage.getItem(KEY)==="ok") return;
+  document.documentElement.style.visibility="hidden";
+  async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+  window.addEventListener("DOMContentLoaded",async function(){
+    for(let i=0;i<3;i++){
+      const p=prompt("🔒 비밀번호를 입력하세요");
+      if(p===null) break;
+      const h=await sha(p.trim());
+      if(h===H_MAIN||h===H_OWNER){
+        try{
+          const cur=(localStorage.getItem("fc:synccode")||"").trim();
+          let changed=false;
+          if(h===H_OWNER){ if(cur!=="1111"){ localStorage.setItem("fc:synccode","1111"); changed=true; } localStorage.removeItem("fc:syncoff"); }
+          else if(cur==="1111"){ localStorage.setItem("fc:synccode","guest"); changed=true; }
+          localStorage.setItem(KEY,"ok");
+          if(changed){ location.reload(); return; }
+        }catch(e){ try{localStorage.setItem(KEY,"ok");}catch(_){} }
+        document.documentElement.style.visibility="";
+        return;
+      }
+    }
+    document.body.innerHTML="<div style='font-family:sans-serif;color:#fff;text-align:center;padding-top:40vh;font-size:18px'>🔒 접근 권한이 없습니다</div>";
+    document.documentElement.style.visibility="";
+  });
+})();
+</script>
+<style>
+:root{--desk:#2B3A4A;--desk-deep:#22303D;--red:#c0392b;--ink:#1E242B}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--desk)}
+body{font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;color:#fff;min-height:100dvh;padding-bottom:120px}
+.top{position:sticky;top:0;z-index:5;background:var(--desk-deep);padding:8px 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.top a.back{color:#8FA9BC;text-decoration:none;font-size:12.5px;font-weight:700;border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:6px 9px;white-space:nowrap}
+select,button{font:inherit;color:#fff;background:#2F4054;border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:6px 10px;font-size:13px;font-weight:700;cursor:pointer}
+select{max-width:46vw}
+button:active{transform:scale(.97)}
+button.on{background:var(--red);border-color:var(--red)}
+.pg-nav{display:flex;align-items:center;gap:4px;margin-left:auto}
+.pg-nav .n{font-size:12.5px;font-weight:700;color:#C9D4DE;font-variant-numeric:tabular-nums;min-width:52px;text-align:center}
+.stage{position:relative;margin:10px auto 0;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.35);overflow:hidden;border-radius:4px}
+.stage iframe{border:0;width:1200px;height:1600px;transform-origin:0 0;display:block;background:#fff}
+.bar{position:fixed;bottom:0;left:0;right:0;z-index:5;background:var(--desk-deep);padding:9px 10px calc(9px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
+.seg{display:flex;border:1px solid rgba(255,255,255,.14);border-radius:9px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:7px 11px;background:transparent}
+.seg button.on{background:var(--red)}
+.seg .lab{padding:7px 8px 7px 10px;font-size:12px;color:#8FA9BC;font-weight:700;align-self:center}
+#play{min-width:96px;font-size:14px}
+.cnt{font-size:12.5px;font-weight:700;color:#C9D4DE;font-variant-numeric:tabular-nums}
+.hint{width:100%;text-align:center;font-size:11.5px;color:#7F93A6;line-height:1.5}
+.lock{color:#8FA9BC;text-align:center;padding:40vh 20px 0;font-size:14px;line-height:1.7}
+.toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;font-weight:700;z-index:9;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="top">
+  <a class="back" href="index.html">← 목차</a>
+  <select id="partSel" aria-label="파트"></select>
+  <div class="pg-nav">
+    <button id="prevBtn" title="이전 장">◀</button>
+    <span class="n" id="pgLab">-/-</span>
+    <button id="nextBtn" title="다음 장">▶</button>
+  </div>
+</div>
+<div class="stage" id="stage"><iframe id="frame" scrolling="no" title="빈칸 페이지"></iframe></div>
+<div class="bar">
+  <div class="seg" id="ivSeg"><span class="lab">간격</span></div>
+  <button id="play">▶ 자동</button>
+  <span class="cnt" id="cnt">빈칸 0/0</span>
+  <button id="allBtn">전체 공개</button>
+  <button id="resetBtn">↺ 처음</button>
+  <div class="hint">자동: 정한 초마다 번호순으로 정답이 나타나고, 마지막 빈칸 뒤 잠시 멈췄다가 다음 장으로 넘어갑니다 · 페이지를 탭하면 바로 다음 빈칸</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const OWNER_SYNC="1111";
+const DATA_URL="data/blank/haeng.json";
+const IV_OPTIONS=[1,2,3,5];
+const PAGE_W=1200, PAGE_H=1600;
+const LS_IV="fc:blank:iv", LS_POS="fc:blank:pos";
+const INNER_CSS=`
+.mode{display:none!important}
+.quiz .b{color:transparent;cursor:default}
+.quiz .b.on{color:#c0392b!important;background:#fff!important;font-weight:700;animation:pop .35s ease-out}
+.quiz .b.cur{box-shadow:0 0 0 3px #c0392b;border-radius:4px}
+@keyframes pop{0%{background:#ffd54a;transform:scale(1.08)}100%{background:#fff;transform:scale(1)}}
+`;
+function isOwner(){ return (localStorage.getItem("fc:synccode")||"").trim()===OWNER_SYNC; }
+const $=id=>document.getElementById(id);
+
+let DATA=null, pi=0, gi=0, blanks=[], ri=0, auto=false, timer=null, scale=1;
+let iv=Number(localStorage.getItem(LS_IV))||2;
+
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),1600); }
+function savePos(){ try{ localStorage.setItem(LS_POS, JSON.stringify({pi,gi})); }catch(e){} }
+function loadPos(){ try{ const p=JSON.parse(localStorage.getItem(LS_POS)||"null"); if(p && DATA.parts[p.pi] && DATA.parts[p.pi].pages[p.gi]){ pi=p.pi; gi=p.gi; } }catch(e){} }
+
+function fit(){
+  scale=Math.min(1,(window.innerWidth-12)/PAGE_W);
+  $("frame").style.transform=`scale(${scale})`;
+  $("stage").style.width=Math.round(PAGE_W*scale)+"px";
+  $("stage").style.height=Math.round(PAGE_H*scale)+"px";
+}
+
+function drawIv(){
+  const seg=$("ivSeg"); seg.querySelectorAll("button").forEach(b=>b.remove());
+  IV_OPTIONS.forEach(sec=>{
+    const b=document.createElement("button"); b.textContent=sec+"초"; if(sec===iv) b.classList.add("on");
+    b.onclick=()=>{ iv=sec; localStorage.setItem(LS_IV,String(iv)); drawIv(); if(auto) schedule(); };
+    seg.appendChild(b);
+  });
+}
+
+function drawParts(){
+  const sel=$("partSel"); sel.innerHTML="";
+  DATA.parts.forEach((p,i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=`${p.name} (${p.pages.length}장)`; sel.appendChild(o); });
+  sel.value=pi;
+  sel.onchange=()=>{ pi=Number(sel.value); gi=0; savePos(); loadPage(); };
+}
+
+function updateLabels(){
+  const part=DATA.parts[pi];
+  $("pgLab").textContent=`${gi+1}/${part.pages.length}`;
+  $("cnt").textContent=`빈칸 ${ri}/${blanks.length}`;
+  $("partSel").value=pi;
+  document.title=`${part.pages[gi].title} · 빈칸 자동재생`;
+}
+
+function loadPage(){
+  clearTimeout(timer);
+  const part=DATA.parts[pi], page=part.pages[gi];
+  const doc=`<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>${part.css}${INNER_CSS}</style></head><body><div class="quiz">${page.html}</div></body></html>`;
+  const fr=$("frame");
+  fr.onload=()=>{
+    const d=fr.contentDocument;
+    blanks=[...d.querySelectorAll("span.b")]; ri=0;
+    if(blanks[0]) blanks[0].classList.add("cur");
+    d.body.addEventListener("click",()=>{ revealNext(true); if(auto) schedule(); });
+    updateLabels();
+    window.scrollTo({top:0});
+    if(auto) schedule();
+  };
+  fr.srcdoc=doc;
+  updateLabels();
+}
+
+function scrollToBlank(el){
+  const r=el.getBoundingClientRect();              // iframe 문서 기준 (iframe은 스크롤 없음)
+  const y=$("stage").offsetTop + r.top*scale;
+  const target=y - window.innerHeight*0.42;
+  window.scrollTo({top:Math.max(0,target), behavior:"smooth"});
+}
+
+/* 다음 빈칸 하나 공개. 끝났으면 (수동일 때만) 다음 장 */
+function revealNext(manual){
+  if(ri>=blanks.length){ if(manual) nextPage(); return; }
+  const el=blanks[ri]; el.classList.remove("cur"); el.classList.add("on"); ri++;
+  if(blanks[ri]) blanks[ri].classList.add("cur");
+  scrollToBlank(el);
+  updateLabels();
+}
+
+function schedule(){
+  clearTimeout(timer);
+  if(!auto) return;
+  if(ri<blanks.length){
+    timer=setTimeout(()=>{ revealNext(false); schedule(); }, iv*1000);
+  }else{
+    timer=setTimeout(()=>{ if(!nextPage()) stopAuto("마지막 장입니다"); }, Math.max(iv*2,2)*1000);   // 마지막 빈칸 뒤 잠시 멈춤
+  }
+}
+
+function startAuto(){ auto=true; $("play").textContent="⏸ 정지"; $("play").classList.add("on"); schedule(); }
+function stopAuto(msg){ auto=false; clearTimeout(timer); $("play").textContent="▶ 자동"; $("play").classList.remove("on"); if(msg) toast(msg); }
+
+/* 다음 장(파트 끝이면 다음 파트). 더 없으면 false */
+function nextPage(){
+  const part=DATA.parts[pi];
+  if(gi+1<part.pages.length){ gi++; }
+  else if(pi+1<DATA.parts.length){ pi++; gi=0; toast(DATA.parts[pi].name); }
+  else return false;
+  savePos(); loadPage(); return true;
+}
+function prevPage(){
+  if(gi>0){ gi--; }
+  else if(pi>0){ pi--; gi=DATA.parts[pi].pages.length-1; }
+  else return;
+  savePos(); loadPage();
+}
+function revealAll(){ blanks.forEach(b=>{ b.classList.remove("cur"); b.classList.add("on"); }); ri=blanks.length; updateLabels(); clearTimeout(timer); if(auto) schedule(); }
+
+async function init(){
+  if(!isOwner()){
+    document.body.innerHTML=`<div class="lock">🔒 이 페이지는 소유자 코드(1111)로 접속한 기기에서만 볼 수 있습니다.<br><a href="index.html" style="color:#8FA9BC">← 목차로</a></div>`;
+    return;
+  }
+  try{
+    const r=await fetch(DATA_URL+"?v="+Date.now());
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    DATA=await r.json();
+  }catch(e){
+    document.body.innerHTML=`<div class="lock">빈칸 데이터를 불러오지 못했습니다.<br><small>${e.message}</small></div>`;
+    return;
+  }
+  loadPos(); drawParts(); drawIv(); fit(); loadPage();
+  $("play").onclick=()=>auto?stopAuto():startAuto();
+  $("prevBtn").onclick=prevPage;
+  $("nextBtn").onclick=()=>{ if(!nextPage()) toast("마지막 장입니다"); };
+  $("allBtn").onclick=revealAll;
+  $("resetBtn").onclick=()=>loadPage();
+  window.addEventListener("resize",fit);
+  document.addEventListener("keydown",e=>{
+    if(e.code==="Space"){ e.preventDefault(); revealNext(true); if(auto) schedule(); }
+    else if(e.key==="ArrowRight"){ nextPage(); }
+    else if(e.key==="ArrowLeft"){ prevPage(); }
+  });
+}
+window.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>
